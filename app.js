@@ -180,69 +180,86 @@ function saveLocalCache(){try{localStorage.setItem('dogrh_drivers',JSON.stringif
 async function initCloud(){
  if(!cloudConfigured()){console.warn('DoG RaceHub Cloud: config fehlt.');return false}
  try{
-   cloudClient=window.supabase.createClient(window.DOG_SUPABASE_URL,window.DOG_SUPABASE_ANON_KEY);
-   const userResult=await Promise.race([
-     cloudClient.auth.getUser(),
-     new Promise((_,reject)=>setTimeout(()=>reject(new Error('AUTH_TIMEOUT')),8000))
-   ]);
-   cloudUser=userResult?.data?.user||null;
-   const {data:row,error}=await cloudClient.from('app_state').select('owner_id,data').eq('id',1).maybeSingle();
-   if(error){console.error(error);toast('Cloud-Datenbank nicht erreichbar. Die Ansicht bleibt lokal verfügbar.');return false}
-   if(row){
-     cloudOwnerId=row.owner_id;
-     cloudReady=true;
-     const local=cloudState();
-     const cloudData=row.data&&typeof row.data==='object'?row.data:{};
-     const cloudHasData=Array.isArray(cloudData.drivers)&&cloudData.drivers.length>0 || (Array.isArray(cloudData.contracts)&&cloudData.contracts.length>0) || (cloudData.races&&Object.keys(cloudData.races).length>0);
-     const localHasData=Array.isArray(local.drivers)&&local.drivers.length>0 || (Array.isArray(local.contracts)&&local.contracts.length>0) || (local.races&&Object.keys(local.races).length>0);
-     if(!cloudHasData && localHasData && cloudUser && cloudUser.id===cloudOwnerId){
-       await cloudClient.from('app_state').update({data:local,updated_at:new Date().toISOString()}).eq('id',1).eq('owner_id',cloudUser.id);
-     }else if(row.data){
-       applyCloudState(row.data);
-       saveLocalCache();
-       requestAnimationFrame(()=>renderAll());
-     }
-   }else if(cloudUser){
-     cloudOwnerId=cloudUser.id;
-     cloudReady=true;
-     const {error:insertError}=await cloudClient.from('app_state').insert({id:1,owner_id:cloudUser.id,data:cloudState()});
-     if(insertError){console.error(insertError);cloudReady=false;cloudOwnerId=null;toast('Cloud-Start konnte nicht angelegt werden.');return false}
-   }
-   cloudOwner=!!cloudUser&&!!cloudOwnerId&&cloudUser.id===cloudOwnerId;
-   editor=cloudOwner;
-   updateEditorUI();
-   subscribeCloud();
+   cloudClient=window.supabase.createClient(window.DOG_SUPABASE_URL,window.DOG_SUPABASE_ANON_KEY,{
+     auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:false}
+   });
+
+   // Auth-Status sofort beobachten. Supabase speichert die Session im Browser,
+   // dadurch bleibt der Admin auch nach F5 angemeldet.
    cloudClient.auth.onAuthStateChange((_event,session)=>{
      cloudUser=session?.user||null;
      cloudOwner=!!cloudUser&&!!cloudOwnerId&&cloudUser.id===cloudOwnerId;
      editor=cloudOwner;
      updateEditorUI();
    });
+
+   const {data:sessionData,error:sessionError}=await cloudClient.auth.getSession();
+   if(sessionError)console.warn('DoG RaceHub Auth:',sessionError);
+   cloudUser=sessionData?.session?.user||null;
+
+   const {data:row,error}=await cloudClient.from('app_state').select('owner_id,data').eq('id',1).maybeSingle();
+   if(error){
+     console.error(error);
+     cloudReady=false;
+     cloudOwner=false;
+     editor=false;
+     updateEditorUI();
+     toast('Cloud-Datenbank nicht erreichbar. Die Ansicht bleibt verfügbar.');
+     return false;
+   }
+
+   if(row){
+     // Die Cloud ist die zentrale Quelle. Vorhandene lokale Daten werden
+     // bei einer vorhandenen Cloud-Zeile niemals automatisch darübergelegt.
+     cloudOwnerId=row.owner_id||null;
+     cloudReady=true;
+     if(row.data&&typeof row.data==='object'){
+       applyCloudState(row.data);
+       saveLocalCache();
+       requestAnimationFrame(()=>renderAll());
+     }
+   }else if(cloudUser){
+     // Nur beim erstmaligen Anlegen darf der angemeldete Admin die zentrale
+     // Datenzeile erstellen.
+     cloudOwnerId=cloudUser.id;
+     cloudReady=true;
+     const {error:insertError}=await cloudClient.from('app_state').insert({id:1,owner_id:cloudUser.id,data:cloudState()});
+     if(insertError){
+       console.error(insertError);
+       cloudReady=false;
+       cloudOwnerId=null;
+       cloudOwner=false;
+       editor=false;
+       updateEditorUI();
+       toast('Cloud-Start konnte nicht angelegt werden.');
+       return false;
+     }
+   }else{
+     cloudReady=false;
+     cloudOwnerId=null;
+   }
+
+   cloudOwner=!!cloudUser&&!!cloudOwnerId&&cloudUser.id===cloudOwnerId;
+   editor=cloudOwner;
+   updateEditorUI();
+   subscribeCloud();
    return true;
  }catch(e){
    console.error('Cloud init',e);
-   toast(e?.message==='AUTH_TIMEOUT'?'Cloud-Anmeldung dauert zu lange. Ansicht bleibt verfügbar.':'Cloud-Start fehlgeschlagen. Ansicht bleibt verfügbar.');
+   cloudReady=false;
+   cloudOwner=false;
+   editor=false;
+   updateEditorUI();
+   toast('Cloud-Start fehlgeschlagen. Ansicht bleibt verfügbar.');
    return false;
  }
-}
-async function cloudSave(){
- if(!cloudClient||!cloudReady||!cloudOwner||!cloudUser){toast('Cloud-Speicherung ist noch nicht bereit.');return false}
- if(cloudBusy){cloudSaveQueued=true;return true}
- cloudBusy=true; cloudSaveQueued=false;
- try{
-   const payload={data:cloudState(),updated_at:new Date().toISOString()};
-   const {data,error}=await cloudClient.from('app_state').update(payload).eq('id',1).eq('owner_id',cloudUser.id).select('id,owner_id,updated_at').maybeSingle();
-   if(error){toast('Cloud-Speicherung fehlgeschlagen.');console.error(error);return false}
-   if(!data){toast('Cloud-Speicherung abgelehnt: Admin-Berechtigung prüfen.');console.error('Cloud update returned no row');return false}
-   return true
- }finally{cloudBusy=false;if(cloudSaveQueued)setTimeout(()=>cloudSave(),50)}
 }
 function subscribeCloud(){
  if(!cloudClient||cloudChannel)return;
  cloudChannel=cloudClient.channel('dog-racehub-state').on('postgres_changes',{event:'UPDATE',schema:'public',table:'app_state',filter:'id=eq.1'},payload=>{if(payload?.new?.data){applyCloudState(payload.new.data);saveLocalCache();renderAll();toast('Daten aus der Cloud aktualisiert.')}}).subscribe();
 }
 function renderAll(){try{updateSeasonChrome();updateStats();renderDashboard();renderWM();renderKWM();renderArchive();initDriverOverview();renderTeams();renderFinance();}catch(e){console.warn('renderAll',e)}}
-function updateEditorUI(){const b=document.querySelector('.edit-btn');if(b)b.textContent=editor?'✏️ Bearbeiten · Admin':'🔐 Bearbeiten';}
+function updateEditorUI(){document.querySelectorAll('.edit-btn').forEach(b=>{b.textContent=editor?'✏️ Bearbeiten · Admin':'🔐 Admin / Bearbeiten';});}
 
 function load(){const ver='2.7';if(localStorage.getItem('dogrh_data_version')!==ver){localStorage.setItem('dogrh_data_version',ver)}try{const d=JSON.parse(localStorage.getItem('dogrh_drivers'));if(Array.isArray(d)&&d.length)drivers=d}catch(e){};try{const m=JSON.parse(localStorage.getItem('dogrh_driver_meta'));if(m&&typeof m==='object')driverMeta=m}catch(e){};try{const c=JSON.parse(localStorage.getItem('dogrh_contracts'));if(Array.isArray(c))contracts=c}catch(e){}; try{const tr=JSON.parse(localStorage.getItem('dogrh_transfers'));if(Array.isArray(tr))transferRecords=tr}catch(e){}; try{const fb=JSON.parse(localStorage.getItem('dogrh_finance_budgets'));if(fb&&typeof fb==='object')financeBudgets=fb}catch(e){};try{const cu=JSON.parse(localStorage.getItem('dogrh_finance_cap_usage'));if(cu&&typeof cu==='object')financeCapUsage=cu}catch(e){};try{const sp=JSON.parse(localStorage.getItem('dogrh_sponsor_payments'));if(sp&&typeof sp==='object')sponsorPayments=sp}catch(e){};try{const ft=JSON.parse(localStorage.getItem('dogrh_finance_transactions'));if(Array.isArray(ft))financeTransactions=ft}catch(e){};try{const ob=JSON.parse(localStorage.getItem('dogrh_finance_opening'));if(ob&&typeof ob==='object')financeOpeningBalances=ob}catch(e){};try{const fo=JSON.parse(localStorage.getItem('dogrh_finance_tx_overrides'));if(fo&&typeof fo==='object')financeTxOverrides=fo}catch(e){};try{const dob=JSON.parse(localStorage.getItem('dogrh_driver_finance_opening'));if(dob&&typeof dob==='object')driverFinanceOpeningBalances=dob}catch(e){};try{const dod=JSON.parse(localStorage.getItem('dogrh_driver_finance_opening_dates'));if(dod&&typeof dod==='object')driverFinanceOpeningDates=dod}catch(e){};try{const la=JSON.parse(localStorage.getItem('dogrh_loan_agreements'));if(Array.isArray(la))loanAgreements=la}catch(e){};try{const dl=JSON.parse(localStorage.getItem('dogrh_driver_licenses'));if(dl&&typeof dl==='object')driverLicenses=dl}catch(e){};try{const savedTeams=JSON.parse(localStorage.getItem('dogrh_teams'));if(Array.isArray(savedTeams)&&savedTeams.length){savedTeams.forEach(st=>{const t=teams.find(x=>x.name===st.name);if(t){t.chief=st.chief??t.chief;t.d1=Array.isArray(st.d1)?st.d1:t.d1;t.d2=Array.isArray(st.d2)?st.d2:t.d2}})}}catch(e){}
 try{const m=JSON.parse(localStorage.getItem('dogrh_driver_meta'));if(m&&typeof m==='object')driverMeta=m}catch(e){}try{const r=JSON.parse(localStorage.getItem('dogrh_races'));if(r&&typeof r==='object')Object.assign(races,r)}catch(e){};try{const ss=JSON.parse(localStorage.getItem('dogrh_season_state'));if(ss&&typeof ss==='object')seasonState={...seasonState,...ss}}catch(e){}
@@ -1620,14 +1637,46 @@ function openAdmin(){
 }
 async function loginAdmin(){
  if(!cloudConfigured()){toast('Cloud-Setup fehlt. config.js einrichten.');return}
- const email=document.getElementById('admin-email')?.value.trim(),password=document.getElementById('admin-password')?.value||''; if(!email||password.length<6){toast('E-Mail und mindestens 6 Zeichen Passwort erforderlich.');return}
+ if(!cloudClient){await initCloud()}
+ if(!cloudClient){toast('Cloud-Anmeldung ist noch nicht bereit.');return}
+ const email=document.getElementById('admin-email')?.value.trim(),password=document.getElementById('admin-password')?.value||'';
+ if(!email||password.length<6){toast('E-Mail und mindestens 6 Zeichen Passwort erforderlich.');return}
  const result=await cloudClient.auth.signInWithPassword({email,password});
  if(result.error){toast(result.error.message||'Anmeldung fehlgeschlagen.');return}
  cloudUser=result.data.user||null;
- 
- cloudOwner=!!cloudUser&&cloudUser.id===cloudOwnerId;editor=cloudOwner;closeModal();updateEditorUI();toast(editor?'Admin-Bearbeitung freigeschaltet.':'Angemeldet, aber dieses Konto hat nur Leserechte.');
+
+ // Owner-ID nach dem Login noch einmal direkt aus der Cloud lesen.
+ const {data:row,error:rowError}=await cloudClient.from('app_state').select('owner_id,data').eq('id',1).maybeSingle();
+ if(rowError){console.error(rowError);toast('Cloud-Datenbank konnte nach der Anmeldung nicht gelesen werden.');return}
+ if(row){
+   cloudOwnerId=row.owner_id||null;
+   cloudReady=true;
+   if(row.data&&typeof row.data==='object'){
+     applyCloudState(row.data);
+     saveLocalCache();
+     renderAll();
+   }
+ }else{
+   cloudOwnerId=cloudUser.id;
+   cloudReady=true;
+   const {error:insertError}=await cloudClient.from('app_state').insert({id:1,owner_id:cloudUser.id,data:cloudState()});
+   if(insertError){console.error(insertError);toast('Cloud-Start konnte nicht angelegt werden.');return}
+ }
+ cloudOwner=!!cloudUser&&!!cloudOwnerId&&cloudUser.id===cloudOwnerId;
+ editor=cloudOwner;
+ updateEditorUI();
+ closeModal();
+ toast(editor?'Admin-Bearbeitung freigeschaltet.':'Angemeldet, aber dieses Konto hat nur Leserechte.');
 }
-async function logoutAdmin(){if(cloudClient)await cloudClient.auth.signOut();editor=false;cloudUser=null;updateEditorUI();closeModal();toast('Bearbeitung gesperrt.');}
+async function logoutAdmin(){
+ if(cloudClient)await cloudClient.auth.signOut({scope:'local'});
+ cloudUser=null;
+ cloudOwner=false;
+ editor=false;
+ updateEditorUI();
+ closeModal();
+ toast('Bearbeitung gesperrt.');
+}
 function requireEditor(){if(!editor){openAdmin();return false}return true}
 function adminPanel(){const q=databaseIntegrity();document.getElementById('modal-content').innerHTML=`<div class="modal-head"><h2>DoG Liga-Verwaltung</h2><button onclick="closeModal()">×</button></div><p class="race-edit-note">Nur das registrierte Admin-Konto darf Daten verändern. Alle anderen Besucher haben Ansichtszugriff.</p><div class="admin-integrity"><b>Datenstatus</b><span>${q.races} Rennen · ${q.weekends} Rennwochenenden · ${q.results} Ergebnisse</span><span>${q.orphan?'⚠ '+q.orphan+' unbekannte Fahrer':'✓ Fahrerzuordnungen OK'}</span><span>${q.duplicate?'⚠ '+q.duplicate+' doppelte Ergebniszeilen':'✓ Keine doppelten Ergebniszeilen'}</span><span>${q.invalid?'⚠ Punkte prüfen':'✓ Punkte konsistent'}</span></div><button class="primary" onclick="recalculateDatabase()">🔄 Gesamte Datenbank neu berechnen</button><button class="ghost" onclick="cloudSave().then(ok=>ok&&toast('Cloud-Daten gespeichert.'))">☁️ Jetzt in Cloud speichern</button><button class="ghost" onclick="logoutAdmin()">🔒 Abmelden / Bearbeitung sperren</button>`;openModal()}
 function openModal(){document.getElementById('modal').classList.add('show')} function closeModal(){document.getElementById('modal').classList.remove('show')} function toast(t){const x=document.getElementById('toast');x.textContent=t;x.style.display='block';clearTimeout(window.__toast);window.__toast=setTimeout(()=>x.style.display='none',2600)} function money(n){return new Intl.NumberFormat('de-DE',{style:'currency',currency:'EUR',maximumFractionDigits:0}).format(n)} function esc(s){return String(s??'').replace(/[&<>'"]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[m]))}
