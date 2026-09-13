@@ -254,6 +254,33 @@ async function initCloud(){
    return false;
  }
 }
+async function cloudSave(){
+ if(!cloudClient||!cloudReady||!cloudOwner||!cloudUser){
+   console.warn('DoG RaceHub Cloud: Speichern nicht bereit.',{cloudReady,cloudOwner,cloudUser:!!cloudUser});
+   return false;
+ }
+ if(cloudBusy){cloudSaveQueued=true;return true}
+ cloudBusy=true;cloudSaveQueued=false;
+ try{
+   const payload={data:cloudState(),updated_at:new Date().toISOString()};
+   const {data,error}=await cloudClient.from('app_state')
+     .update(payload)
+     .eq('id',1)
+     .eq('owner_id',cloudUser.id)
+     .select('id,owner_id,updated_at')
+     .maybeSingle();
+   if(error){console.error('DoG RaceHub Cloud Save',error);toast('Cloud-Speicherung fehlgeschlagen.');return false}
+   if(!data){console.error('DoG RaceHub Cloud Save: keine Zeile aktualisiert');toast('Cloud-Speicherung abgelehnt: Admin-Berechtigung prüfen.');return false}
+   return true;
+ }catch(e){
+   console.error('DoG RaceHub Cloud Save',e);
+   toast('Cloud-Speicherung fehlgeschlagen.');
+   return false;
+ }finally{
+   cloudBusy=false;
+   if(cloudSaveQueued)setTimeout(()=>cloudSave(),50);
+ }
+}
 function subscribeCloud(){
  if(!cloudClient||cloudChannel)return;
  cloudChannel=cloudClient.channel('dog-racehub-state').on('postgres_changes',{event:'UPDATE',schema:'public',table:'app_state',filter:'id=eq.1'},payload=>{if(payload?.new?.data){applyCloudState(payload.new.data);saveLocalCache();renderAll();toast('Daten aus der Cloud aktualisiert.')}}).subscribe();
