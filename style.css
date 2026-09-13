@@ -222,3 +222,5 @@ html,body{background:#050607;min-height:100%}body{font-family:Inter,Segoe UI,Ari
 .language-picker select option{background:#17191d;color:#fff}
 @media(max-width:900px){.language-picker select{min-width:105px;padding:7px 8px}.top-actions{gap:6px}}
 .finance-row-actions{display:flex;gap:5px;justify-content:flex-end;white-space:nowrap}.finance-row-actions .mini-link{padding:5px 7px;font-size:10px}.finance-opening-row{opacity:.9}
+
+.driver-role-editor{margin-top:14px;padding:14px;border:1px solid rgba(255,255,255,.1);border-radius:12px}.role-title{font-weight:700;margin-bottom:8px}.role-check{display:inline-flex!important;align-items:center;gap:7px;margin-right:18px}.role-check input{accent-color:#11d7c5}.role-hint{font-size:12px;opacity:.7;margin-top:8px}
