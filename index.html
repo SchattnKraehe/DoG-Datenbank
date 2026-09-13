@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>DoG RaceHub</title><link rel="stylesheet" href="./style.css?v=1.89"><link rel="manifest" href="manifest.webmanifest"><meta name="theme-color" content="#8f1820"><meta name="description" content="DoG RaceHub – F1 League Manager for drivers, teams, races and championships."><meta name="mobile-web-app-capable" content="yes"><link rel="apple-touch-icon" href="icon-192.png">
+</head>
+<body>
+<div id="toast"></div>
+<div class="app">
+<aside class="sidebar">
+  <div class="brand"><div class="brand-mark"><img src="dog-logo.png" alt="DoG"></div><div><strong>DoG</strong><span>RACEHUB</span></div></div>
+  <div class="nav-group"><div class="nav-title">AKTUELLE SAISON <b>02/26</b></div>
+    <button class="nav active" data-view="dashboard">⌂ <span>Dashboard</span></button>
+    <button class="nav" data-view="drivers">♙ <span>Fahrer</span></button>
+    <button class="nav" data-view="compare">⇄ <span>Vergleich</span></button>
+    <button class="nav" data-view="teams">▦ <span>Teams</span></button>
+    <button class="nav" data-view="races">◉ <span>Rennen</span></button>
+    <button class="nav" data-view="wm">🏆 <span>Fahrer-WM</span></button>
+    <button class="nav" data-view="kwm">◆ <span>KWM</span></button>
+  </div>
+  <div class="nav-group archive-nav"><div class="nav-title">ARCHIV</div>
+    <button class="nav" data-view="archive">▤ <span>Saisonarchiv</span></button>
+  </div>
+  <div class="season-box"><small>AKTIVE SAISON</small><b>02/26</b><span>Division 1 &amp; 2</span></div>
+  <div class="sidebar-foot">DoG RaceHub · v1.89</div>
+</aside>
+<main class="main">
+<header class="topbar"><div><div class="eyebrow">DOG RACEHUB</div><h1 id="page-title">Dashboard</h1></div><div class="top-actions"><label class="language-picker" title="Sprache / Language">🌐 <span>Sprache</span><select id="language-select" aria-label="Sprache"><option value="de">🇩🇪 Deutsch</option><option value="en">🇬🇧 English</option><option value="pl">🇵🇱 Polski</option><option value="es">🇪🇸 Español</option><option value="da">🇩🇰 Dansk</option></select></label><button id="install-app" class="ghost" style="display:none" onclick="installApp()">📲 App installieren</button><button class="edit-btn" onclick="openAdmin()">✏️ Bearbeiten</button><span class="pill">SAISON 02/26</span><span class="status-dot">● System bereit</span></div></header>
+
+<section id="dashboard" class="view active">
+  <div class="hero"><div><span class="eyebrow">SAISON 02/26</span><h2>Deine Liga. Deine Daten.<br><em>Dein RaceHub.</em></h2><p>Fahrer, Teams, Rennen und Meisterschaften – sauber getrennt, nachvollziehbar und jederzeit erweiterbar.</p></div><div class="hero-badge">🏁</div></div>
+  <div class="stats-grid"><div class="stat"><span>Stammfahrer</span><strong id="stat-drivers">0</strong><small>aktuelle Saison</small></div><div class="stat"><span>Teams</span><strong>11</strong><small>alle aktiven Teams</small></div><div class="stat"><span>Divisionen</span><strong>2</strong><small>Div 1 · Div 2</small></div><div class="stat"><span>Erfasste Rennen</span><strong id="stat-races">0</strong><small>aktuelle Saison</small></div></div>
+  <div id="dotd-dashboard" class="two-col dotd-grid"></div>
+  <div id="market-movement-dashboard" class="market-movement-grid"></div>
+  <div class="two-col"><div class="panel"><div class="panel-head"><div><h3>Schnellzugriff</h3><p>Die wichtigsten Bereiche</p></div></div><div class="quick-grid"><button onclick="showView('drivers')">♙<b>Fahrer</b><small>Einzelakte &amp; Marktwert</small></button><button onclick="showView('teams')">▦<b>Teams</b><small>Fahrer &amp; Fahrzeuge</small></button><button onclick="showView('races')">◉<b>Rennen</b><small>Ergebnisse &amp; Screenshots</small></button><button onclick="showView('wm')">🏆<b>Fahrer-WM</b><small>Div 1 und Div 2</small></button></div></div></div>
+</section>
+
+<section id="drivers" class="view"><div class="racehub-page-hero"><div class="rh-hero-copy"><div class="eyebrow">DOG RACEHUB · DRIVERS</div><h2>FAHRER</h2><p>Eine kompakte, vollständige Übersicht aller Fahrer.</p></div><div class="rh-hero-actions"><span class="pill">▣ SAISON 02/26</span><span class="status-dot">● System bereit</span></div><div class="rh-hero-car"></div></div><div class="driver-toolbar"><div class="driver-search-wrap">⌕<input id="driver-search" placeholder="Fahrer suchen ..." oninput="filterDriverSelect()"></div><label class="driver-team-filter">Team <select id="driver-team-filter" onchange="filterDriverSelect()"><option value="">Alle</option></select></label><button class="primary" onclick="openAddDriver()">＋ Fahrer hinzufügen</button></div><div class="driver-overview"><label class="legacy-driver-select">Fahrer auswählen<select id="driver-select" onchange="openDriver(this.value)"></select></label><div id="driver-profile"></div></div></section><section id="compare" class="view"><div class="section-head"><div><h3>Vergleich</h3><p>Direkter Vergleich von bis zu vier Fahrern.</p></div></div><div id="compare-content"></div></section>
+<section id="teams" class="view"><div class="section-head"><div><h3>Teams</h3><p>Aktuelle Teamstruktur · Fahrzeug klein neben dem Teamnamen.</p></div><button class="primary" onclick="openTransferManager()">🔄 Transfers</button></div><div id="team-list" class="team-list"></div><div id="driver-status-list" class="status-board"></div></section>
+<section id="wm" class="view"><div class="section-head"><div><h3>Fahrer-WM</h3><p>Division auswählen und die Fahrer-WM anzeigen.</p></div><div class="selector-row"><select id="wm-season" class="div-select" onchange="renderWM()"></select><select id="wm-div" class="div-select" onchange="renderWM()"><option selected>Div 1</option><option>Div 2</option></select></div></div><div id="wm-table"></div></section>
+<section id="kwm" class="view"><div class="section-head"><div><h3>KWM</h3><p>Konstrukteurs-WM mit Div 1, Div 2 oder Gesamt.</p></div><div class="selector-row"><select id="kwm-season" class="div-select" onchange="renderKWM()"></select><select id="kwm-div" class="div-select" onchange="renderKWM()"><option>Div 1</option><option selected>Div 2</option><option>Overall</option></select></div></div><div id="kwm-table" class="table-panel"></div></section>
+<section id="races" class="view"><div class="section-head"><div><h3>Rennen</h3><p>Division → Strecke → Ergebnis. Die Strecke wird anhand des gespeicherten Rennens eindeutig zugeordnet.</p></div><button class="primary" onclick="openAddRace()">➕ Rennen hinzufügen</button></div><div class="race-controls"><label>Saison<select id="race-season" onchange="updateRaceSelectors()"></select></label><label>Division<select id="race-div" onchange="updateRaceSelectors()"><option value="Div 1">Division 1</option><option value="Div 2" selected>Division 2</option></select></label><label>Strecke<select id="race-track" onchange="renderSelectedRace()"></select></label></div><div id="race-editor"></div></section>
+<section id="archive" class="view"><div class="section-head"><div><h3>Saisonarchiv</h3><p>Historische Rennstände und Regelversionen der DoG-Saisons.</p></div></div><div class="archive-card active-season"><div><b>02/26</b><small>Offiziell · 1. Saison</small></div><span>Div 1 &amp; Div 2</span><i>aktiv</i></div></section>
+</main></div>
+<div id="modal" class="modal"><div class="modal-card" id="modal-content"></div></div>
+<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script><script src="./app.js?v=1.89"></script><script src="./lang.js?v=1.89"></script><script>
+let deferredInstallPrompt=null;
+window.addEventListener("beforeinstallprompt",e=>{e.preventDefault();deferredInstallPrompt=e;const b=document.getElementById("install-app");if(b)b.style.display="inline-flex"});
+window.addEventListener("appinstalled",()=>{deferredInstallPrompt=null;const b=document.getElementById("install-app");if(b)b.style.display="none"});
+function installApp(){if(!deferredInstallPrompt)return;deferredInstallPrompt.prompt();deferredInstallPrompt.userChoice.finally(()=>{deferredInstallPrompt=null;const b=document.getElementById("install-app");if(b)b.style.display="none"})}
+if("serviceWorker" in navigator){navigator.serviceWorker.register("sw.js").catch(()=>{});}
+</script>
+</body></html>
