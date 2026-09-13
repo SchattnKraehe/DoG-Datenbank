@@ -1611,15 +1611,15 @@ function renderKWM(){
 let editor=false;function isEditor(){return editor}
 function openAdmin(){
  if(editor){adminPanel();return}
- document.getElementById('modal-content').innerHTML=`<div class="modal-card small"><div class="modal-head"><h2>Bearbeitung freischalten</h2><button onclick="closeModal()">×</button></div><p class="race-edit-note">Alle dürfen die RaceHub-Daten ansehen. Nur dein persönliches Admin-Konto darf Daten ändern.</p><input id="admin-email" type="email" placeholder="E-Mail-Adresse"><input id="admin-password" type="password" placeholder="Passwort"><div class="modal-actions"><button class="ghost" onclick="closeModal()">Abbrechen</button><button class="ghost" onclick="loginAdmin(true)">Konto anlegen</button><button class="primary" onclick="loginAdmin(false)">Anmelden</button></div></div>`;openModal();
+ document.getElementById('modal-content').innerHTML=`<div class="modal-card small"><div class="modal-head"><h2>Bearbeitung freischalten</h2><button onclick="closeModal()">×</button></div><p class="race-edit-note">Alle dürfen die RaceHub-Daten ansehen. Nur dein persönliches Admin-Konto darf Daten ändern.</p><input id="admin-email" type="email" placeholder="E-Mail-Adresse"><input id="admin-password" type="password" placeholder="Passwort"><div class="modal-actions"><button class="ghost" onclick="closeModal()">Abbrechen</button><button class="primary" onclick="loginAdmin()">Anmelden</button></div></div>`;openModal();
 }
-async function loginAdmin(signup){
+async function loginAdmin(){
  if(!cloudConfigured()){toast('Cloud-Setup fehlt. config.js einrichten.');return}
  const email=document.getElementById('admin-email')?.value.trim(),password=document.getElementById('admin-password')?.value||''; if(!email||password.length<6){toast('E-Mail und mindestens 6 Zeichen Passwort erforderlich.');return}
- const result=signup?await cloudClient.auth.signUp({email,password}):await cloudClient.auth.signInWithPassword({email,password});
+ const result=await cloudClient.auth.signInWithPassword({email,password});
  if(result.error){toast(result.error.message||'Anmeldung fehlgeschlagen.');return}
  cloudUser=result.data.user||null;
- if(signup&&!cloudOwnerId&&cloudUser){const {error}=await cloudClient.from('app_state').insert({id:1,owner_id:cloudUser.id,data:cloudState()});if(error){toast('Admin-Konto erstellt, aber Cloud-Startdaten konnten nicht angelegt werden.');return}cloudOwnerId=cloudUser.id;cloudReady=true}
+ 
  cloudOwner=!!cloudUser&&cloudUser.id===cloudOwnerId;editor=cloudOwner;closeModal();updateEditorUI();toast(editor?'Admin-Bearbeitung freigeschaltet.':'Angemeldet, aber dieses Konto hat nur Leserechte.');
 }
 async function logoutAdmin(){if(cloudClient)await cloudClient.auth.signOut();editor=false;cloudUser=null;updateEditorUI();closeModal();toast('Bearbeitung gesperrt.');}
