@@ -226,11 +226,16 @@ async function initCloud(){
  }
 }
 async function cloudSave(){
- if(!cloudClient||!cloudReady||!cloudOwner){return false}
+ if(!cloudClient||!cloudReady||!cloudOwner||!cloudUser){toast('Cloud-Speicherung ist noch nicht bereit.');return false}
  if(cloudBusy){cloudSaveQueued=true;return true}
  cloudBusy=true; cloudSaveQueued=false;
- try{const {error}=await cloudClient.from('app_state').update({data:cloudState(),updated_at:new Date().toISOString()}).eq('id',1).eq('owner_id',cloudUser.id);if(error){toast('Cloud-Speicherung fehlgeschlagen.');console.error(error);return false}return true}
- finally{cloudBusy=false;if(cloudSaveQueued)setTimeout(()=>cloudSave(),50)}
+ try{
+   const payload={data:cloudState(),updated_at:new Date().toISOString()};
+   const {data,error}=await cloudClient.from('app_state').update(payload).eq('id',1).eq('owner_id',cloudUser.id).select('id,owner_id,updated_at').maybeSingle();
+   if(error){toast('Cloud-Speicherung fehlgeschlagen.');console.error(error);return false}
+   if(!data){toast('Cloud-Speicherung abgelehnt: Admin-Berechtigung prüfen.');console.error('Cloud update returned no row');return false}
+   return true
+ }finally{cloudBusy=false;if(cloudSaveQueued)setTimeout(()=>cloudSave(),50)}
 }
 function subscribeCloud(){
  if(!cloudClient||cloudChannel)return;
@@ -1624,7 +1629,7 @@ async function loginAdmin(){
 }
 async function logoutAdmin(){if(cloudClient)await cloudClient.auth.signOut();editor=false;cloudUser=null;updateEditorUI();closeModal();toast('Bearbeitung gesperrt.');}
 function requireEditor(){if(!editor){openAdmin();return false}return true}
-function adminPanel(){const q=databaseIntegrity();document.getElementById('modal-content').innerHTML=`<div class="modal-head"><h2>DoG Liga-Verwaltung</h2><button onclick="closeModal()">×</button></div><p class="race-edit-note">Nur das registrierte Admin-Konto darf Daten verändern. Alle anderen Besucher haben Ansichtszugriff.</p><div class="admin-integrity"><b>Datenstatus</b><span>${q.races} Rennen · ${q.weekends} Rennwochenenden · ${q.results} Ergebnisse</span><span>${q.orphan?'⚠ '+q.orphan+' unbekannte Fahrer':'✓ Fahrerzuordnungen OK'}</span><span>${q.duplicate?'⚠ '+q.duplicate+' doppelte Ergebniszeilen':'✓ Keine doppelten Ergebniszeilen'}</span><span>${q.invalid?'⚠ Punkte prüfen':'✓ Punkte konsistent'}</span></div><button class="primary" onclick="recalculateDatabase()">🔄 Gesamte Datenbank neu berechnen</button><button class="ghost" onclick="cloudSave().then(()=>toast('Cloud-Daten gespeichert.'))">☁️ Jetzt in Cloud speichern</button><button class="ghost" onclick="logoutAdmin()">🔒 Abmelden / Bearbeitung sperren</button>`;openModal()}
+function adminPanel(){const q=databaseIntegrity();document.getElementById('modal-content').innerHTML=`<div class="modal-head"><h2>DoG Liga-Verwaltung</h2><button onclick="closeModal()">×</button></div><p class="race-edit-note">Nur das registrierte Admin-Konto darf Daten verändern. Alle anderen Besucher haben Ansichtszugriff.</p><div class="admin-integrity"><b>Datenstatus</b><span>${q.races} Rennen · ${q.weekends} Rennwochenenden · ${q.results} Ergebnisse</span><span>${q.orphan?'⚠ '+q.orphan+' unbekannte Fahrer':'✓ Fahrerzuordnungen OK'}</span><span>${q.duplicate?'⚠ '+q.duplicate+' doppelte Ergebniszeilen':'✓ Keine doppelten Ergebniszeilen'}</span><span>${q.invalid?'⚠ Punkte prüfen':'✓ Punkte konsistent'}</span></div><button class="primary" onclick="recalculateDatabase()">🔄 Gesamte Datenbank neu berechnen</button><button class="ghost" onclick="cloudSave().then(ok=>ok&&toast('Cloud-Daten gespeichert.'))">☁️ Jetzt in Cloud speichern</button><button class="ghost" onclick="logoutAdmin()">🔒 Abmelden / Bearbeitung sperren</button>`;openModal()}
 function openModal(){document.getElementById('modal').classList.add('show')} function closeModal(){document.getElementById('modal').classList.remove('show')} function toast(t){const x=document.getElementById('toast');x.textContent=t;x.style.display='block';clearTimeout(window.__toast);window.__toast=setTimeout(()=>x.style.display='none',2600)} function money(n){return new Intl.NumberFormat('de-DE',{style:'currency',currency:'EUR',maximumFractionDigits:0}).format(n)} function esc(s){return String(s??'').replace(/[&<>'"]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[m]))}
 try{ensureRaceMetadata();load();syncTeamChiefRoles();}catch(e){console.error('RaceHub startup',e);toast('RaceHub konnte einige Daten nicht laden. Die Navigation bleibt verfügbar.')}
 try{updateSeasonChrome();showView('dashboard');updateEditorUI();}catch(e){console.error('RaceHub render',e)}
