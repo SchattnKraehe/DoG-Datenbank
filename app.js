@@ -704,9 +704,11 @@ function renderMarketMovers(){
  const card=(title,icon,item,positive)=>item?`<div class="panel market-mover-card"><div class="panel-head"><div><h3>${icon} ${title}</h3><p>Seit dem letzten Rennstand · ${esc(item.label)}</p></div><span class="market-mover-delta ${positive?'up':'down'}">${positive?'+':''}${money(item.delta)}</span></div><div class="market-mover-main"><strong>${esc(item.name)}</strong><span>${money(item.prev)} → <b>${money(item.current)}</b></span></div></div>`:`<div class="panel market-mover-card"><div class="panel-head"><div><h3>${icon} ${title}</h3><p>Seit dem letzten Rennstand</p></div></div><div class="empty-race">Noch keine Marktwertveränderung vorhanden.</div></div>`;
  el.innerHTML=card('Höchster Marktwert-Anstieg','⬆️',m.rise,true)+card('Höchster Marktwert-Abstieg','⬇️',m.fall,false);
 }
+function dotdForDivision(div){
+  return null;
+}
+
 function renderDashboard(){
- const cards=['Div 1','Div 2'].map(div=>{
-   const ds=dotdForDivision(div);
    if(!ds)return `<div class="panel dotd-card"><div class="panel-head"><div><h3>⭐ Fahrer des Tages · ${div}</h3><p>Noch kein erfasstes Rennen</p></div></div><div class="empty-race">Für ${div} liegt noch kein Rennergebnis vor.</div></div>`;
    const r=ds.race,row=r.results.find(x=>normDriver(x.name)===normDriver(ds.driver));
    const pos=row?r.results.indexOf(row)+1:0;
