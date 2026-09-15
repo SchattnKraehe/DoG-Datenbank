@@ -709,13 +709,15 @@ function dotdForDivision(div){
 }
 
 function renderDashboard(){
-   if(!ds)return `<div class="panel dotd-card"><div class="panel-head"><div><h3>⭐ Fahrer des Tages · ${div}</h3><p>Noch kein erfasstes Rennen</p></div></div><div class="empty-race">Für ${div} liegt noch kein Rennergebnis vor.</div></div>`;
-   const r=ds.race,row=r.results.find(x=>normDriver(x.name)===normDriver(ds.driver));
-   const pos=row?r.results.indexOf(row)+1:0;
-   return `<div class="panel dotd-card"><div class="panel-head"><div><h3>⭐ Fahrer des Tages · ${div}</h3><p>${esc(r.track)} · Rennen ${r.number}</p></div><span class="dotd-badge">FdT</span></div><div class="dotd-main"><div><strong>${esc(normDriver(ds.driver))}</strong><span>${esc(row?.team||'')}</span></div><b>${row?pointsForPosition(pos,statusOfResult(row)):0} Pkt.</b></div><div class="dotd-stats"><span>Pos. <b>${pos||'—'}</b></span><span>Grid <b>${row?.grid??'—'}</b></span><span>Delta <b>${row?formatDelta(row.grid,pos):'—'}</b></span><span>Zeit <b>${esc(row?.time||'—')}</b></span></div></div>`;
- }).join('');
- document.getElementById('dotd-dashboard').innerHTML=cards;
- renderMarketMovers();
+  const cards=['Div 1','Div 2'].map(div=>{
+    const ds=dotdForDivision(div);
+    if(!ds)return `<div class="panel dotd-card"><div class="panel-head"><div><h3>⭐ Fahrer des Tages · ${div}</h3><p>Noch kein erfasstes Rennen</p></div></div><div class="empty-race">Für ${div} liegt noch kein Rennergebnis vor.</div></div>`;
+    const r=ds.race,row=r.results.find(x=>normDriver(x.name)===normDriver(ds.driver));
+    const pos=row?r.results.indexOf(row)+1:0;
+    return `<div class="panel dotd-card"><div class="panel-head"><div><h3>⭐ Fahrer des Tages · ${div}</h3><p>${esc(r.track)} · Rennen ${r.number}</p></div><span class="dotd-badge">FdT</span></div><div class="dotd-main"><div><strong>${esc(normDriver(ds.driver))}</strong><span>${esc(row?.team||'')}</span></div><b>${row?pointsForPosition(pos,statusOfResult(row)):0} Pkt.</b></div><div class="dotd-stats"><span>Pos. <b>${pos||'—'}</b></span><span>Grid <b>${row?.grid??'—'}</b></span><span>Delta <b>${row?formatDelta(row.grid,pos):'—'}</b></span><span>Zeit <b>${esc(row?.time||'—')}</b></span></div></div>`;
+  }).join('');
+  document.getElementById('dotd-dashboard').innerHTML=cards;
+  renderMarketMovers();
 }
 function renderTeams(){
  document.getElementById('team-list').innerHTML=teams.map(t=>`<div class="team-card"><div class="team-head"><img class="team-car-mini" src="${teamCar(t.name)}" onerror="this.style.display='none'"><div><div class="team-name">${esc(t.name)}</div><div class="team-chief">Teamchef: ${esc(t.chief||'ohne Teamchef')}</div></div><div class="team-card-actions"><button class="team-edit-btn" onclick="openTeamContracts('${esc(t.name)}')">📋 Teamzentrale</button><button class="team-edit-btn" onclick="openTeamEditor('${esc(t.name)}')">✏️</button></div></div><div class="division"><div class="division-title">DIVISION 1</div><div class="drivers-two">${slot(t.d1[0])}${slot(t.d1[1])}</div></div><div class="division"><div class="division-title">DIVISION 2</div><div class="drivers-two">${slot(t.d2[0])}${slot(t.d2[1])}</div></div></div>`).join('');
