@@ -71,7 +71,7 @@ function renderSponsorCatalog(){
 
 let ACTIVE_TRACKS=['Las Vegas','Brasilien','Belgien'];
 let TRACK_NUMBERS={'Las Vegas':1,'Brasilien':2,'Belgien':3};
-const teams=[
+lez teams=[
 {name:'McLaren',chief:'Salamander2110',car:'McLaren',d1:['MaxT7gerrang','physioalex_ttv'],d2:['Salamander2110','Uchse-Rene']},
 {name:'Oracle Red Bull Racing',chief:'F1_Tobi_Vettel21',car:'Oracle Red Bull Racing',d1:[],d2:['Marlon202525','danieliko99']},
 {name:'Audi',chief:'Energy18WCL',car:'Audi',d1:['Chiara','Energy18WCL'],d2:[]},
@@ -159,7 +159,7 @@ function canonicalTeamName(name){const raw=String(name||'').trim();return TEAM_C
 function teamKey(name){const c=canonicalTeamName(name);return c==='Oracle Red Bull Racing'?'Red Bull':c}
 function teamCar(name){const c=canonicalTeamName(name);return CAR_DIR+(carMap[c]||carMap[teamKey(c)]||'not-available.jpg')}
 function row(name,team,grid,time,penSec=0,tl=0,status='RESULT',str=0,ban=false,reason=''){return{name,team,grid,time,penSec,tl,status,str:Number(str)||0,ban:!!ban,reason}}
-const races={};
+let races={};
 function statusOfResult(r){return r.status||'RESULT'}
 function pointsForPosition(pos,status){return status==='DNF'||status==='DSQ'?0:(DOG_POINTS[pos]||0)}
 function normalizeAllRacePoints(){raceList().forEach(r=>r.results.forEach((x,i)=>x.points=pointsForPosition(i+1,statusOfResult(x))))}
@@ -1758,3 +1758,7 @@ function filterDriverSelect(){
 /* v1.76 driver reference helpers */
 function filterDriverSelect(){const sel=document.getElementById('driver-select');if(!sel)return;const q=(document.getElementById('driver-search')?.value||'').toLowerCase();const team=document.getElementById('driver-team-filter')?.value||'';const current=sel.value;const all=[...new Set((drivers||[]).map(x=>typeof x==='string'?x:(x.name||x.driver)).filter(Boolean))];const rows=all.filter(n=>(!q||n.toLowerCase().includes(q))&&(!team||driverTeam(n)===team));sel.innerHTML=rows.map(n=>`<option value="${esc(n)}">${esc(driverNumber(n)?'#'+driverNumber(n)+' · ':'')}${esc(n)} · ${esc(getStatus(n))}</option>`).join('');if(rows.includes(current))sel.value=current;if(sel.value)openDriver(sel.value)}
 (function(){const oldOpen=window.openDriver;window.openDriver=function(name){const r=oldOpen(name);requestAnimationFrame(()=>{const p=document.querySelector('#driver-profile .profile-hero');if(p)p.style.setProperty('--profile-car-image',`url("${driverCar(driverTeam(name)||'Free Agent')}")`)});return r}})();
+// v2.11 Hotfix: Dashboard-DOTD-Funktion
+window.dotdForDivision=function(){
+  return null;
+};
