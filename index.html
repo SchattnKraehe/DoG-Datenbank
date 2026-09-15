@@ -2,7 +2,7 @@
 <html lang="de">
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>DoG RaceHub</title><link rel="stylesheet" href="./style.css?v=2.4"><link rel="manifest" href="manifest.webmanifest"><meta name="theme-color" content="#8f1820"><meta name="description" content="DoG RaceHub – F1 League Manager for drivers, teams, races and championships."><meta name="mobile-web-app-capable" content="yes"><link rel="apple-touch-icon" href="icon-192.png">
+<title>DoG RaceHub</title><link rel="stylesheet" href="./style.css?v=2.6"><link rel="manifest" href="manifest.webmanifest"><meta name="theme-color" content="#8f1820"><meta name="description" content="DoG RaceHub – F1 League Manager for drivers, teams, races and championships."><meta name="mobile-web-app-capable" content="yes"><link rel="apple-touch-icon" href="icon-192.png">
 </head>
 <body>
 <div id="toast"></div>
@@ -23,7 +23,7 @@
   </div>
   <div class="season-box"><small>AKTIVE SAISON</small><b>02/26</b><span>Division 1 &amp; 2</span></div>
   <button class="edit-btn sidebar-admin-btn" onclick="openAdmin()">🔐 Admin / Bearbeiten</button>
-  <div class="sidebar-foot">DoG RaceHub · v2.7</div>
+  <div class="sidebar-foot">DoG RaceHub · v2.8</div>
 </aside>
 <main class="main">
 <header class="topbar"><div><div class="eyebrow">DOG RACEHUB</div><h1 id="page-title">Dashboard</h1></div><div class="top-actions"><label class="language-picker" title="Sprache / Language">🌐 <span>Sprache</span><select id="language-select" aria-label="Sprache"><option value="de">🇩🇪 Deutsch</option><option value="en">🇬🇧 English</option><option value="pl">🇵🇱 Polski</option><option value="es">🇪🇸 Español</option><option value="da">🇩🇰 Dansk</option></select></label><button id="install-app" class="ghost" style="display:none" onclick="installApp()">📲 App installieren</button><button class="edit-btn" onclick="openAdmin()">✏️ Bearbeiten</button><span class="pill">SAISON 02/26</span><span class="status-dot">● System bereit</span></div></header>
@@ -44,7 +44,7 @@
 <section id="archive" class="view"><div class="section-head"><div><h3>Saisonarchiv</h3><p>Historische Rennstände und Regelversionen der DoG-Saisons.</p></div></div><div class="archive-card active-season"><div><b>02/26</b><small>Offiziell · 1. Saison</small></div><span>Div 1 &amp; Div 2</span><i>aktiv</i></div></section>
 </main></div>
 <div id="modal" class="modal"><div class="modal-card" id="modal-content"></div></div>
-<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="./config.js?v=2.7"></script><script src="./app.js?v=2.7"></script><script src="./lang.js?v=2.7"></script><script>
+<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="./config.js?v=2.8"></script><script src="./app.js?v=2.8"></script><script src="./lang.js?v=2.8"></script><script>
 let deferredInstallPrompt=null;
 window.addEventListener("beforeinstallprompt",e=>{e.preventDefault();deferredInstallPrompt=e;const b=document.getElementById("install-app");if(b)b.style.display="inline-flex"});
 window.addEventListener("appinstalled",()=>{deferredInstallPrompt=null;const b=document.getElementById("install-app");if(b)b.style.display="none"});

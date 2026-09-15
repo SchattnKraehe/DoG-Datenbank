@@ -254,26 +254,50 @@ async function initCloud(){
    return false;
  }
 }
-function subscribeCloud(){
- if(!cloudClient||cloudChannel)return;
- cloudChannel=cloudClient.channel('dog-racehub-state').on('postgres_changes',{event:'UPDATE',schema:'public',table:'app_state',filter:'id=eq.1'},payload=>{if(payload?.new?.data){applyCloudState(payload.new.data);saveLocalCache();renderAll();toast('Daten aus der Cloud aktualisiert.')}}).subscribe();
-}
 async function cloudSave(){
- if(!cloudClient||!cloudReady||!cloudOwner||!cloudUser){
-   console.warn('DoG RaceHub Cloud: Speichern nicht bereit.',{cloudReady,cloudOwner,cloudUser:!!cloudUser});
-   toast('Cloud-Speicherung ist noch nicht bereit.');
-   return false;
- }
+ if(!cloudConfigured())return false;
+ if(!cloudClient){try{await initCloud()}catch(e){console.error('DoG RaceHub Cloud init before save',e)}}
+ if(!cloudClient)return false;
+ // Session/Owner vor jedem Schreibvorgang nochmals sicher feststellen.
+ try{
+   const {data:sessionData}=await cloudClient.auth.getSession();
+   cloudUser=sessionData?.session?.user||cloudUser||null;
+   if(!cloudUser){toast('Admin-Anmeldung ist nicht mehr aktiv.');return false}
+   const {data:row,error:rowError}=await cloudClient.from('app_state').select('owner_id').eq('id',1).maybeSingle();
+   if(rowError){console.error('DoG RaceHub Cloud owner check',rowError);toast('Cloud-Berechtigung konnte nicht geprüft werden.');return false}
+   if(!row){toast('Cloud-Datenbank ist noch nicht eingerichtet.');return false}
+   cloudOwnerId=row.owner_id||null;
+   cloudOwner=cloudUser.id===cloudOwnerId;
+   editor=cloudOwner;
+   updateEditorUI();
+   if(!cloudOwner){toast('Dieses Konto ist nicht als Admin hinterlegt.');return false}
+   cloudReady=true;
+ }catch(e){console.error('DoG RaceHub Cloud auth check',e);toast('Cloud-Verbindung konnte nicht geprüft werden.');return false}
  if(cloudBusy){cloudSaveQueued=true;return true}
  cloudBusy=true;cloudSaveQueued=false;
  try{
    const payload={data:cloudState(),updated_at:new Date().toISOString()};
-   const {data,error}=await cloudClient.from('app_state').update(payload).eq('id',1).eq('owner_id',cloudUser.id).select('id,owner_id,updated_at').maybeSingle();
-   if(error){console.error('DoG RaceHub Cloud Save',error);toast('Cloud-Speicherung: '+(error.message||'Fehler beim Speichern.'));return false}
+   const {data,error}=await cloudClient.from('app_state')
+     .update(payload)
+     .eq('id',1)
+     .eq('owner_id',cloudUser.id)
+     .select('id,owner_id,updated_at')
+     .maybeSingle();
+   if(error){console.error('DoG RaceHub Cloud Save',error);toast('Cloud-Speicherung fehlgeschlagen: '+(error.message||'Unbekannter Fehler'));return false}
    if(!data){console.error('DoG RaceHub Cloud Save: keine Zeile aktualisiert');toast('Cloud-Speicherung abgelehnt: Admin-Berechtigung prüfen.');return false}
    return true;
- }catch(e){console.error('DoG RaceHub Cloud Save',e);toast('Cloud-Speicherung: '+(e?.message||'Fehler beim Speichern.'));return false}
- finally{cloudBusy=false;if(cloudSaveQueued)setTimeout(()=>cloudSave(),50)}
+ }catch(e){
+   console.error('DoG RaceHub Cloud Save',e);
+   toast('Cloud-Speicherung fehlgeschlagen: '+(e?.message||'Unbekannter Fehler'));
+   return false;
+ }finally{
+   cloudBusy=false;
+   if(cloudSaveQueued)setTimeout(()=>cloudSave(),50);
+ }
+}
+function subscribeCloud(){
+ if(!cloudClient||cloudChannel)return;
+ cloudChannel=cloudClient.channel('dog-racehub-state').on('postgres_changes',{event:'UPDATE',schema:'public',table:'app_state',filter:'id=eq.1'},payload=>{if(payload?.new?.data){applyCloudState(payload.new.data);saveLocalCache();renderAll();toast('Daten aus der Cloud aktualisiert.')}}).subscribe();
 }
 function renderAll(){try{updateSeasonChrome();updateStats();renderDashboard();renderWM();renderKWM();renderArchive();initDriverOverview();renderTeams();renderFinance();}catch(e){console.warn('renderAll',e)}}
 function updateEditorUI(){document.querySelectorAll('.edit-btn').forEach(b=>{b.textContent=editor?'✏️ Bearbeiten · Admin':'🔐 Admin / Bearbeiten';});}
@@ -293,7 +317,7 @@ function reconcileCurrentRoster(){
  teams.forEach(t=>['d1','d2'].forEach((d)=>{(t[d]||[]).forEach(n=>{const key=normDriver(n);rosterMap[key]={team:t.name,division:d==='d1'?'Div 1':'Div 2'};if(!drivers.some(x=>normDriver(x)===key))drivers.push(n);});}));
  drivers.forEach(n=>{const key=normDriver(n);const m=driverMeta[n]||{id:(crypto.randomUUID?crypto.randomUUID():'dog-'+Date.now()+'-'+Math.random()),createdAt:new Date().toISOString()};const r=rosterMap[key];if(r){m.team=r.team;m.division=r.division;m.status='Stammfahrer';}else if(m.status!=='Nicht verfügbar' && statusOverrides[n]!=='Nicht verfügbar'){m.team='';m.status='Free Agent';}driverMeta[n]=m;});
 }
-function save(){syncTeamChiefRoles();reconcileCurrentRoster();normalizeAllRacePoints();saveLocalCache();return cloudOwner?cloudSave():Promise.resolve(false);} ensureRaceMetadata(); load(); syncTeamChiefRoles();
+function save(){syncTeamChiefRoles();reconcileCurrentRoster();normalizeAllRacePoints();saveLocalCache();return editor?cloudSave():Promise.resolve(false);} ensureRaceMetadata(); load(); syncTeamChiefRoles();
 // v2.1: Historische Saisondaten werden nicht mehr automatisch gelöscht.
 if(!driverMeta.SchattnKraehe){driverMeta.SchattnKraehe={id:(crypto.randomUUID?crypto.randomUUID():'dog-'+Date.now()),createdAt:new Date().toISOString()};} if(!Number(driverMeta.SchattnKraehe.number)){driverMeta.SchattnKraehe.number=89;} driverMeta.SchattnKraehe.status='Stammfahrer'; driverMeta.SchattnKraehe.division=driverMeta.SchattnKraehe.division||'Div 2'; driverMeta.SchattnKraehe.team='Mercedes'; driverMeta.SchattnKraehe.nationality=driverMeta.SchattnKraehe.nationality||'DE'; repairContracts(); ensureRaceMetadata(); reconcileCurrentRoster(); normalizeDriverNumbers(); calculateLeagueState(); save();
 function showView(id){document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));document.getElementById(id).classList.add('active');document.querySelectorAll('.nav').forEach(n=>n.classList.toggle('active',n.dataset.view===id));document.getElementById('page-title').textContent={dashboard:'Dashboard',drivers:'Fahrer',compare:'Vergleich',teams:'Teams',races:'Rennen',wm:'Fahrer-WM',kwm:'KWM',archive:'Archiv'}[id]||'DoG RaceHub';try{if(id==='drivers')initDriverOverview();if(id==='compare')renderCompare();if(id==='teams')renderTeams();if(id==='races')initRaceSelectors();if(id==='wm')renderWM();if(id==='kwm')renderKWM();if(id==='dashboard')renderDashboard();if(id==='archive')renderArchive();updateStats()}catch(e){console.error('showView',e)}}
@@ -1682,7 +1706,9 @@ async function loginAdmin(){
  cloudOwner=!!cloudUser&&!!cloudOwnerId&&cloudUser.id===cloudOwnerId;
  editor=cloudOwner;
  updateEditorUI();
+ // Nach erfolgreicher Anmeldung das Login-Fenster automatisch schließen.
  closeModal();
+ const pw=document.getElementById('admin-password');if(pw)pw.value='';
  toast(editor?'Admin-Bearbeitung freigeschaltet.':'Angemeldet, aber dieses Konto hat nur Leserechte.');
 }
 async function logoutAdmin(){
