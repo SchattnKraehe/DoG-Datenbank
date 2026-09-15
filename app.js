@@ -71,7 +71,7 @@ function renderSponsorCatalog(){
 
 let ACTIVE_TRACKS=['Las Vegas','Brasilien','Belgien'];
 let TRACK_NUMBERS={'Las Vegas':1,'Brasilien':2,'Belgien':3};
-lez teams=[
+let teams=[
 {name:'McLaren',chief:'Salamander2110',car:'McLaren',d1:['MaxT7gerrang','physioalex_ttv'],d2:['Salamander2110','Uchse-Rene']},
 {name:'Oracle Red Bull Racing',chief:'F1_Tobi_Vettel21',car:'Oracle Red Bull Racing',d1:[],d2:['Marlon202525','danieliko99']},
 {name:'Audi',chief:'Energy18WCL',car:'Audi',d1:['Chiara','Energy18WCL'],d2:[]},
