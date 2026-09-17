@@ -3,11 +3,11 @@ const CACHE='dog-racehub-v2-12';
 const CORE=[
   './',
   './index.html',
-  './style.css?v=2.10',
-  './app.js?v=2.10',
+  './style.css?v=2.6',
+  './app.js?v=2.11',
   './flaggen.js?v=1.0',
-  './lang.js?v=2.10',
-  './config.js?v=2.10',
+  './lang.js?v=2.11',
+  './config.js?v=2.11',
   './manifest.webmanifest',
   './icon-192.png',
   './flag-be.png',
@@ -19,7 +19,7 @@ const CORE=[
   './flag-th.png'
 ];
 
-self.addEventListener('install', event=>{
+self.addEventListener('install',event=>{
   event.waitUntil(
     caches.open(CACHE)
       .then(cache=>cache.addAll(CORE))
@@ -27,7 +27,7 @@ self.addEventListener('install', event=>{
   );
 });
 
-self.addEventListener('activate', event=>{
+self.addEventListener('activate',event=>{
   event.waitUntil(
     caches.keys()
       .then(keys=>Promise.all(
@@ -37,8 +37,8 @@ self.addEventListener('activate', event=>{
   );
 });
 
-self.addEventListener('fetch', event=>{
-  if(event.request.method!=='GET') return;
+self.addEventListener('fetch',event=>{
+  if(event.request.method!=='GET')return;
 
   const url=new URL(event.request.url);
   const isAppResource =
@@ -51,28 +51,30 @@ self.addEventListener('fetch', event=>{
     url.pathname.endsWith('/flaggen.js') ||
     url.pathname.endsWith('/manifest.webmanifest');
 
-  if(!isAppResource){
+  // App-Shell immer zuerst aus dem Netz holen. Dadurch darf ein normales
+  // F5 niemals eine alte app.js/index.html aus dem Service-Worker-Cache
+  // bevorzugen. Falls das Netz nicht erreichbar ist, nutzen wir den Cache.
+  if(isAppResource){
     event.respondWith(
-      caches.match(event.request).then(cached=>{
-        return cached || fetch(event.request).then(response=>{
+      fetch(event.request,{cache:'no-store'})
+        .then(response=>{
           const copy=response.clone();
           caches.open(CACHE).then(cache=>cache.put(event.request,copy));
           return response;
-        }).catch(()=>cached);
-      })
+        })
+        .catch(()=>caches.match(event.request))
     );
     return;
   }
 
-  // App-Dateien zuerst aus dem Netz holen, damit PC und Handy
-  // immer die aktuell veröffentlichte Version erhalten.
+  // Bilder und sonstige statische Dateien dürfen normal gecacht werden.
   event.respondWith(
-    fetch(event.request,{cache:'no-store'})
-      .then(response=>{
+    caches.match(event.request).then(cached=>{
+      return cached || fetch(event.request).then(response=>{
         const copy=response.clone();
         caches.open(CACHE).then(cache=>cache.put(event.request,copy));
         return response;
-      })
-      .catch(()=>caches.match(event.request))
+      }).catch(()=>cached);
+    })
   );
 });
