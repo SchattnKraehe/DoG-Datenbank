@@ -1086,19 +1086,70 @@ function syncDriverContractFinance(c){
  });
 }
 function driverSeasonPoints(driver,season,division){return contractSeasonStats(driver,season,division).points}
-function contractSpecialPaymentDue(c){if(!c?.specialCondition?.enabled)return true;return driverSeasonPoints(c.driver,c.season,c.division)>=Number(c.specialCondition.points||1)}
-function syncContractSpecialPayments(){
- financeTransactions=financeTransactions.filter(t=>t.type!=='contract_special_income');
- contracts.filter(c=>c&&!c.draft).forEach(c=>{
-  const amount=parseMoneyValue(c.specialPayment); if(amount<=0||!contractSpecialPaymentDue(c))return;
-  const tx={id:financeTxId(),season:c.season,team:c.team||'',driver:normDriver(c.driver),contractId:c.id,type:'contract_special_income',description:`Sonderzahlung Vertrag · ${c.team||''}`.trim(),amount,date:c.endDate?new Date(c.endDate+'T12:00:00').toISOString():(c.startDate?new Date(c.startDate+'T12:00:00').toISOString():new Date().toISOString())};
-  financeTransactions.push(financeTxApplyOverride(tx)||tx);
- });
+function contractSpecialPaymentDue(c){
+  // Ohne aktivierte Bedingung niemals automatisch auszahlen.
+  if(!c?.specialCondition?.enabled)return false;
+
+  // Mit Bedingung: Zahlung erst ab Erreichen der vereinbarten Punkte.
+  const required=Number(c.specialCondition.points||1);
+  const points=driverSeasonPoints(c.driver,c.season,c.division);
+
+  return points>=required;
 }
-function syncAllDriverContractFinance(){
+function syncContractSpecialPayments(){
+  // Bereits vorhandene Sonderzahlungen NICHT mehr pauschal löschen.
+  // Dadurch bleiben manuelle Buchungen und gelöschte Buchungen erhalten.
+
+  contracts.filter(c=>c&&!c.draft).forEach(c=>{
+    const amount=parseMoneyValue(c.specialPayment);
+    if(amount<=0)return;
+
+    // Ohne Haken KEINE automatische Sonderzahlung.
+    if(!c.specialCondition?.enabled)return;
+
+    // Zahlung wird ausschließlich anhand der vereinbarten Punkte ausgelöst.
+    const required=Number(c.specialCondition.points||1);
+    const points=driverSeasonPoints(c.driver,c.season,c.division);
+
+    if(points<required)return;
+
+    // Prüfen, ob für diesen Vertrag bereits eine automatische
+    // Sonderzahlung existiert.
+    const existing=financeTransactions.find(t=>
+      t.type==='contract_special_income' &&
+      t.contractId===c.id
+    );
+
+    if(existing)return;
+
+    // Neue automatische Sonderzahlung.
+    const tx={
+      id:financeTxId(),
+      season:c.season,
+      team:c.team||'',
+      driver:normDriver(c.driver),
+      contractId:c.id,
+      type:'contract_special_income',
+      description:`Sonderzahlung Vertrag · ${c.team||''}`.trim(),
+      amount:amount,
+      // Keine Bindung mehr an das Vertrags-Enddatum.
+      // Die Buchung erfolgt an dem Tag, an dem die Bedingung
+      // vom System erkannt und erfüllt ist.
+      date:new Date().toISOString()
+    };
+
+    // Wurde diese Sonderzahlung vom Admin bereits gelöscht,
+    // darf sie nicht automatisch wieder angelegt werden.
+    const applied=financeTxApplyOverride(tx);
+
+    if(applied){
+      financeTransactions.push(applied);
+    }
+  });
+}function syncAllDriverContractFinance(){
  // Vertragsbuchungen sind vollständig aus den aktuell gespeicherten Verträgen ableitbar.
  // Dadurch werden auch bereits vorhandene Verträge nach App-Neustart korrekt in die Fahrerfinanzen übernommen.
- financeTransactions=financeTransactions.filter(t=>t.type!=='contract_salary_income'&&t.type!=='contract_special_income');
+ financeTransactions=financeTransactions.filter(t=>t.type!=='contract_salary_income');
  contracts.filter(c=>c&&!c.draft).forEach(syncDriverContractFinance);
  syncContractSpecialPayments();
  syncContractExtensions();
