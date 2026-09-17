@@ -5,10 +5,18 @@ const CORE=[
   './index.html',
   './style.css?v=2.10',
   './app.js?v=2.10',
+  './flaggen.js?v=1.0',
   './lang.js?v=2.10',
   './config.js?v=2.10',
   './manifest.webmanifest',
-  './icon-192.png'
+  './icon-192.png',
+  './flag-be.png',
+  './flag-jp.png',
+  './flag-nl.png',
+  './flag-in.png',
+  './flag-it.png',
+  './flag-jm.png',
+  './flag-th.png'
 ];
 
 self.addEventListener('install', event=>{
@@ -40,6 +48,7 @@ self.addEventListener('fetch', event=>{
     url.pathname.endsWith('/style.css') ||
     url.pathname.endsWith('/lang.js') ||
     url.pathname.endsWith('/config.js') ||
+    url.pathname.endsWith('/flaggen.js') ||
     url.pathname.endsWith('/manifest.webmanifest');
 
   if(!isAppResource){
