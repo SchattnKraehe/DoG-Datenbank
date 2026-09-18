@@ -355,7 +355,7 @@ function ensureLicenseView(){
       .license-info{padding:15px;background:rgba(11,26,34,.9);border:1px solid var(--line);border-radius:14px}
       .license-info h4{margin:0 0 10px;font-size:13px}.license-rule{display:flex;justify-content:space-between;padding:9px 0;border-bottom:1px solid #18323b;font-size:11px}.license-rule span{color:var(--muted)}
       .license-summary{margin-top:14px;display:grid;gap:8px}.license-summary div{background:#091920;border:1px solid #17353e;border-radius:9px;padding:9px}.license-summary span{display:block;color:var(--muted);font-size:9px}.license-summary b{display:block;margin-top:3px;font-size:15px}
-      .license-table-wrap{overflow:auto}.license-table{width:100%;border-collapse:collapse;min-width:920px}.license-table th,.license-table td{padding:9px 8px;border-bottom:1px solid #18323b;text-align:left;font-size:11px;white-space:nowrap}.license-table th{color:var(--muted);font-size:9px;text-transform:uppercase}.license-driver{font-weight:800}.license-budget{font-weight:900}.license-ok{color:var(--ok);font-weight:900}.license-no{color:var(--danger);font-weight:900}.license-pay{padding:6px 9px;font-size:10px}.license-pay:disabled{opacity:.45;cursor:not-allowed}.license-paid-date{color:var(--muted);font-size:10px}
+      .license-table-wrap{overflow:auto}.license-table{width:100%;border-collapse:collapse;min-width:920px}.license-table th,.license-table td{padding:9px 8px;border-bottom:1px solid #18323b;text-align:left;font-size:11px;white-space:nowrap}.license-table th{color:var(--muted);font-size:9px;text-transform:uppercase}.license-driver{font-weight:800}.license-budget{font-weight:900}.license-ok{color:var(--ok);font-weight:900}.license-no{color:var(--danger);font-weight:900}.license-action-stack{display:flex;flex-direction:column;gap:5px}.license-pay{padding:6px 9px;font-size:10px}.license-pay:disabled{opacity:.45;cursor:not-allowed}.license-paid-date{color:var(--muted);font-size:10px}
       @media(max-width:900px){.license-page-grid{grid-template-columns:1fr}.license-info{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.license-info h4{grid-column:1/-1}.license-summary{grid-column:1/-1;grid-template-columns:repeat(3,1fr)}}
     `;document.head.appendChild(st);
   }
@@ -371,11 +371,15 @@ function renderLicenses(){
   const names=[...new Set((drivers||[]).map(normDriver).filter(Boolean))].filter(n=>getStatus(n)!=='Nicht verfügbar').sort((a,b)=>a.localeCompare(b,'de'));
   const rows=names.map(name=>{
     const st=driverLicenseState(name,season), b=financeDriverBalance(name,season), team=driverTeam(name)||'Free Agent';
+    const nextBalance=financeDriverBalance(name,st.next);
     const points=contractSeasonStats(name,season,st.division).points;
     const paid=!!st.rec.paid;
+    const nextPaid=!!st.nrec.paid;
     const enough=b.balance>=licenseCost(st.division);
+    const nextEnough=nextBalance.balance>=licenseCost(st.priority);
     const paidAt=paid?licenseDateLabel(st.rec.paidAt):'—';
-    return {name,team,division:st.division,points,income:b.income,expense:b.expense,balance:b.balance,paid,enough,paidAt,cost:licenseCost(st.division)};
+    const nextPaidAt=nextPaid?licenseDateLabel(st.nrec.paidAt):'—';
+    return {name,team,division:st.division,points,income:b.income,expense:b.expense,opening:b.opening,balance:b.balance,paid,enough,paidAt,cost:licenseCost(st.division),next:st.next,nextDivision:st.priority,nextCost:licenseCost(st.priority),nextPaid,nextEnough,nextPaidAt,nextBalance:nextBalance.balance};
   });
   const paidCount=rows.filter(r=>r.paid).length;
   const totalCost=rows.reduce((a,r)=>a+r.cost,0);
@@ -389,10 +393,10 @@ function renderLicenses(){
         <div><span>Lizenzen erhalten</span><b>${paidCount} / ${rows.length}</b></div>
         <div><span>Gesamter Lizenzbedarf</span><b>${money(totalCost)}</b></div>
       </div>
-      <p class="race-edit-note">Die Lizenz wird nur durch deine Admin-Buchung bezahlt. Die Zahlung wird direkt im jeweiligen Fahrerkonto als Ausgabe verbucht.</p>
+      <p class="race-edit-note">„Budget Saisonstart“ ist das hinterlegte persönliche Startkapital. „Budget aktuell“ berücksichtigt alle bisherigen Einnahmen und Ausgaben. Die nächste Lizenz wird für die Folgesaison angezeigt.</p>
     </div>
-    <div class="table-panel license-table-wrap"><table class="license-table"><thead><tr><th>Fahrer</th><th>Team</th><th>Div.</th><th>Punkte</th><th>Einnahmen</th><th>Ausgaben</th><th>Budget</th><th>Lizenz aktuell</th><th>Erhalten am</th><th>Aktion</th></tr></thead><tbody>
-      ${rows.length?rows.map(r=>`<tr><td class="license-driver">${esc(r.name)}</td><td>${esc(r.team)}</td><td>${esc(r.division)}</td><td>${r.points}</td><td class="license-ok">${money(r.income)}</td><td>${money(r.expense)}</td><td class="license-budget">${money(r.balance)}</td><td class="${r.paid?'license-ok':'license-no'}">${r.paid?'✓ JA':'✕ NEIN'}</td><td class="license-paid-date">${r.paidAt}</td><td>${isEditor()?`<button class="primary license-pay" ${r.paid||!r.enough?'disabled':''} onclick="bookDriverLicense('${esc(r.name)}','${esc(season)}');renderLicenses();">${r.paid?'✓ Bezahlt':r.enough?'💳 Bezahlen':'⚠ Budget zu klein'}</button>`:`<span class="muted">Nur Ansicht</span>`}</td></tr>`).join(''):'<tr><td colspan="10" class="muted">Keine Fahrer für diese Saison vorhanden.</td></tr>'}
+    <div class="table-panel license-table-wrap"><table class="license-table"><thead><tr><th>Fahrer</th><th>Team</th><th>Div.</th><th>Punkte</th><th>Einnahmen</th><th>Ausgaben</th><th>Budget Saisonstart</th><th>Budget aktuell</th><th>Lizenz aktuell</th><th>Erhalten am</th><th>Lizenz ${esc(nextSeasonLabel(season))}</th><th>Aktion</th></tr></thead><tbody>
+      ${rows.length?rows.map(r=>`<tr><td class="license-driver">${esc(r.name)}</td><td>${esc(r.team)}</td><td>${esc(r.division)}</td><td>${r.points}</td><td class="license-ok">${money(r.income)}</td><td>${money(r.expense)}</td><td>${money(r.opening)}</td><td class="license-budget">${money(r.balance)}</td><td class="${r.paid?'license-ok':'license-no'}">${r.paid?'✓ JA':'✕ NEIN'}</td><td class="license-paid-date">${r.paidAt}</td><td class="${r.nextPaid?'license-ok':'license-no'}">${r.nextPaid?`✓ JA · ${esc(r.nextDivision)}`:`✕ NEIN · ${esc(r.nextDivision)} (${money(r.nextCost)})`}</td><td>${isEditor()?`<div class="license-action-stack"><button class="primary license-pay" ${r.paid||!r.enough?'disabled':''} onclick="bookDriverLicense('${esc(r.name)}','${esc(season)}');renderLicenses();">${r.paid?'✓ '+esc(season)+' bezahlt':r.enough?'💳 '+esc(season)+' bezahlen':'⚠ Budget zu klein'}</button>${r.nextPaid?'':`<button class="ghost license-pay" ${r.nextEnough?'':'disabled'} onclick="bookDriverLicense('${esc(r.name)}','${esc(r.next)}');renderLicenses();">${r.nextEnough?'💳 '+esc(r.next)+' bezahlen':'⚠ '+esc(r.next)+' Budget fehlt'}</button>`}</div>`:`<span class="muted">Nur Ansicht</span>`}</td></tr>`).join(''):'<tr><td colspan="12" class="muted">Keine Fahrer für diese Saison vorhanden.</td></tr>'}
     </tbody></table></div>
   </div>`;
 }
