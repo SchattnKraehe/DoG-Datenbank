@@ -241,7 +241,7 @@ async function readCloudChunks(versionId){
 }
 async function loadCloudSnapshot(){
  cloudChunkReady=false;
- const pointer=await readCloudPointer();
+ const pointer=await cloudWithTimeout(readCloudPointer(),10000,'Cloud-Pointer');
  if(!pointer.error){
    cloudChunkReady=true;
    if(pointer.data?.version_id){
@@ -320,15 +320,22 @@ async function initCloud(){
    toast('Cloud-Start fehlgeschlagen. Ansicht bleibt verfügbar.');return false;
  }
 }
+function cloudWithTimeout(promise,ms,label='Cloud-Anfrage'){
+ return Promise.race([
+   promise,
+   new Promise((_,reject)=>setTimeout(()=>reject(new Error(`${label} Timeout nach ${Math.round(ms/1000)} Sekunden`)),ms))
+ ]);
+}
+
 async function cloudSave(){
  if(!cloudConfigured())return false;
  if(!cloudClient){try{await initCloud()}catch(e){console.error('DoG RaceHub Cloud init before save',e)}}
  if(!cloudClient)return false;
  try{
-   const {data:sessionData}=await cloudClient.auth.getSession();
+   const {data:sessionData}=await cloudWithTimeout(cloudClient.auth.getSession(),10000,'Cloud-Anmeldung');
    cloudUser=sessionData?.session?.user||cloudUser||null;
    if(!cloudUser){toast('Admin-Anmeldung ist nicht mehr aktiv.');return false}
-   const {data:row,error:rowError}=await cloudClient.from('app_state').select('owner_id').eq('id',1).maybeSingle();
+   const {data:row,error:rowError}=await cloudWithTimeout(cloudClient.from('app_state').select('owner_id').eq('id',1).maybeSingle(),10000,'Cloud-Berechtigungsprüfung');
    if(rowError){console.error('DoG RaceHub Cloud owner check',rowError);toast('Cloud-Berechtigung konnte nicht geprüft werden.');return false}
    if(!row){toast('Cloud-Datenbank ist nicht eingerichtet.');return false}
    cloudOwnerId=row.owner_id||null;cloudOwner=cloudUser.id===cloudOwnerId;editor=cloudOwner;updateEditorUI();
@@ -353,8 +360,9 @@ async function cloudSave(){
      }
    }
  }catch(e){console.error('DoG RaceHub Cloud auth check',e);toast('Cloud-Verbindung konnte nicht geprüft werden.');return false}
- if(cloudBusy){cloudSaveQueued=true;return true}
+ if(cloudBusy){cloudSaveQueued=true;toast('Cloud-Speicherung läuft bereits …');return false}
  cloudBusy=true;cloudSaveQueued=false;
+ toast('☁️ Cloud-Speicherung läuft …');
  try{
    const updatedAt=new Date().toISOString();
    const encoded=await encodeCloudData(cloudState());
@@ -369,7 +377,7 @@ async function cloudSave(){
    for(let i=0;i<chunks.length;i++){
      let lastError=null;
      for(let attempt=0;attempt<3;attempt++){
-       const {error}=await cloudClient.from('app_state_chunks').insert(chunks[i]);
+       const {error}=await cloudWithTimeout(cloudClient.from('app_state_chunks').insert(chunks[i]),15000,`Cloud-Datenblock ${i+1}`);
        if(!error){lastError=null;break}
        lastError=error;
        if(attempt<2)await new Promise(resolve=>setTimeout(resolve,600*(attempt+1)));
@@ -385,19 +393,20 @@ async function cloudSave(){
    const pointerPayload={owner_id:cloudUser.id,version_id:versionId,updated_at:updatedAt};
    let pointerError=null;
    if(pointer.data?.id){
-     const result=await cloudClient.from('app_state_pointer')
-       .update(pointerPayload)
+     const result=await cloudWithTimeout(cloudClient.from('app_state_pointer')
+       .update(pointerPayload),15000,'Cloud-Pointer speichern')
        .eq('id',1).eq('owner_id',cloudUser.id);
      pointerError=result.error||null;
    }else{
-     const result=await cloudClient.from('app_state_pointer')
-       .insert({id:1,...pointerPayload});
+     const result=await cloudWithTimeout(cloudClient.from('app_state_pointer')
+       .insert({id:1,...pointerPayload}),15000,'Cloud-Pointer anlegen');
      pointerError=result.error||null;
    }
    if(pointerError)throw pointerError;
 
    markCloudDataUpdatedAt(updatedAt);
    saveLocalCache(false,updatedAt);
+   toast('☁️ Cloud-Daten gespeichert.');
    // Alte Snapshots bleiben zunächst als Sicherheitsreserve bestehen.
    return true;
  }catch(e){
@@ -1094,7 +1103,7 @@ function saveDriverEditor(oldName){
  Object.values(races).forEach(r=>Object.keys(r.highlights||{}).forEach(k=>{if(normDriver(r.highlights[k])===normDriver(oldName))r.highlights[k]=newName}));
  const newSponsor=driverSponsorEntity(newName,meta.sponsorInfo?.season||seasonState.current||'02/26');
  if(newSponsor&&SPONSOR_OPTIONS[newSponsor.sponsor])ensureSponsorPayment(newSponsor,'upfront','start',SPONSOR_OPTIONS[newSponsor.sponsor].upfront,sponsorUpfrontDate(newSponsor));
- save().then(ok=>{if(!ok){toast('Fahrer lokal gespeichert, aber Cloud-Speicherung fehlgeschlagen.');return}closeModal();renderTeams();initDriverOverview();renderWM();renderKWM();renderDashboard();renderFinance();toast('Fahrer gespeichert und in der Cloud gesichert.');});
+ const saveButtons=[...document.querySelectorAll('#modal-content button')];saveButtons.forEach(b=>b.disabled=true);save().then(ok=>{saveButtons.forEach(b=>b.disabled=false);if(!ok){toast('Fahrer lokal gespeichert, aber Cloud-Speicherung fehlgeschlagen.');return}closeModal();renderTeams();initDriverOverview();renderWM();renderKWM();renderDashboard();renderFinance();toast('Fahrer gespeichert und in der Cloud gesichert.');});
 }
 function refreshNewDriverNumberOptions(){const s=document.getElementById('new-driver-status'),el=document.getElementById('new-driver-number');if(s&&el){const current=Number(el.value)||0;el.innerHTML=driverNumberOptions('',s.value,current);if([...el.options].some(o=>Number(o.value)===current&&!o.disabled))el.value=current;else el.value='0';}}
 function refreshEditDriverNumberOptions(name){const s=document.getElementById('edit-driver-status'),el=document.getElementById('edit-driver-number');if(s&&el){const current=Number(el.value)||0;el.innerHTML=driverNumberOptions(name,s.value,current);if([...el.options].some(o=>Number(o.value)===current&&!o.disabled))el.value=current;else el.value='0';}}
