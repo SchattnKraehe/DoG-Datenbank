@@ -177,7 +177,20 @@ let cloudClient=null, cloudUser=null, cloudOwnerId=null, cloudOwner=false, cloud
 function cloudConfigured(){return !!(window.DOG_SUPABASE_URL&&window.DOG_SUPABASE_ANON_KEY&&window.DOG_SUPABASE_URL.indexOf('YOUR_')<0&&window.DOG_SUPABASE_ANON_KEY.indexOf('YOUR_')<0&&window.supabase?.createClient)}
 function cloudState(){return {drivers,driverMeta,races,teams,seasonState,contracts,transferRecords,financeBudgets,financeCapUsage,sponsorPayments,financeTransactions,financeOpeningBalances,financeTxOverrides,driverFinanceOpeningBalances,driverFinanceOpeningDates,loanAgreements,driverLicenses,activeTracks:ACTIVE_TRACKS,trackNumbers:TRACK_NUMBERS}}
 function applyCloudState(d){if(!d||typeof d!=='object')return; if(Array.isArray(d.drivers))drivers=d.drivers; if(d.driverMeta&&typeof d.driverMeta==='object')driverMeta=d.driverMeta; if(d.races&&typeof d.races==='object')races=d.races; if(Array.isArray(d.teams)&&d.teams.length)teams=d.teams; if(d.seasonState&&typeof d.seasonState==='object')seasonState={...seasonState,...d.seasonState}; if(Array.isArray(d.contracts))contracts=d.contracts; if(Array.isArray(d.transferRecords))transferRecords=d.transferRecords; if(d.financeBudgets&&typeof d.financeBudgets==='object')financeBudgets=d.financeBudgets; if(d.financeCapUsage&&typeof d.financeCapUsage==='object')financeCapUsage=d.financeCapUsage; if(d.sponsorPayments&&typeof d.sponsorPayments==='object')sponsorPayments=d.sponsorPayments; if(Array.isArray(d.financeTransactions))financeTransactions=d.financeTransactions; if(d.financeOpeningBalances&&typeof d.financeOpeningBalances==='object')financeOpeningBalances=d.financeOpeningBalances; if(d.financeTxOverrides&&typeof d.financeTxOverrides==='object')financeTxOverrides=d.financeTxOverrides; if(d.driverFinanceOpeningBalances&&typeof d.driverFinanceOpeningBalances==='object')driverFinanceOpeningBalances=d.driverFinanceOpeningBalances; if(d.driverFinanceOpeningDates&&typeof d.driverFinanceOpeningDates==='object')driverFinanceOpeningDates=d.driverFinanceOpeningDates; if(Array.isArray(d.loanAgreements))loanAgreements=d.loanAgreements; if(d.driverLicenses&&typeof d.driverLicenses==='object')driverLicenses=d.driverLicenses; if(Array.isArray(d.activeTracks))ACTIVE_TRACKS.splice(0,ACTIVE_TRACKS.length,...d.activeTracks); if(d.trackNumbers&&typeof d.trackNumbers==='object')Object.assign(TRACK_NUMBERS,d.trackNumbers); ensureRaceMetadata(); syncTeamChiefRoles();}
-function saveLocalCache(){try{localStorage.setItem('dogrh_drivers',JSON.stringify(drivers));localStorage.setItem('dogrh_driver_meta',JSON.stringify(driverMeta));localStorage.setItem('dogrh_races',JSON.stringify(races));localStorage.setItem('dogrh_teams',JSON.stringify(teams));localStorage.setItem('dogrh_season_state',JSON.stringify(seasonState));localStorage.setItem('dogrh_contracts',JSON.stringify(contracts));localStorage.setItem('dogrh_transfers',JSON.stringify(transferRecords));localStorage.setItem('dogrh_finance_budgets',JSON.stringify(financeBudgets));localStorage.setItem('dogrh_finance_cap_usage',JSON.stringify(financeCapUsage));localStorage.setItem('dogrh_sponsor_payments',JSON.stringify(sponsorPayments));localStorage.setItem('dogrh_finance_transactions',JSON.stringify(financeTransactions));localStorage.setItem('dogrh_finance_opening',JSON.stringify(financeOpeningBalances));localStorage.setItem('dogrh_finance_tx_overrides',JSON.stringify(financeTxOverrides));localStorage.setItem('dogrh_driver_finance_opening',JSON.stringify(driverFinanceOpeningBalances));localStorage.setItem('dogrh_driver_finance_opening_dates',JSON.stringify(driverFinanceOpeningDates));localStorage.setItem('dogrh_loan_agreements',JSON.stringify(loanAgreements));localStorage.setItem('dogrh_driver_licenses',JSON.stringify(driverLicenses))}catch(e){}}
+function saveLocalCache(markDirty=false,stamp){try{localStorage.setItem('dogrh_drivers',JSON.stringify(drivers));localStorage.setItem('dogrh_driver_meta',JSON.stringify(driverMeta));localStorage.setItem('dogrh_races',JSON.stringify(races));localStorage.setItem('dogrh_teams',JSON.stringify(teams));localStorage.setItem('dogrh_season_state',JSON.stringify(seasonState));localStorage.setItem('dogrh_contracts',JSON.stringify(contracts));localStorage.setItem('dogrh_transfers',JSON.stringify(transferRecords));localStorage.setItem('dogrh_finance_budgets',JSON.stringify(financeBudgets));localStorage.setItem('dogrh_finance_cap_usage',JSON.stringify(financeCapUsage));localStorage.setItem('dogrh_sponsor_payments',JSON.stringify(sponsorPayments));localStorage.setItem('dogrh_finance_transactions',JSON.stringify(financeTransactions));localStorage.setItem('dogrh_finance_opening',JSON.stringify(financeOpeningBalances));localStorage.setItem('dogrh_finance_tx_overrides',JSON.stringify(financeTxOverrides));localStorage.setItem('dogrh_driver_finance_opening',JSON.stringify(driverFinanceOpeningBalances));localStorage.setItem('dogrh_driver_finance_opening_dates',JSON.stringify(driverFinanceOpeningDates));localStorage.setItem('dogrh_loan_agreements',JSON.stringify(loanAgreements));localStorage.setItem('dogrh_driver_licenses',JSON.stringify(driverLicenses));if(markDirty)localStorage.setItem('dogrh_local_updated_at',stamp||new Date().toISOString());else if(stamp)localStorage.setItem('dogrh_local_updated_at',stamp)}catch(e){}}
+function localDataUpdatedAt(){try{return localStorage.getItem('dogrh_local_updated_at')||''}catch(e){return ''}}
+function cloudRowIsNewer(row){const localTs=localDataUpdatedAt();const cloudTs=row?.updated_at||'';if(!localTs||!cloudTs)return false;const l=Date.parse(localTs),c=Date.parse(cloudTs);return Number.isFinite(l)&&Number.isFinite(c)&&c>l}
+async function protectLocalChangesBeforeCloudApply(row){
+ const localTs=localDataUpdatedAt();
+ if(!localTs||!row?.updated_at)return false;
+ const l=Date.parse(localTs),c=Date.parse(row.updated_at);
+ if(!Number.isFinite(l)||!Number.isFinite(c)||l<=c)return false;
+ if(!cloudUser||!row.owner_id||cloudUser.id!==row.owner_id)return false;
+ console.warn('DoG RaceHub Cloud: Lokaler Stand ist neuer als die Cloud. Lokale Änderungen werden zuerst gespeichert.');
+ await cloudSave();
+ return true;
+}
+
 async function initCloud(){
  if(!cloudConfigured()){console.warn('DoG RaceHub Cloud: config fehlt.');return false}
  try{
@@ -210,13 +223,12 @@ async function initCloud(){
    }
 
    if(row){
-     // Die Cloud ist die zentrale Quelle. Vorhandene lokale Daten werden
-     // bei einer vorhandenen Cloud-Zeile niemals automatisch darübergelegt.
      cloudOwnerId=row.owner_id||null;
      cloudReady=true;
-     if(row.data&&typeof row.data==='object'){
+     const localWasNewer=await protectLocalChangesBeforeCloudApply(row);
+     if(!localWasNewer && row.data&&typeof row.data==='object'){
        applyCloudState(row.data);
-       saveLocalCache();
+       saveLocalCache(false,row.updated_at||'');
        requestAnimationFrame(()=>renderAll());
      }
    }else if(cloudUser){
@@ -281,16 +293,29 @@ async function cloudSave(){
  if(cloudBusy){cloudSaveQueued=true;return true}
  cloudBusy=true;cloudSaveQueued=false;
  try{
-   const payload={data:cloudState(),updated_at:new Date().toISOString()};
-   const {data,error}=await cloudClient.from('app_state')
-     .update(payload)
-     .eq('id',1)
-     .eq('owner_id',cloudUser.id)
-     .select('id,owner_id,updated_at')
-     .maybeSingle();
-   if(error){console.error('DoG RaceHub Cloud Save',error);toast('Cloud-Speicherung fehlgeschlagen: '+(error.message||'Unbekannter Fehler'));return false}
-   if(!data){console.error('DoG RaceHub Cloud Save: keine Zeile aktualisiert');toast('Cloud-Speicherung abgelehnt: Admin-Berechtigung prüfen.');return false}
-   return true;
+   const updatedAt=new Date().toISOString();
+   const payload={data:cloudState(),updated_at:updatedAt};
+   // Wichtig: Kein SELECT/RETURNING nach dem UPDATE. Bei einem großen
+   // app_state-Datensatz kann das unnötig viel Arbeit erzeugen und den
+   // Supabase-Statement-Timeout auslösen. Ein erfolgreiches UPDATE liefert
+   // bei Supabase ohne RETURNING bereits error=null.
+   let lastError=null;
+   for(let attempt=0;attempt<3;attempt++){
+     const {error}=await cloudClient.from('app_state')
+       .update(payload)
+       .eq('id',1)
+       .eq('owner_id',cloudUser.id);
+     if(!error){
+       saveLocalCache(false,updatedAt);
+       return true;
+     }
+     lastError=error;
+     console.warn('DoG RaceHub Cloud Save Versuch '+(attempt+1),error);
+     if(attempt<2)await new Promise(resolve=>setTimeout(resolve,700*(attempt+1)));
+   }
+   console.error('DoG RaceHub Cloud Save',lastError);
+   toast('Cloud-Speicherung fehlgeschlagen: '+(lastError?.message||'Unbekannter Fehler'));
+   return false;
  }catch(e){
    console.error('DoG RaceHub Cloud Save',e);
    toast('Cloud-Speicherung fehlgeschlagen: '+(e?.message||'Unbekannter Fehler'));
@@ -302,7 +327,22 @@ async function cloudSave(){
 }
 function subscribeCloud(){
  if(!cloudClient||cloudChannel)return;
- cloudChannel=cloudClient.channel('dog-racehub-state').on('postgres_changes',{event:'UPDATE',schema:'public',table:'app_state',filter:'id=eq.1'},payload=>{if(payload?.new?.data){applyCloudState(payload.new.data);saveLocalCache();renderAll();toast('Daten aus der Cloud aktualisiert.')}}).subscribe();
+ cloudChannel=cloudClient.channel('dog-racehub-state').on('postgres_changes',{event:'UPDATE',schema:'public',table:'app_state',filter:'id=eq.1'},payload=>{
+   if(!payload?.new?.data)return;
+   const cloudTs=payload.new.updated_at||'';
+   const localTs=localDataUpdatedAt();
+   const c=Date.parse(cloudTs),l=Date.parse(localTs);
+   // Einen älteren Cloud-Stand niemals über lokale, noch nicht bestätigte
+   // Änderungen legen.
+   if(Number.isFinite(c)&&Number.isFinite(l)&&c<l){
+     console.warn('DoG RaceHub Realtime: älterer Cloud-Stand ignoriert.');
+     return;
+   }
+   applyCloudState(payload.new.data);
+   saveLocalCache(false,cloudTs||'');
+   renderAll();
+   toast('Daten aus der Cloud aktualisiert.');
+ }).subscribe();
 }
 function renderAll(){try{updateSeasonChrome();updateStats();renderDashboard();renderWM();renderKWM();renderLicenses();renderArchive();initDriverOverview();renderTeams();renderFinance();}catch(e){console.warn('renderAll',e)}}
 function updateEditorUI(){document.querySelectorAll('.edit-btn').forEach(b=>{b.textContent=editor?'✏️ Bearbeiten · Admin':'🔐 Admin / Bearbeiten';});}
@@ -319,9 +359,10 @@ function reconcileCurrentRoster(){
  teams.forEach(t=>['d1','d2'].forEach((d)=>{(t[d]||[]).forEach(n=>{const key=normDriver(n);rosterMap[key]={team:t.name,division:d==='d1'?'Div 1':'Div 2'};if(!drivers.some(x=>normDriver(x)===key))drivers.push(n);});}));
  drivers.forEach(n=>{const key=normDriver(n);const m=driverMeta[n]||{id:(crypto.randomUUID?crypto.randomUUID():'dog-'+Date.now()+'-'+Math.random()),createdAt:new Date().toISOString()};const r=rosterMap[key];if(r){m.team=r.team;m.division=r.division;m.status='Stammfahrer';}else if(m.status!=='Nicht verfügbar' && statusOverrides[n]!=='Nicht verfügbar'){m.team='';m.status='Free Agent';}driverMeta[n]=m;});
 }
-async function save(){syncTeamChiefRoles();reconcileCurrentRoster();normalizeAllRacePoints();saveLocalCache();if(!editor)return false;return await cloudSave();} ensureRaceMetadata(); load(); syncTeamChiefRoles();
+async function save(){syncTeamChiefRoles();reconcileCurrentRoster();normalizeAllRacePoints();saveLocalCache(true);if(!editor)return false;return await cloudSave();} ensureRaceMetadata(); load(); syncTeamChiefRoles();
+saveLocalCache(false);
 // v2.1: Historische Saisondaten werden nicht mehr automatisch gelöscht.
-if(!driverMeta.SchattnKraehe){driverMeta.SchattnKraehe={id:(crypto.randomUUID?crypto.randomUUID():'dog-'+Date.now()),createdAt:new Date().toISOString()};} if(!Number(driverMeta.SchattnKraehe.number)){driverMeta.SchattnKraehe.number=89;} driverMeta.SchattnKraehe.status='Stammfahrer'; driverMeta.SchattnKraehe.division=driverMeta.SchattnKraehe.division||'Div 2'; driverMeta.SchattnKraehe.team='Mercedes'; driverMeta.SchattnKraehe.nationality=driverMeta.SchattnKraehe.nationality||'DE'; repairContracts(); ensureRaceMetadata(); reconcileCurrentRoster(); normalizeDriverNumbers(); calculateLeagueState(); save();
+if(!driverMeta.SchattnKraehe){driverMeta.SchattnKraehe={id:(crypto.randomUUID?crypto.randomUUID():'dog-'+Date.now()),createdAt:new Date().toISOString()};} if(!Number(driverMeta.SchattnKraehe.number)){driverMeta.SchattnKraehe.number=89;} driverMeta.SchattnKraehe.status='Stammfahrer'; driverMeta.SchattnKraehe.division=driverMeta.SchattnKraehe.division||'Div 2'; driverMeta.SchattnKraehe.team='Mercedes'; driverMeta.SchattnKraehe.nationality=driverMeta.SchattnKraehe.nationality||'DE'; repairContracts(); ensureRaceMetadata(); reconcileCurrentRoster(); normalizeDriverNumbers(); calculateLeagueState(); saveLocalCache(false);
 /* DoG RaceHub · Lizenzen v2.14
    Eigene Übersicht für Fahrerbudgets und Saisonlizenzen.
    Nutzt ausschließlich vorhandene driverLicenses + Finanzdaten.
@@ -2050,9 +2091,10 @@ async function loginAdmin(){
  if(row){
    cloudOwnerId=row.owner_id||null;
    cloudReady=true;
-   if(row.data&&typeof row.data==='object'){
+   const localWasNewer=await protectLocalChangesBeforeCloudApply(row);
+   if(!localWasNewer && row.data&&typeof row.data==='object'){
      applyCloudState(row.data);
-     saveLocalCache();
+     saveLocalCache(false,row.updated_at||'');
      renderAll();
    }
  }else{
