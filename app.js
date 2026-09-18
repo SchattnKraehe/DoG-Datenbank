@@ -244,6 +244,10 @@ async function initCloud(){
    editor=cloudOwner;
    updateEditorUI();
    subscribeCloud();
+   if(cloudOwner){
+     const retroactiveSponsorPayments=syncSponsorPaymentsRetroactive();
+     if(retroactiveSponsorPayments){saveLocalCache();await cloudSave();toast(`${retroactiveSponsorPayments} fehlende Sponsorzahlung${retroactiveSponsorPayments===1?'':'en'} rückwirkend ergänzt.`);}
+   }
    return true;
  }catch(e){
    console.error('Cloud init',e);
@@ -300,7 +304,7 @@ function subscribeCloud(){
  if(!cloudClient||cloudChannel)return;
  cloudChannel=cloudClient.channel('dog-racehub-state').on('postgres_changes',{event:'UPDATE',schema:'public',table:'app_state',filter:'id=eq.1'},payload=>{if(payload?.new?.data){applyCloudState(payload.new.data);saveLocalCache();renderAll();toast('Daten aus der Cloud aktualisiert.')}}).subscribe();
 }
-function renderAll(){try{updateSeasonChrome();updateStats();renderDashboard();renderWM();renderKWM();renderArchive();initDriverOverview();renderTeams();renderFinance();}catch(e){console.warn('renderAll',e)}}
+function renderAll(){try{updateSeasonChrome();updateStats();renderDashboard();renderWM();renderKWM();renderLicenses();renderArchive();initDriverOverview();renderTeams();renderFinance();}catch(e){console.warn('renderAll',e)}}
 function updateEditorUI(){document.querySelectorAll('.edit-btn').forEach(b=>{b.textContent=editor?'✏️ Bearbeiten · Admin':'🔐 Admin / Bearbeiten';});}
 
 function load(){const ver='2.9';if(localStorage.getItem('dogrh_data_version')!==ver){localStorage.setItem('dogrh_data_version',ver)}try{const d=JSON.parse(localStorage.getItem('dogrh_drivers'));if(Array.isArray(d)&&d.length)drivers=d}catch(e){};try{const m=JSON.parse(localStorage.getItem('dogrh_driver_meta'));if(m&&typeof m==='object')driverMeta=m}catch(e){};try{const c=JSON.parse(localStorage.getItem('dogrh_contracts'));if(Array.isArray(c))contracts=c}catch(e){}; try{const tr=JSON.parse(localStorage.getItem('dogrh_transfers'));if(Array.isArray(tr))transferRecords=tr}catch(e){}; try{const fb=JSON.parse(localStorage.getItem('dogrh_finance_budgets'));if(fb&&typeof fb==='object')financeBudgets=fb}catch(e){};try{const cu=JSON.parse(localStorage.getItem('dogrh_finance_cap_usage'));if(cu&&typeof cu==='object')financeCapUsage=cu}catch(e){};try{const sp=JSON.parse(localStorage.getItem('dogrh_sponsor_payments'));if(sp&&typeof sp==='object')sponsorPayments=sp}catch(e){};try{const ft=JSON.parse(localStorage.getItem('dogrh_finance_transactions'));if(Array.isArray(ft))financeTransactions=ft}catch(e){};try{const ob=JSON.parse(localStorage.getItem('dogrh_finance_opening'));if(ob&&typeof ob==='object')financeOpeningBalances=ob}catch(e){};try{const fo=JSON.parse(localStorage.getItem('dogrh_finance_tx_overrides'));if(fo&&typeof fo==='object')financeTxOverrides=fo}catch(e){};try{const dob=JSON.parse(localStorage.getItem('dogrh_driver_finance_opening'));if(dob&&typeof dob==='object')driverFinanceOpeningBalances=dob}catch(e){};try{const dod=JSON.parse(localStorage.getItem('dogrh_driver_finance_opening_dates'));if(dod&&typeof dod==='object')driverFinanceOpeningDates=dod}catch(e){};try{const la=JSON.parse(localStorage.getItem('dogrh_loan_agreements'));if(Array.isArray(la))loanAgreements=la}catch(e){};try{const dl=JSON.parse(localStorage.getItem('dogrh_driver_licenses'));if(dl&&typeof dl==='object')driverLicenses=dl}catch(e){};try{const savedTeams=JSON.parse(localStorage.getItem('dogrh_teams'));if(Array.isArray(savedTeams)&&savedTeams.length){savedTeams.forEach(st=>{const t=teams.find(x=>x.name===st.name);if(t){t.chief=st.chief??t.chief;t.d1=Array.isArray(st.d1)?st.d1:t.d1;t.d2=Array.isArray(st.d2)?st.d2:t.d2}})}}catch(e){}
@@ -318,7 +322,82 @@ function reconcileCurrentRoster(){
 async function save(){syncTeamChiefRoles();reconcileCurrentRoster();normalizeAllRacePoints();saveLocalCache();if(!editor)return false;return await cloudSave();} ensureRaceMetadata(); load(); syncTeamChiefRoles();
 // v2.1: Historische Saisondaten werden nicht mehr automatisch gelöscht.
 if(!driverMeta.SchattnKraehe){driverMeta.SchattnKraehe={id:(crypto.randomUUID?crypto.randomUUID():'dog-'+Date.now()),createdAt:new Date().toISOString()};} if(!Number(driverMeta.SchattnKraehe.number)){driverMeta.SchattnKraehe.number=89;} driverMeta.SchattnKraehe.status='Stammfahrer'; driverMeta.SchattnKraehe.division=driverMeta.SchattnKraehe.division||'Div 2'; driverMeta.SchattnKraehe.team='Mercedes'; driverMeta.SchattnKraehe.nationality=driverMeta.SchattnKraehe.nationality||'DE'; repairContracts(); ensureRaceMetadata(); reconcileCurrentRoster(); normalizeDriverNumbers(); calculateLeagueState(); save();
-function showView(id){document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));document.getElementById(id).classList.add('active');document.querySelectorAll('.nav').forEach(n=>n.classList.toggle('active',n.dataset.view===id));document.getElementById('page-title').textContent={dashboard:'Dashboard',drivers:'Fahrer',compare:'Vergleich',teams:'Teams',races:'Rennen',wm:'Fahrer-WM',kwm:'KWM',archive:'Archiv'}[id]||'DoG RaceHub';try{if(id==='drivers')initDriverOverview();if(id==='compare')renderCompare();if(id==='teams')renderTeams();if(id==='races')initRaceSelectors();if(id==='wm')renderWM();if(id==='kwm')renderKWM();if(id==='dashboard')renderDashboard();if(id==='archive')renderArchive();updateStats()}catch(e){console.error('showView',e)}}
+/* DoG RaceHub · Lizenzen v2.14
+   Eigene Übersicht für Fahrerbudgets und Saisonlizenzen.
+   Nutzt ausschließlich vorhandene driverLicenses + Finanzdaten.
+*/
+function licenseDateLabel(iso){
+  if(!iso)return '—';
+  try{return new Date(iso).toLocaleDateString('de-DE')}catch(e){return '—'}
+}
+function ensureLicenseView(){
+  if(document.getElementById('licenses'))return;
+  const nav=document.querySelector('.nav-group');
+  if(nav){
+    const btn=document.createElement('button');
+    btn.className='nav'; btn.dataset.view='licenses'; btn.innerHTML='🪪 <span>Lizenzen</span>';
+    const kwm=document.querySelector('.nav[data-view="kwm"]');
+    if(kwm&&kwm.parentNode===nav)kwm.insertAdjacentElement('afterend',btn);else nav.appendChild(btn);
+    btn.addEventListener('click',()=>showView('licenses'));
+  }
+  const main=document.querySelector('.main');
+  if(main){
+    const sec=document.createElement('section');
+    sec.id='licenses'; sec.className='view';
+    sec.innerHTML=`<div class="section-head"><div><h3>🪪 Fahrer-Lizenzen</h3><p>Budget, Einnahmen, Ausgaben und Lizenzstatus aller Fahrer der ausgewählten Saison.</p></div><div class="selector-row"><select id="license-season" class="div-select"></select></div></div><div id="license-content"></div>`;
+    const archive=document.getElementById('archive');
+    if(archive)main.insertBefore(sec,archive);else main.appendChild(sec);
+    document.getElementById('license-season').addEventListener('change',()=>renderLicenses());
+  }
+  if(!document.getElementById('dog-license-styles')){
+    const st=document.createElement('style');st.id='dog-license-styles';st.textContent=`
+      .license-page-grid{display:grid;grid-template-columns:250px minmax(0,1fr);gap:14px;align-items:start}
+      .license-info{padding:15px;background:rgba(11,26,34,.9);border:1px solid var(--line);border-radius:14px}
+      .license-info h4{margin:0 0 10px;font-size:13px}.license-rule{display:flex;justify-content:space-between;padding:9px 0;border-bottom:1px solid #18323b;font-size:11px}.license-rule span{color:var(--muted)}
+      .license-summary{margin-top:14px;display:grid;gap:8px}.license-summary div{background:#091920;border:1px solid #17353e;border-radius:9px;padding:9px}.license-summary span{display:block;color:var(--muted);font-size:9px}.license-summary b{display:block;margin-top:3px;font-size:15px}
+      .license-table-wrap{overflow:auto}.license-table{width:100%;border-collapse:collapse;min-width:920px}.license-table th,.license-table td{padding:9px 8px;border-bottom:1px solid #18323b;text-align:left;font-size:11px;white-space:nowrap}.license-table th{color:var(--muted);font-size:9px;text-transform:uppercase}.license-driver{font-weight:800}.license-budget{font-weight:900}.license-ok{color:var(--ok);font-weight:900}.license-no{color:var(--danger);font-weight:900}.license-pay{padding:6px 9px;font-size:10px}.license-pay:disabled{opacity:.45;cursor:not-allowed}.license-paid-date{color:var(--muted);font-size:10px}
+      @media(max-width:900px){.license-page-grid{grid-template-columns:1fr}.license-info{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.license-info h4{grid-column:1/-1}.license-summary{grid-column:1/-1;grid-template-columns:repeat(3,1fr)}}
+    `;document.head.appendChild(st);
+  }
+}
+function renderLicenses(){
+  ensureLicenseView();
+  const host=document.getElementById('license-content'),sel=document.getElementById('license-season');
+  if(!host||!sel)return;
+  const seasons=Object.values(SEASON_META.seasons||{}).sort((a,b)=>String(b.label).localeCompare(String(a.label),'de'));
+  const current=sel.value||seasonState.current||'02/26';
+  sel.innerHTML=seasons.map(x=>`<option value="${esc(x.label)}" ${x.label===current?'selected':''}>${esc(x.label)}${x.status==='test'?' · Test':''}</option>`).join('');
+  const season=sel.value||current;
+  const names=[...new Set((drivers||[]).map(normDriver).filter(Boolean))].filter(n=>getStatus(n)!=='Nicht verfügbar').sort((a,b)=>a.localeCompare(b,'de'));
+  const rows=names.map(name=>{
+    const st=driverLicenseState(name,season), b=financeDriverBalance(name,season), team=driverTeam(name)||'Free Agent';
+    const points=contractSeasonStats(name,season,st.division).points;
+    const paid=!!st.rec.paid;
+    const enough=b.balance>=licenseCost(st.division);
+    const paidAt=paid?licenseDateLabel(st.rec.paidAt):'—';
+    return {name,team,division:st.division,points,income:b.income,expense:b.expense,balance:b.balance,paid,enough,paidAt,cost:licenseCost(st.division)};
+  });
+  const paidCount=rows.filter(r=>r.paid).length;
+  const totalCost=rows.reduce((a,r)=>a+r.cost,0);
+  host.innerHTML=`<div class="license-page-grid">
+    <div class="license-info">
+      <h4>🪪 Lizenzübersicht · ${esc(season)}</h4>
+      <div class="license-rule"><span>Division 1</span><b>${money(licenseCost('Div 1'))}</b></div>
+      <div class="license-rule"><span>Division 2</span><b>${money(licenseCost('Div 2'))}</b></div>
+      <div class="license-summary">
+        <div><span>Fahrer</span><b>${rows.length}</b></div>
+        <div><span>Lizenzen erhalten</span><b>${paidCount} / ${rows.length}</b></div>
+        <div><span>Gesamter Lizenzbedarf</span><b>${money(totalCost)}</b></div>
+      </div>
+      <p class="race-edit-note">Die Lizenz wird nur durch deine Admin-Buchung bezahlt. Die Zahlung wird direkt im jeweiligen Fahrerkonto als Ausgabe verbucht.</p>
+    </div>
+    <div class="table-panel license-table-wrap"><table class="license-table"><thead><tr><th>Fahrer</th><th>Team</th><th>Div.</th><th>Punkte</th><th>Einnahmen</th><th>Ausgaben</th><th>Budget</th><th>Lizenz aktuell</th><th>Erhalten am</th><th>Aktion</th></tr></thead><tbody>
+      ${rows.length?rows.map(r=>`<tr><td class="license-driver">${esc(r.name)}</td><td>${esc(r.team)}</td><td>${esc(r.division)}</td><td>${r.points}</td><td class="license-ok">${money(r.income)}</td><td>${money(r.expense)}</td><td class="license-budget">${money(r.balance)}</td><td class="${r.paid?'license-ok':'license-no'}">${r.paid?'✓ JA':'✕ NEIN'}</td><td class="license-paid-date">${r.paidAt}</td><td>${isEditor()?`<button class="primary license-pay" ${r.paid||!r.enough?'disabled':''} onclick="bookDriverLicense('${esc(r.name)}','${esc(season)}');renderLicenses();">${r.paid?'✓ Bezahlt':r.enough?'💳 Bezahlen':'⚠ Budget zu klein'}</button>`:`<span class="muted">Nur Ansicht</span>`}</td></tr>`).join(''):'<tr><td colspan="10" class="muted">Keine Fahrer für diese Saison vorhanden.</td></tr>'}
+    </tbody></table></div>
+  </div>`;
+}
+
+function showView(id){document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));document.getElementById(id).classList.add('active');document.querySelectorAll('.nav').forEach(n=>n.classList.toggle('active',n.dataset.view===id));document.getElementById('page-title').textContent={dashboard:'Dashboard',drivers:'Fahrer',compare:'Vergleich',teams:'Teams',races:'Rennen',wm:'Fahrer-WM',kwm:'KWM',licenses:'Lizenzen',archive:'Archiv'}[id]||'DoG RaceHub';try{if(id==='drivers')initDriverOverview();if(id==='compare')renderCompare();if(id==='teams')renderTeams();if(id==='races')initRaceSelectors();if(id==='wm')renderWM();if(id==='kwm')renderKWM();if(id==='licenses')renderLicenses();if(id==='dashboard')renderDashboard();if(id==='archive')renderArchive();updateStats()}catch(e){console.error('showView',e)}}
 document.querySelectorAll('.nav').forEach(n=>n.addEventListener('click',()=>showView(n.dataset.view)));
 function updateStats(){document.getElementById('stat-drivers').textContent=drivers.filter(n=>getStatus(n)==='Stammfahrer').length;document.getElementById('stat-races').textContent=new Set(raceList().map(r=>r.track)).size}
 function initDriverOverview(){const sel=document.getElementById('driver-select');if(!sel)return;const current=sel.value;sel.innerHTML=drivers.filter(n=>getStatus(n)!=='Nicht verfügbar').sort((a,b)=>a.localeCompare(b,'de')).map(n=>`<option value="${esc(n)}">${driverNumber(n)?'#'+driverNumber(n)+' · ':''}${esc(n)} · ${esc(getStatus(n))}</option>`).join('');if(current&&drivers.includes(current)&&getStatus(current)!=='Nicht verfügbar')sel.value=current;else if(sel.options.length)sel.selectedIndex=0;openDriver(sel.value)}
@@ -793,10 +872,12 @@ function saveTeamEditor(teamName){
  save();closeModal();renderTeams();initDriverOverview();updateStats();toast(`${t.name} gespeichert.`);
 }
 function openDriverEditor(name){
- if(!requireEditor())return; const m=driverRecord(name)||{};const team=driverTeam(name);const div=currentDivision(name)==='—'?(m.division||'Div 2'):currentDivision(name);const opts=TEAM_CHOICES.map(t=>`<option value="${esc(t)}" ${t===team?'selected':''}>${t||'— kein Team / Free Agent —'}</option>`).join('');
- document.getElementById('modal-content').innerHTML=`<div class="modal-head"><div><h2>✏️ Fahrer bearbeiten</h2><p class="race-edit-note">Die interne Fahrer-ID bleibt erhalten. Name und aktuelle Zuordnung können geändert werden.</p></div><button onclick="closeModal()">×</button></div><div class="new-driver-form"><label>Fahrername<input id="edit-driver-name" value="${esc(normDriver(name))}"></label><label>Nationalität<select id="edit-driver-nationality">${nationalityOptions(m.nationality||'')}</select></label><label>Division<select id="edit-driver-div"><option ${div==='Div 1'?'selected':''}>Div 1</option><option ${div==='Div 2'?'selected':''}>Div 2</option></select></label><label>Status<select id="edit-driver-status" onchange="refreshEditDriverNumberOptions('${esc(name)}')"><option ${getStatus(name)==='Stammfahrer'?'selected':''}>Stammfahrer</option><option ${getStatus(name)==='Ersatzfahrer'?'selected':''}>Ersatzfahrer</option><option ${getStatus(name)==='Free Agent'?'selected':''}>Free Agent</option><option ${getStatus(name)==='Nicht verfügbar'?'selected':''}>Nicht verfügbar</option></select></label><label>Fahrernummer<select id="edit-driver-number">${driverNumberOptions(name,getStatus(name),driverNumber(name))}</select></label><label>Team<select id="edit-driver-team">${opts}</select></label><div class="driver-role-editor"><div class="role-title">Rolle im Team</div><label class="role-check"><input type="checkbox" checked disabled> Fahrer</label><label class="role-check"><input type="checkbox" id="edit-driver-role-chief" ${driverIsTeamChief(name)?'checked':''}> Teamchef</label><div class="role-hint">Ein Fahrer kann gleichzeitig Teamchef sein.</div></div></div><div class="modal-actions"><button class="ghost" onclick="closeModal()">Abbrechen</button><button class="danger" onclick="deleteDriverWithConfirmation('${esc(name)}')">🗑️ Fahrer löschen</button><button class="primary" onclick="saveDriverEditor('${esc(name)}')">✓ Fahrer speichern</button></div>`;openModal();
+ if(!requireEditor())return;
+ const m=driverRecord(name)||{},team=driverTeam(name),div=currentDivision(name)==='—'?(m.division||'Div 2'):currentDivision(name);
+ const opts=TEAM_CHOICES.map(t=>`<option value="${esc(t)}" ${t===team?'selected':''}>${t||'— kein Team / Free Agent —'}</option>`).join('');
+ const sponsor=m.sponsorInfo||{};
+ document.getElementById('modal-content').innerHTML=`<div class="modal-head"><div><h2>✏️ Fahrer bearbeiten</h2><p class="race-edit-note">Die interne Fahrer-ID bleibt erhalten. Auch Ersatzfahrer können hier einen eigenen Sponsor erhalten.</p></div><button onclick="closeModal()">×</button></div><div class="new-driver-form"><label>Fahrername<input id="edit-driver-name" value="${esc(normDriver(name))}"></label><label>Nationalität<select id="edit-driver-nationality">${nationalityOptions(m.nationality||'')}</select></label><label>Division<select id="edit-driver-div"><option ${div==='Div 1'?'selected':''}>Div 1</option><option ${div==='Div 2'?'selected':''}>Div 2</option></select></label><label>Status<select id="edit-driver-status" onchange="refreshEditDriverNumberOptions('${esc(name)}')"><option ${getStatus(name)==='Stammfahrer'?'selected':''}>Stammfahrer</option><option ${getStatus(name)==='Ersatzfahrer'?'selected':''}>Ersatzfahrer</option><option ${getStatus(name)==='Free Agent'?'selected':''}>Free Agent</option><option ${getStatus(name)==='Nicht verfügbar'?'selected':''}>Nicht verfügbar</option></select></label><label>Fahrernummer<select id="edit-driver-number">${driverNumberOptions(name,getStatus(name),driverNumber(name))}</select></label><label>Team<select id="edit-driver-team">${opts}</select></label></div><div class="contract-form-section"><h3>🤝 FAHRERSPONSOR</h3><div class="new-driver-form"><label>Sponsor<select id="edit-driver-sponsor"><option value="">Kein Sponsor</option>${Object.keys(SPONSOR_OPTIONS).map(x=>`<option value="${esc(x)}" ${sponsor.sponsor===x?'selected':''}>${esc(x)}</option>`).join('')}</select></label><label>Sponsor-Logo (optional)<input id="edit-driver-sponsor-logo" value="${esc(sponsor.logo||'')}"></label></div><div class="race-edit-note">Gilt auch für Ersatzfahrer. Wenn für dieselbe Saison ein Fahrervertrag mit Sponsor existiert, hat der Vertrag Vorrang.</div></div><div class="driver-role-editor"><div class="role-title">Rolle im Team</div><label class="role-check"><input type="checkbox" checked disabled> Fahrer</label><label class="role-check"><input type="checkbox" id="edit-driver-role-chief" ${driverIsTeamChief(name)?'checked':''}> Teamchef</label><div class="role-hint">Ein Fahrer kann gleichzeitig Teamchef sein.</div></div><div class="modal-actions"><button class="ghost" onclick="closeModal()">Abbrechen</button><button class="danger" onclick="deleteDriverWithConfirmation('${esc(name)}')">🗑️ Fahrer löschen</button><button class="primary" onclick="saveDriverEditor('${esc(name)}')">✓ Fahrer speichern</button></div>`;openModal();
 }
-
 function deleteDriverWithConfirmation(name){
  if(!requireEditor())return;
  const canonical=normDriver(name);
@@ -834,19 +915,55 @@ function deleteDriverWithConfirmation(name){
  toast(`Fahrer ${canonical} wurde vollständig gelöscht.`);
 }
 
-function saveDriverEditor(oldName){
- if(!requireEditor())return;const newName=document.getElementById('edit-driver-name').value.trim();const nationality=document.getElementById('edit-driver-nationality')?.value||'';const div=document.getElementById('edit-driver-div').value;const status=document.getElementById('edit-driver-status').value;const team=document.getElementById('edit-driver-team').value;const number=Number(document.getElementById('edit-driver-number')?.value)||0;if(!newName){toast('Bitte einen Fahrernamen eingeben.');return}if(drivers.some(n=>normDriver(n).toLowerCase()===normDriver(newName).toLowerCase()&&normDriver(n).toLowerCase()!==normDriver(oldName).toLowerCase())){toast('Diesen Fahrernamen gibt es bereits.');return}
- const wantsChief=!!document.getElementById('edit-driver-role-chief')?.checked;const idx=drivers.indexOf(oldName);if(idx<0)return;const ns=number?driverNumberState(number,newName,status):{state:'free'};if(number&&(ns.state==='blocked'||ns.state==='taken-stamm'||(ns.state==='taken-ersatz'&&status!=='Stammfahrer'))){toast(`Fahrernummer #${number} ist nicht verfügbar.`);return;}drivers[idx]=newName;teams.forEach(t=>{if(normDriver(t.chief||'')===normDriver(oldName))t.chief=newName;});const meta=driverMeta[oldName]||{id:(crypto.randomUUID?crypto.randomUUID():'dog-'+Date.now()),createdAt:new Date().toISOString()};delete driverMeta[oldName];meta.division=div;meta.status=status;meta.team=team;meta.number=number;meta.nationality=nationality;
- if(number&&status==='Stammfahrer'){drivers.forEach(other=>{if(normDriver(other)!==normDriver(newName)&&driverNumber(other)===number&&getStatus(other)==='Ersatzfahrer'){driverMeta[other].number=0}})}
-driverMeta[newName]=meta;
- if(wantsChief){const chiefTeam=teams.find(t=>t.name===team);teams.forEach(t=>{if(t!==chiefTeam&&normDriver(t.chief||'')===normDriver(newName))t.chief='';});if(chiefTeam)chiefTeam.chief=newName;}else teams.forEach(t=>{if(normDriver(t.chief||'')===normDriver(newName))t.chief='';});meta.isTeamChief=wantsChief;syncTeamChiefRoles();
- teams.forEach(t=>{t.d1=t.d1.map(n=>normDriver(n)===normDriver(oldName)?newName:n);t.d2=t.d2.map(n=>normDriver(n)===normDriver(oldName)?newName:n);if(t.name!==team){t.d1=t.d1.filter(n=>normDriver(n)!==normDriver(newName));t.d2=t.d2.filter(n=>normDriver(n)!==normDriver(newName));}});
- if(status==='Stammfahrer'&&team){const t=teams.find(x=>x.name===team);if(t){const arr=div==='Div 1'?t.d1:t.d2;if(!arr.some(n=>normDriver(n)===normDriver(newName))){if(arr.length<2)arr.push(newName);else{meta.status='Free Agent';meta.team='';}}}} else {teams.forEach(t=>{t.d1=t.d1.filter(n=>normDriver(n)!==normDriver(newName));t.d2=t.d2.filter(n=>normDriver(n)!==normDriver(newName));});meta.team='';}
- // update race references to preserve historical driver identity under the renamed display name
- Object.values(races).forEach(r=>r.results.forEach(x=>{if(normDriver(x.name)===normDriver(oldName))x.name=newName}));Object.values(races).forEach(r=>Object.keys(r.highlights||{}).forEach(k=>{if(normDriver(r.highlights[k])===normDriver(oldName))r.highlights[k]=newName}));
- save().then(ok=>{if(!ok){toast('Fahrer lokal gespeichert, aber Cloud-Speicherung fehlgeschlagen.');return}closeModal();renderTeams();initDriverOverview();renderWM();renderKWM();renderDashboard();toast('Fahrer gespeichert und in der Cloud gesichert.');});
+function cancelDriverSponsorUpfront(entity){
+ if(!entity)return;
+ const key=sponsorPaymentKey(entity.id,'upfront','start');
+ delete sponsorPayments[key];
+ financeTransactions=financeTransactions.filter(t=>!(String(t.contractId||'')===String(entity.id)&&t.type==='sponsor_upfront'&&String(t.sponsorRef||'start')==='start'));
 }
-
+function saveDriverEditor(oldName){
+ if(!requireEditor())return;
+ const newName=document.getElementById('edit-driver-name').value.trim();
+ const nationality=document.getElementById('edit-driver-nationality')?.value||'';
+ const div=document.getElementById('edit-driver-div').value;
+ const status=document.getElementById('edit-driver-status').value;
+ const team=document.getElementById('edit-driver-team').value;
+ const number=Number(document.getElementById('edit-driver-number')?.value)||0;
+ const sponsorName=document.getElementById('edit-driver-sponsor')?.value||'';
+ const sponsorLogo=document.getElementById('edit-driver-sponsor-logo')?.value.trim()||'';
+ if(!newName){toast('Bitte einen Fahrernamen eingeben.');return}
+ if(drivers.some(n=>normDriver(n).toLowerCase()===normDriver(newName).toLowerCase()&&normDriver(n).toLowerCase()!==normDriver(oldName).toLowerCase())){toast('Diesen Fahrernamen gibt es bereits.');return}
+ const wantsChief=!!document.getElementById('edit-driver-role-chief')?.checked;
+ const idx=drivers.indexOf(oldName);if(idx<0)return;
+ const oldMeta=driverMeta[oldName]||{};
+ const oldSponsor=driverSponsorEntity(oldName,oldMeta.sponsorInfo?.season||seasonState.current||'02/26');
+ const oldSponsorChanged=oldSponsor&&sponsorPayments[sponsorPaymentKey(oldSponsor.id,'upfront','start')]&&(!sponsorName||sponsorName!==oldMeta.sponsorInfo?.sponsor);
+ if(oldSponsorChanged){
+   if(!confirm(`Der bisherige Fahrersponsor wird geändert/entfernt.\\n\\nDie bereits gebuchte Sponsor-Sofortzahlung wird dadurch ungültig.\\n\\nSofortzahlung stornieren und Fahrer speichern?`))return;
+   cancelDriverSponsorUpfront(oldSponsor);
+ }
+ const ns=number?driverNumberState(number,newName,status):{state:'free'};
+ if(number&&(ns.state==='blocked'||ns.state==='taken-stamm'||(ns.state==='taken-ersatz'&&status!=='Stammfahrer'))){toast(`Fahrernummer #${number} ist nicht verfügbar.`);return}
+ drivers[idx]=newName;
+ teams.forEach(t=>{if(normDriver(t.chief||'')===normDriver(oldName))t.chief=newName;});
+ const meta=oldMeta.id?{...oldMeta}:{id:(crypto.randomUUID?crypto.randomUUID():'dog-'+Date.now()),createdAt:new Date().toISOString()};
+ delete driverMeta[oldName];
+ meta.division=div;meta.status=status;meta.team=team;meta.number=number;meta.nationality=nationality;
+ if(sponsorName&&SPONSOR_OPTIONS[sponsorName]){
+   meta.sponsorInfo={...(meta.sponsorInfo||{}),sponsor:sponsorName,logo:sponsorLogo,season:meta.sponsorInfo?.season||seasonState.current||'02/26',startDate:meta.sponsorInfo?.startDate||new Date().toISOString().slice(0,10)};
+ }else delete meta.sponsorInfo;
+ if(number&&status==='Stammfahrer'){drivers.forEach(other=>{if(normDriver(other)!==normDriver(newName)&&driverNumber(other)===number&&getStatus(other)==='Ersatzfahrer'){driverMeta[other].number=0}})}
+ driverMeta[newName]=meta;
+ if(wantsChief){const chiefTeam=teams.find(t=>t.name===team);teams.forEach(t=>{if(t!==chiefTeam&&normDriver(t.chief||'')===normDriver(newName))t.chief='';});if(chiefTeam)chiefTeam.chief=newName;}else teams.forEach(t=>{if(normDriver(t.chief||'')===normDriver(newName))t.chief='';});
+ meta.isTeamChief=wantsChief;syncTeamChiefRoles();
+ teams.forEach(t=>{t.d1=t.d1.map(n=>normDriver(n)===normDriver(oldName)?newName:n);t.d2=t.d2.map(n=>normDriver(n)===normDriver(oldName)?newName:n);if(t.name!==team){t.d1=t.d1.filter(n=>normDriver(n)!==normDriver(newName));t.d2=t.d2.filter(n=>normDriver(n)!==normDriver(newName));}});
+ if(status==='Stammfahrer'&&team){const t=teams.find(x=>x.name===team);if(t){const arr=div==='Div 1'?t.d1:t.d2;if(!arr.some(n=>normDriver(n)===normDriver(newName))){if(arr.length<2)arr.push(newName);else{meta.status='Free Agent';meta.team='';}}}}else{teams.forEach(t=>{t.d1=t.d1.filter(n=>normDriver(n)!==normDriver(newName));t.d2=t.d2.filter(n=>normDriver(n)!==normDriver(newName));});meta.team='';}
+ Object.values(races).forEach(r=>r.results.forEach(x=>{if(normDriver(x.name)===normDriver(oldName))x.name=newName}));
+ Object.values(races).forEach(r=>Object.keys(r.highlights||{}).forEach(k=>{if(normDriver(r.highlights[k])===normDriver(oldName))r.highlights[k]=newName}));
+ const newSponsor=driverSponsorEntity(newName,meta.sponsorInfo?.season||seasonState.current||'02/26');
+ if(newSponsor&&SPONSOR_OPTIONS[newSponsor.sponsor])ensureSponsorPayment(newSponsor,'upfront','start',SPONSOR_OPTIONS[newSponsor.sponsor].upfront,sponsorUpfrontDate(newSponsor));
+ save().then(ok=>{if(!ok){toast('Fahrer lokal gespeichert, aber Cloud-Speicherung fehlgeschlagen.');return}closeModal();renderTeams();initDriverOverview();renderWM();renderKWM();renderDashboard();renderFinance();toast('Fahrer gespeichert und in der Cloud gesichert.');});
+}
 function refreshNewDriverNumberOptions(){const s=document.getElementById('new-driver-status'),el=document.getElementById('new-driver-number');if(s&&el){const current=Number(el.value)||0;el.innerHTML=driverNumberOptions('',s.value,current);if([...el.options].some(o=>Number(o.value)===current&&!o.disabled))el.value=current;else el.value='0';}}
 function refreshEditDriverNumberOptions(name){const s=document.getElementById('edit-driver-status'),el=document.getElementById('edit-driver-number');if(s&&el){const current=Number(el.value)||0;el.innerHTML=driverNumberOptions(name,s.value,current);if([...el.options].some(o=>Number(o.value)===current&&!o.disabled))el.value=current;else el.value='0';}}
 function slot(n){if(!n)return `<div class="driver-slot">—</div>`;const st=getStatus(n);const cls=st==='Free Agent'?' free':st==='Nicht verfügbar'?' unavailable':'';return `<div class="driver-slot${cls}"><span>${esc(n)}</span></div>`}
@@ -1086,67 +1203,75 @@ function syncDriverContractFinance(c){
  });
 }
 function driverSeasonPoints(driver,season,division){return contractSeasonStats(driver,season,division).points}
+function seasonDivisionComplete(season,division){
+ const rounds=new Set(seasonRaceList(season).filter(r=>r.division===division).map(r=>Number(r.number||r.round||0)).filter(Boolean));
+ return rounds.size>=12;
+}
+function specialPaymentTrigger(c){
+ if(!c||!c.specialCondition?.enabled)return null;
+ const sc=c.specialCondition;
+ const candidates=[];
+ const races=seasonRaceList(c.season||seasonState.current).filter(r=>r.division===c.division).sort((a,b)=>Number(a.number||a.round||0)-Number(b.number||b.round||0));
+ if(sc.pointsEnabled){
+   const required=Math.max(1,Number(sc.points||1));
+   let points=0;
+   for(const r of races){
+     const row=sponsorResultForContract(c,r);
+     if(row)points+=pointsForPosition(row.pos,row.status);
+     if(points>=required){
+       candidates.push({date:r.raceDate||r.createdAt||new Date().toISOString(),reason:`Punkte erreicht (${required})`});
+       break;
+     }
+   }
+ }
+ if(seasonDivisionComplete(c.season,c.division)){
+   const stats=contractSeasonStats(c.driver,c.season,c.division);
+   const finalRace=races[races.length-1];
+   const finalDate=finalRace?.raceDate||finalRace?.createdAt||new Date().toISOString();
+   if(sc.endPositionEnabled){
+     const maxPos=Math.max(1,Number(sc.endPosition||1));
+     if(stats.position>0&&stats.position<=maxPos)candidates.push({date:finalDate,reason:`Endplatzierung P${stats.position}`});
+   }
+   if(sc.kwmEnabled){
+     const maxKwm=Math.max(1,Math.min(4,Number(sc.kwmPosition||1)));
+     const rows=kwmRows(c.division,c.season);
+     const pos=rows.findIndex(x=>x.team===c.team)+1;
+     if(pos>0&&pos<=maxKwm)candidates.push({date:finalDate,reason:`KWM-Platz ${pos}`});
+   }
+ }
+ if(!candidates.length)return null;
+ candidates.sort((a,b)=>String(a.date).localeCompare(String(b.date)));
+ return candidates[0];
+}
 function contractSpecialPaymentDue(c){
-  // Ohne aktivierte Bedingung niemals automatisch auszahlen.
-  if(!c?.specialCondition?.enabled)return false;
-
-  // Mit Bedingung: Zahlung erst ab Erreichen der vereinbarten Punkte.
-  const required=Number(c.specialCondition.points||1);
-  const points=driverSeasonPoints(c.driver,c.season,c.division);
-
-  return points>=required;
+ return !!specialPaymentTrigger(c);
 }
 function syncContractSpecialPayments(){
-  // Bereits vorhandene Sonderzahlungen NICHT mehr pauschal löschen.
-  // Dadurch bleiben manuelle Buchungen und gelöschte Buchungen erhalten.
-
-  contracts.filter(c=>c&&!c.draft).forEach(c=>{
-    const amount=parseMoneyValue(c.specialPayment);
-    if(amount<=0)return;
-
-    // Ohne Haken KEINE automatische Sonderzahlung.
-    if(!c.specialCondition?.enabled)return;
-
-    // Zahlung wird ausschließlich anhand der vereinbarten Punkte ausgelöst.
-    const required=Number(c.specialCondition.points||1);
-    const points=driverSeasonPoints(c.driver,c.season,c.division);
-
-    if(points<required)return;
-
-    // Prüfen, ob für diesen Vertrag bereits eine automatische
-    // Sonderzahlung existiert.
-    const existing=financeTransactions.find(t=>
-      t.type==='contract_special_income' &&
-      t.contractId===c.id
-    );
-
-    if(existing)return;
-
-    // Neue automatische Sonderzahlung.
-    const tx={
-      id:financeTxId(),
-      season:c.season,
-      team:c.team||'',
-      driver:normDriver(c.driver),
-      contractId:c.id,
-      type:'contract_special_income',
-      description:`Sonderzahlung Vertrag · ${c.team||''}`.trim(),
-      amount:amount,
-      // Keine Bindung mehr an das Vertrags-Enddatum.
-      // Die Buchung erfolgt an dem Tag, an dem die Bedingung
-      // vom System erkannt und erfüllt ist.
-      date:new Date().toISOString()
-    };
-
-    // Wurde diese Sonderzahlung vom Admin bereits gelöscht,
-    // darf sie nicht automatisch wieder angelegt werden.
-    const applied=financeTxApplyOverride(tx);
-
-    if(applied){
-      financeTransactions.push(applied);
-    }
-  });
-}function syncAllDriverContractFinance(){
+ // Sonderzahlungen mit Bedingung werden nur bei erfüllter Bedingung automatisch gebucht.
+ // Ohne Haken passiert automatisch nichts. Bereits gelöschte Buchungen bleiben gelöscht.
+ contracts.filter(c=>c&&!c.draft).forEach(c=>{
+   const amount=parseMoneyValue(c.specialPayment);
+   if(amount<=0||!c.specialCondition?.enabled)return;
+   const trigger=specialPaymentTrigger(c);
+   if(!trigger)return;
+   const existing=financeTransactions.find(t=>t.type==='contract_special_income'&&t.contractId===c.id);
+   if(existing)return;
+   const tx={
+     id:financeTxId(),
+     season:c.season,
+     team:c.team||'',
+     driver:normDriver(c.driver),
+     contractId:c.id,
+     type:'contract_special_income',
+     description:`Sonderzahlung Vertrag · ${c.team||''} · ${trigger.reason}`.trim(),
+     amount,
+     date:new Date(trigger.date+'T12:00:00').toISOString()
+   };
+   const applied=financeTxApplyOverride(tx);
+   if(applied)financeTransactions.push(applied);
+ });
+}
+function syncAllDriverContractFinance(){
  // Vertragsbuchungen sind vollständig aus den aktuell gespeicherten Verträgen ableitbar.
  // Dadurch werden auch bereits vorhandene Verträge nach App-Neustart korrekt in die Fahrerfinanzen übernommen.
  financeTransactions=financeTransactions.filter(t=>t.type!=='contract_salary_income');
@@ -1189,7 +1314,7 @@ function bookDriverLicense(driverName,season){
  if(st.balance<licenseCost(st.division)){toast(`Nicht genügend Budget für die ${st.division}-Lizenz (${money(licenseCost(st.division))}).`);return}
  if(!driverLicenses[season])driverLicenses[season]={}; driverLicenses[season][key]={...(driverLicenses[season][key]||{}),paid:true,division:st.division,paidAt:new Date().toISOString()};
  financeAddTransaction({season,team:'',driver:driverName,type:'driver_license',description:`Fahrer-Lizenz · ${st.division}`,amount:-licenseCost(st.division)});
- save(); openDriver(driverName); toast(`Lizenz ${st.division} für ${season} gebucht und ${money(licenseCost(st.division))} abgezogen.`);
+ save(); openDriver(driverName); renderLicenses(); toast(`Lizenz ${st.division} für ${season} gebucht und ${money(licenseCost(st.division))} abgezogen.`);
 }
 function openDriverPenalty(driverName,season=seasonState.current||'02/26'){
  if(!requireEditor())return;
@@ -1311,6 +1436,7 @@ function saveRaceAndRecalculate(id,kind='update',details=''){
  syncFinancialRules();
  if(kind)recordRaceChange(id,kind,details);
  save();
+ setTimeout(()=>promptSponsorRacePayments(id),120);
 }
 
 function calcDriver(name){return calcDriverFromRaces(name,raceList())}
@@ -1360,10 +1486,10 @@ function openContractEditor(name,id){
  document.getElementById('modal-content').innerHTML=`<div class="modal-head"><div><h2>📄 ${existing?'Vertrag bearbeiten':'Fahrervertrag anlegen'}</h2><p class="race-edit-note">Fahrer und Team werden ausschließlich über Auswahllisten zugeordnet. Dadurch bleiben Verträge eindeutig mit der Fahrer-ID verknüpft.</p></div><button onclick="closeModal()">×</button></div><div class="contract-form">
  <div class="contract-form-section"><h3>VERTRAGSPARTEIEN</h3><div class="new-driver-form"><label>Fahrer<select id="contract-driver" onchange="syncContractPartyFields()">${contractDriverOptions(selectedDriver)}</select></label><label>Saison<select id="contract-season">${seasonOpts}</select></label><label>Team<select id="contract-team" onchange="syncContractChief()">${contractTeamOptions(selectedTeam)}</select></label><label>Division<select id="contract-div"><option ${existing?.division==='Div 1'||(!existing&&currentDivision(selectedDriver)==='Div 1')?'selected':''}>Div 1</option><option ${existing?.division==='Div 2'||(!existing&&currentDivision(selectedDriver)!=='Div 1')?'selected':''}>Div 2</option></select></label><label>Teamchef<select id="contract-chief"><option value="">— kein Teamchef —</option>${drivers.filter(d=>driverIsTeamChief(d)||normDriver(d)===normDriver(chief)).sort((a,b)=>a.localeCompare(b,'de')).map(d=>'<option value="'+esc(d)+'" '+(normDriver(d)===normDriver(chief)?'selected':'')+'>'+esc(d)+'</option>').join('')}</select></label></div></div>
  <div class="contract-form-section"><h3>VERTRAGSLAUFZEIT</h3><div class="new-driver-form"><label>Laufzeit<select id="contract-duration"><option value="1" ${duration===1?'selected':''}>1 Saison</option><option value="2" ${duration===2?'selected':''}>2 Saisons</option></select></label><label>Beginn<input id="contract-start-date" type="date" value="${esc(existing?.startDate||'')}"></label><label>Ende<input id="contract-end-date" type="date" value="${esc(existing?.endDate||'')}"></label></div><div class="contract-season-lock"><b>${duration===2?'Vertrag über 2 Saisons':'Vertrag über 1 Saison'}</b><span>Bei 2 Saisons wird die Folgesaison automatisch als Vertragsbindung vorgemerkt.</span></div></div>
- <div class="contract-form-section"><h3>🔄 AUTOMATISCHE VERLÄNGERUNG</h3><div class="new-driver-form"><label class="role-check"><input type="checkbox" id="contract-ext-enabled" ${ext.enabled?'checked':''}> Verlängerung aktiv</label><label>Zusatzlaufzeit<select id="contract-ext-duration"><option value="1" ${Number(ext.duration||1)===1?'selected':''}>+ 1 Saison</option><option value="2" ${Number(ext.duration||1)===2?'selected':''}>+ 2 Saisons</option></select></label></div><div class="extension-grid"><label class="role-check"><input type="checkbox" id="contract-ext-position" ${ext.positionEnabled?'checked':''}> WM-Platz als Bedingung</label><label>Max. Platz<input id="contract-ext-position-value" type="number" min="1" max="250" value="${Number(ext.position||1)}"></label><label class="role-check"><input type="checkbox" id="contract-ext-points" ${ext.pointsEnabled?'checked':''}> Punkte als Bedingung</label><label>Punkte ab<input id="contract-ext-points-value" type="number" min="1" max="250" value="${Number(ext.points||1)}"></label><label class="role-check"><input type="checkbox" id="contract-ext-races" ${ext.racesEnabled?'checked':''}> Rennen als Bedingung</label><label>Rennen ab<input id="contract-ext-races-value" type="number" min="1" max="250" value="${Number(ext.races||1)}"></label></div><div class="race-edit-note">Mehrere Bedingungen können gleichzeitig aktiviert werden. Sind mehrere Haken gesetzt, müssen <b>alle</b> erfüllbar sein. Die Prüfung erfolgt erst zum Saisonende.</div></div>
- <div class="contract-form-section"><h3>FAHRERSPONSOR</h3><div class="new-driver-form"><label>Sponsor<select id="contract-sponsor" onchange="syncSponsorFields()"><option value="">Kein Sponsor</option>${Object.keys(SPONSOR_OPTIONS).map(x=>'<option value="'+esc(x)+'" '+(existing?.sponsor===x?'selected':'')+'>'+esc(x)+'</option>').join('')}</select></label><label>Sponsor-Logo (optional)<input id="contract-sponsor-logo" value="${esc(existing?.sponsorLogo||'')}"></label></div><div id="sponsor-preview" class="sponsor-preview"></div></div>
- <div class="contract-form-section"><h3>ZAHLUNGSVEREINBARUNGEN</h3><div class="new-driver-form"><label>Gehalt<input id="contract-salary" value="${esc(existing?.salary||existing?.value||'')}" placeholder="4.000.000 €"></label><label>Sonderzahlung<input id="contract-special" value="${esc(existing?.specialPayment||'')}" placeholder="6.000.000 €"></label><label>Abfindung<input id="contract-severance" value="${esc(existing?.severance||'')}" placeholder="8.000.000 €"></label><label>Ausstiegsklausel<input id="contract-release" value="${esc(existing?.releaseClause||'')}" placeholder="120.000.000 €"></label></div><div class="new-driver-form"><label class="role-check"><input type="checkbox" id="contract-special-enabled" ${existing?.specialCondition?.enabled?'checked':''}> Sonderzahlung nur bei Bedingung</label><label>Benötigte Punkte<input id="contract-special-points" type="number" min="1" max="250" value="${Number(existing?.specialCondition?.points||1)}"></label></div><div class="race-edit-note">Die Sonderzahlung wird erst automatisch fällig, wenn der Fahrer die eingetragene Punktzahl erreicht. Ohne Haken bleibt sie eine normale Zahlung.</div></div>
- <div class="contract-form-section"><h3>SONDERVEREINBARUNGEN</h3><label class="full-field">Vereinbarung<textarea id="contract-special-agreement" rows="4">${esc(existing?.specialAgreement||'')}</textarea></label></div>
+ <div class="contract-form-section"><h3>🔄 AUTOMATISCHE VERLÄNGERUNG</h3><div class="new-driver-form"><label class="role-check"><input type="checkbox" id="contract-ext-enabled" ${ext.enabled?'checked':''}> Verlängerung aktiv</label><label>Zusatzlaufzeit<select id="contract-ext-duration"><option value="1" ${Number(ext.duration||1)===1?'selected':''}>+ 1 Saison</option><option value="2" ${Number(ext.duration||1)===2?'selected':''}>+ 2 Saisons</option></select></label></div><div class="new-driver-form"><label class="role-check"><input type="checkbox" id="contract-ext-position" ${ext.positionEnabled?'checked':''}> WM ≤</label><label><input id="contract-ext-position-value" type="number" min="1" max="250" value="${Number(ext.position||1)}"></label><label class="role-check"><input type="checkbox" id="contract-ext-points" ${ext.pointsEnabled?'checked':''}> Punkte ≥</label><label><input id="contract-ext-points-value" type="number" min="1" max="250" value="${Number(ext.points||1)}"></label><label class="role-check"><input type="checkbox" id="contract-ext-races" ${ext.racesEnabled?'checked':''}> Rennen ≥</label><label><input id="contract-ext-races-value" type="number" min="1" max="250" value="${Number(ext.races||1)}"></label></div><div class="race-edit-note">Nur aktivierte Bedingungen werden geprüft. Bei mehreren Haken müssen alle erfüllt sein; Prüfung am Saisonende.</div></div>
+<div class="contract-form-section"><h3>FAHRERSPONSOR</h3><div class="new-driver-form"><label>Sponsor<select id="contract-sponsor" onchange="syncSponsorFields()"><option value="">Kein Sponsor</option>${Object.keys(SPONSOR_OPTIONS).map(x=>'<option value="'+esc(x)+'" '+(existing?.sponsor===x?'selected':'')+'>'+esc(x)+'</option>').join('')}</select></label><label>Sponsor-Logo (optional)<input id="contract-sponsor-logo" value="${esc(existing?.sponsorLogo||'')}"></label></div><div id="sponsor-preview" class="sponsor-preview"></div></div>
+ <div class="contract-form-section"><h3>ZAHLUNGSVEREINBARUNGEN</h3><div class="new-driver-form"><label>Gehalt<input id="contract-salary" value="${esc(existing?.salary||existing?.value||'')}" placeholder="4.000.000 €"></label><label>Sonderzahlung<input id="contract-special" value="${esc(existing?.specialPayment||'')}" placeholder="6.000.000 €"></label><label>Abfindung<input id="contract-severance" value="${esc(existing?.severance||'')}" placeholder="8.000.000 €"></label><label>Ausstiegsklausel<input id="contract-release" value="${esc(existing?.releaseClause||'')}" placeholder="120.000.000 €"></label></div><div class="new-driver-form"><label class="role-check"><input type="checkbox" id="contract-special-enabled" ${existing?.specialCondition?.enabled?'checked':''}> Sonderzahlung automatisch nach Bedingung</label></div><div class="new-driver-form"><label class="role-check"><input type="checkbox" id="contract-special-points-enabled" ${existing?.specialCondition?.pointsEnabled||(!existing?.specialCondition&&existing?.specialCondition?.enabled)?'checked':''}> Punkte ab</label><label><input id="contract-special-points" type="number" min="1" max="250" value="${Number(existing?.specialCondition?.points||1)}"></label><label class="role-check"><input type="checkbox" id="contract-special-kwm-enabled" ${existing?.specialCondition?.kwmEnabled?'checked':''}> KWM Platz bis</label><label><select id="contract-special-kwm-position">${[1,2,3,4].map(n=>`<option value="${n}" ${Number(existing?.specialCondition?.kwmPosition||1)===n?'selected':''}>P${n}</option>`).join('')}</select></label><label class="role-check"><input type="checkbox" id="contract-special-end-enabled" ${existing?.specialCondition?.endPositionEnabled?'checked':''}> Endplatzierung bis</label><label><input id="contract-special-end-position" type="number" min="1" max="250" value="${Number(existing?.specialCondition?.endPosition||1)}"></label></div><div class="race-edit-note">Mit Haken wird die Sonderzahlung automatisch fällig, sobald eine der aktivierten Bedingungen erfüllt ist. KWM und Endplatzierung werden erst nach 12 Rennen der Division geprüft. Ohne Haken wird die Sonderzahlung niemals automatisch gebucht und kann nur manuell über die Finanzen erfolgen.</div></div>
+<div class="contract-form-section"><h3>SONDERVEREINBARUNGEN</h3><label class="full-field">Vereinbarung<textarea id="contract-special-agreement" rows="4">${esc(existing?.specialAgreement||'')}</textarea></label></div>
  <div class="contract-form-section"><h3>📷 VERTRAGSBILD / OCR</h3><p class="race-edit-note">Vertragsbild hochladen und optional per OCR auswerten.</p><input id="contract-image-input" type="file" accept="image/*" multiple onchange="attachContractImages(this)"/><div id="contract-image-preview" class="contract-image-preview">${(existing?.contractImages||[]).map(x=>'<img src="'+esc(x)+'" onclick="viewImage(this.src)">').join('')}</div><button class="ghost" type="button" onclick="document.getElementById('contract-ocr-input').click()">🔎 Vertrag per OCR auswerten</button><input id="contract-ocr-input" type="file" accept="image/*" multiple hidden onchange="startContractOCR(this)"/></div>
  <div class="contract-form-section"><h3>UNTERSCHRIFTEN</h3><div class="new-driver-form"><label>Unterschrift Fahrer<input id="contract-sign-driver" value="${esc(existing?.signatureDriver||selectedDriver)}" placeholder="Name / Signatur"></label><label>Unterschrift Teamchef<input id="contract-sign-chief" value="${esc(existing?.signatureChief||chief)}" placeholder="Name / Signatur"></label></div><div class="race-edit-note">Die Namen aus den Vertragsparteien werden automatisch als Unterschriften vorbelegt.</div></div></div><div class="modal-actions"><button class="ghost" onclick="closeModal()">Abbrechen</button><button id="contract-save-btn" class="primary" type="button">✓ Vertrag speichern</button></div>`;
  openModal(); syncSponsorFields(); syncContractPartyFields();
@@ -1514,29 +1640,95 @@ function evaluateContractExtension(c){
  return true;
 }
 function syncContractExtensions(){let made=0;contracts.filter(c=>c&&!c.draft).forEach(c=>{if(evaluateContractExtension(c))made++});return made}
+function cancelSponsorUpfront(entity){
+ const key=sponsorPaymentKey(entity.id,'upfront','start');
+ delete sponsorPayments[key];
+ financeTransactions=financeTransactions.filter(t=>!(String(t.contractId||'')===String(entity.id)&&t.type==='sponsor_upfront'&&String(t.sponsorRef||'start')==='start'));
+ financeTxStoreOverride({id:`sponsor_${entity.id}_upfront_start`,contractId:entity.id,type:'sponsor_upfront'},{deleted:true});
+}
 function saveContract(existingId){
  if(!requireEditor())return;
  const driver=document.getElementById('contract-driver').value,season=document.getElementById('contract-season').value,team=document.getElementById('contract-team').value,division=document.getElementById('contract-div').value;
  const startDate=document.getElementById('contract-start-date').value,endDate=document.getElementById('contract-end-date').value,durationSeasons=Number(document.getElementById('contract-duration').value)||1;
- if(!driver||!team){toast('Fahrer und Team sind erforderlich.');return} if(startDate&&endDate&&endDate<startDate){toast('Vertragsende darf nicht vor Vertragsbeginn liegen.');return}
+ if(!driver||!team){toast('Fahrer und Team sind erforderlich.');return}
+ if(startDate&&endDate&&endDate<startDate){toast('Vertragsende darf nicht vor Vertragsbeginn liegen.');return}
  const linkedDriver=ensureDriverFromContract(driver,team,division), existing=existingId?contracts.find(c=>c.id===existingId):null;
- const ext={enabled:!!document.getElementById('contract-ext-enabled')?.checked,duration:Number(document.getElementById('contract-ext-duration')?.value)||1,positionEnabled:!!document.getElementById('contract-ext-position')?.checked,position:Math.max(1,Math.min(250,Number(document.getElementById('contract-ext-position-value')?.value)||1)),pointsEnabled:!!document.getElementById('contract-ext-points')?.checked,points:Math.max(1,Math.min(250,Number(document.getElementById('contract-ext-points-value')?.value)||1)),racesEnabled:!!document.getElementById('contract-ext-races')?.checked,races:Math.max(1,Math.min(250,Number(document.getElementById('contract-ext-races-value')?.value)||1))};
- const specialCondition={enabled:!!document.getElementById('contract-special-enabled')?.checked,points:Math.max(1,Math.min(250,Number(document.getElementById('contract-special-points')?.value)||1))};
+
+  const ext={enabled:!!document.getElementById('contract-ext-enabled')?.checked,duration:Number(document.getElementById('contract-ext-duration')?.value)||1,positionEnabled:!!document.getElementById('contract-ext-position')?.checked,position:Math.max(1,Math.min(250,Number(document.getElementById('contract-ext-position-value')?.value)||1)),pointsEnabled:!!document.getElementById('contract-ext-points')?.checked,points:Math.max(1,Math.min(250,Number(document.getElementById('contract-ext-points-value')?.value)||1)),racesEnabled:!!document.getElementById('contract-ext-races')?.checked,races:Math.max(1,Math.min(250,Number(document.getElementById('contract-ext-races-value')?.value)||1))};
+ const specialCondition={
+   enabled:!!document.getElementById('contract-special-enabled')?.checked,
+   pointsEnabled:!!document.getElementById('contract-special-points-enabled')?.checked,
+   points:Math.max(1,Math.min(250,Number(document.getElementById('contract-special-points')?.value)||1)),
+   kwmEnabled:!!document.getElementById('contract-special-kwm-enabled')?.checked,
+   kwmPosition:Math.max(1,Math.min(4,Number(document.getElementById('contract-special-kwm-position')?.value)||1)),
+   endPositionEnabled:!!document.getElementById('contract-special-end-enabled')?.checked,
+   endPosition:Math.max(1,Math.min(250,Number(document.getElementById('contract-special-end-position')?.value)||1))
+ };
  const payload={driver:normDriver(linkedDriver||driver),season,team,division,teamChief:document.getElementById('contract-chief').value.trim(),startDate,endDate,durationSeasons,extension:ext,specialCondition,sponsor:document.getElementById('contract-sponsor').value.trim(),sponsorLogo:document.getElementById('contract-sponsor-logo').value.trim(),salary:document.getElementById('contract-salary').value.trim(),specialPayment:document.getElementById('contract-special').value.trim(),severance:document.getElementById('contract-severance').value.trim(),releaseClause:document.getElementById('contract-release').value.trim(),specialAgreement:document.getElementById('contract-special-agreement').value.trim(),signatureDriver:document.getElementById('contract-sign-driver').value.trim()||normDriver(linkedDriver||driver),contractImages:existing?.contractImages||[],signatureChief:document.getElementById('contract-sign-chief').value.trim()||document.getElementById('contract-chief').value.trim(),value:document.getElementById('contract-salary').value.trim(),updatedAt:new Date().toISOString(),status:existing?.status||'Aktiv'};
- payload.id=existingId||''; const conflicts=contracts.filter(c=>c.id!==existingId&&c.status!=='Beendet'&&!c.draft&&contractOverlap(payload,c));if(conflicts.length){const c=conflicts[0];toast(`⚠️ Vertragsüberschneidung: ${c.team} · ${c.season} · ${c.division}`);return}
- const idx=contracts.findIndex(c=>c.id===existingId);if(idx>=0){payload.id=existingId;payload.createdAt=contracts[idx].createdAt;contracts[idx]={...contracts[idx],...payload};}else{payload.id=crypto.randomUUID?crypto.randomUUID():'contract-'+Date.now();payload.createdAt=new Date().toISOString();contracts.push(payload)}
+ payload.id=existingId||'';
+ const conflicts=contracts.filter(c=>c.id!==existingId&&c.status!=='Beendet'&&!c.draft&&contractOverlap(payload,c));if(conflicts.length){const c=conflicts[0];toast(`⚠️ Vertragsüberschneidung: ${c.team} · ${c.season} · ${c.division}`);return}
+// Wenn ein bestehender Vertrag eine bereits gebuchte Sponsor-Sofortzahlung hat,
+ // muss die alte Zahlung beim Vertragswechsel zuerst bestätigt und storniert werden.
+ if(existing&&sponsorPayments[sponsorPaymentKey(existing.id,'upfront','start')]){
+   const ok=confirm(`Der Vertrag wird geändert.\\n\\nDie bereits gebuchte Sponsor-Sofortzahlung für ${existing.driver} wird dadurch ungültig.\\n\\nSofortzahlung des alten Vertrags stornieren und den geänderten Vertrag speichern?`);
+   if(!ok)return;
+   cancelSponsorUpfront(existing);
+ }
+
+ const idx=contracts.findIndex(c=>c.id===existingId);
+ if(idx>=0){payload.id=existingId;payload.createdAt=contracts[idx].createdAt;contracts[idx]={...contracts[idx],...payload}}
+ else{payload.id=crypto.randomUUID?crypto.randomUUID():'contract-'+Date.now();payload.createdAt=new Date().toISOString();contracts.push(payload)}
  const assigned=teams.find(t=>t.name===team);
  teams.forEach(t=>{t.d1=t.d1.filter(n=>normDriver(n)!==normDriver(payload.driver));t.d2=t.d2.filter(n=>normDriver(n)!==normDriver(payload.driver));});
- const arr=division==='Div 1'?assigned?.d1:assigned?.d2; if(arr&&arr.length<2)arr.push(payload.driver); const meta=driverMeta[payload.driver]||{};meta.team=team;meta.division=division;meta.status='Stammfahrer';driverMeta[payload.driver]=meta;
- syncDriverContractFinance(payload); repairContracts(); syncContractExtensions(); save().then(ok=>{if(!ok){toast('Vertrag lokal gespeichert, aber Cloud-Speicherung fehlgeschlagen.');return}closeModal(); renderTeams(); initDriverOverview(); renderFinance(); openDriver(payload.driver); toast(existingId?'Vertrag aktualisiert und in der Cloud gesichert.':'Vertrag gespeichert und in der Cloud gesichert.');});
+ const arr=division==='Div 1'?assigned?.d1:assigned?.d2;if(arr&&arr.length<2)arr.push(payload.driver);
+ const meta=driverMeta[payload.driver]||{};meta.team=team;meta.division=division;meta.status='Stammfahrer';driverMeta[payload.driver]=meta;
+ syncDriverContractFinance(payload);
+ // Sponsor-Sofortzahlung wird unmittelbar beim Vertragsabschluss gebucht.
+ if(payload.sponsor&&SPONSOR_OPTIONS[payload.sponsor]){
+   ensureSponsorPayment(payload,'upfront','start',SPONSOR_OPTIONS[payload.sponsor].upfront,sponsorUpfrontDate(payload));
+ }
+ repairContracts();syncContractExtensions();
+ save().then(ok=>{if(!ok){toast('Vertrag lokal gespeichert, aber Cloud-Speicherung fehlgeschlagen.');return}closeModal();renderTeams();initDriverOverview();renderFinance();openDriver(payload.driver);toast(existingId?'Vertrag aktualisiert und in der Cloud gesichert.':'Vertrag gespeichert und in der Cloud gesichert.');});
 }
-function deleteContract(id){if(!requireEditor())return;if(!confirm('Diesen Vertrag wirklich löschen?'))return;removeDriverContractFinance(id);contracts=contracts.filter(c=>c.id!==id);save();toast('Vertrag gelöscht und verknüpfte Fahrer-Finanzbuchungen entfernt.');}
+function deleteContract(id){
+ if(!requireEditor())return;
+ const c=contracts.find(x=>x.id===id);if(!c)return;
+ const hasUpfront=!!sponsorPayments[sponsorPaymentKey(c.id,'upfront','start')];
+ const question=hasUpfront
+   ? `Diesen Vertrag wirklich löschen?\\n\\nDie gebuchte Sponsor-Sofortzahlung für ${c.driver} wird dabei ebenfalls storniert.`
+   : `Diesen Vertrag wirklich löschen?`;
+ if(!confirm(question))return;
+ if(hasUpfront)cancelSponsorUpfront(c);
+ removeDriverContractFinance(id);
+ contracts=contracts.filter(c=>c.id!==id);
+ save();toast(hasUpfront?'Vertrag und Sponsor-Sofortzahlung storniert.':'Vertrag gelöscht und verknüpfte Fahrer-Finanzbuchungen entfernt.');
+}
 function parseMoneyValue(v){
  const raw=String(v??'').trim(); if(!raw)return 0;
  const cleaned=raw.replace(/€/g,'').replace(/\s/g,'').replace(/\./g,'').replace(/,/g,'.').replace(/[^0-9.\-]/g,'');
  const n=Number(cleaned); return Number.isFinite(n)?n:0;
 }
 function sponsorPaymentKey(contractId,type,ref=''){return `${contractId}|${type}|${ref}`}
+function driverSponsorEntity(driverName,season=seasonState.current||'02/26'){
+ const m=driverRecord(driverName)||{};
+ const s=m.sponsorInfo||{};
+ if(!s.sponsor||!SPONSOR_OPTIONS[s.sponsor])return null;
+ if(s.season&&s.season!==season)return null;
+ return {id:`driverSponsor:${m.id||normDriver(driverName)}`,driver:normDriver(driverName),season,team:m.team||driverTeam(driverName)||'',division:m.division||currentDivision(driverName)||'Div 2',sponsor:s.sponsor,sponsorLogo:s.logo||'',startDate:s.startDate||m.createdAt||''};
+}
+function sponsorEntityById(id){
+ const c=contracts.find(x=>x.id===id&&x.sponsor&&!x.draft);
+ if(c)return c;
+ for(const n of drivers){const e=driverSponsorEntity(n);if(e&&e.id===id)return e;}
+ return null;
+}
+function sponsorEntitiesForSeason(season=seasonState.current||'02/26',includeEnded=false){
+ const list=[];
+ const contractedDrivers=new Set();
+ contracts.filter(c=>c&&c.sponsor&&c.season===season&&(includeEnded||c.status!=='Beendet')&&!c.draft).forEach(c=>{list.push(c);contractedDrivers.add(normDriver(c.driver));});
+ drivers.forEach(n=>{if(contractedDrivers.has(normDriver(n)))return;const e=driverSponsorEntity(n,season);if(e)list.push(e);});
+ return list;
+}
 function sponsorResultForContract(contract,r){
  const x=r.results.find(x=>normDriver(x.name)===normDriver(contract.driver));
  if(!x)return null;
@@ -1586,26 +1778,102 @@ function sponsorEvaluation(contract){
  const payments=Object.entries(sponsorPayments).filter(([k])=>k.startsWith(`${contract.id}|`)).map(([k,v])=>({key:k,...v}));
  return {rows,raceStates,seasonMet,raceMet:raceStates.filter(x=>x.met).length,raceTotal:raceStates.length,upfrontPaid:payments.some(p=>p.type==='upfront'),seasonPaid:payments.some(p=>p.type==='season'),racePaid:payments.filter(p=>p.type==='race').length};
 }
-function recordSponsorPayment(contract,type,ref='',amount=0){
+function recordSponsorPayment(contract,type,ref='',amount=0,at=''){
  const key=sponsorPaymentKey(contract.id,type,ref);if(sponsorPayments[key])return false;
- sponsorPayments[key]={contractId:contract.id,type,ref,amount:Number(amount)||0,at:new Date().toISOString(),season:contract.season,driver:contract.driver,team:contract.team,sponsor:contract.sponsor};return true;
+ const stamp=at||new Date().toISOString();
+ sponsorPayments[key]={contractId:contract.id,type,ref,amount:Number(amount)||0,at:stamp,season:contract.season,driver:contract.driver,team:contract.team,sponsor:contract.sponsor};return true;
+}
+function sponsorPaymentDateForRace(r){return r?.raceDate?new Date(r.raceDate+'T12:00:00').toISOString():(r?.createdAt||new Date().toISOString())}
+function sponsorUpfrontDate(c){return c.startDate?new Date(c.startDate+'T12:00:00').toISOString():(c.createdAt||new Date().toISOString())}
+function sponsorSeasonPaymentDate(c){
+ const rs=seasonRaceList(c.season).filter(r=>r.division===c.division).sort((a,b)=>Number(a.number||0)-Number(b.number||0));
+ const r=rs[rs.length-1];return sponsorPaymentDateForRace(r);
+}
+function sponsorFinanceTxExists(entity,type,ref=''){
+ return financeTransactions.some(t=>t.type==='sponsor_'+type&&String(t.contractId||'')===String(entity.id)&&String(t.sponsorRef||ref)===String(ref));
+}
+function ensureSponsorPayment(entity,type,ref,amount,date){
+ const key=sponsorPaymentKey(entity.id,type,ref);
+ if(sponsorPayments[key])return false;
+ const txType='sponsor_'+type;
+ const existingTx=financeTransactions.find(t=>t.type===txType&&String(t.contractId||'')===String(entity.id)&&String(t.sponsorRef||ref)===String(ref));
+ if(existingTx){sponsorPayments[key]={contractId:entity.id,type,ref,amount:Number(existingTx.amount)||Number(amount)||0,at:existingTx.date||date,season:entity.season,driver:entity.driver,team:entity.team,sponsor:entity.sponsor};return false;}
+ if(!recordSponsorPayment(entity,type,ref,amount,date))return false;
+ financeAddTransaction({season:entity.season,team:entity.team,driver:entity.driver,contractId:entity.id,type:txType,sponsorRef:ref,description:`Sponsor ${entity.sponsor} · ${type==='upfront'?'Sofortzahlung':type==='season'?'Saisonziel':'Rennziel '+ref}`,amount,date});
+ return true;
+}
+function syncSponsorPaymentsRetroactive(){
+ let made=0;
+ const seasons=new Set(Object.keys(SEASON_META.seasons||{}));
+ contracts.forEach(c=>{if(c?.season)seasons.add(c.season)});
+ Object.values(driverMeta).forEach(m=>{if(m?.sponsorInfo?.season)seasons.add(m.sponsorInfo.season)});
+ seasons.forEach(season=>{
+   sponsorEntitiesForSeason(season,true).forEach(entity=>{
+     const sp=SPONSOR_OPTIONS[entity.sponsor];if(!sp)return;
+     made+=ensureSponsorPayment(entity,'upfront','start',sp.upfront,sponsorUpfrontDate(entity))?1:0;
+     const e=sponsorEvaluation(entity);
+     if(seasonDivisionComplete(entity.season,entity.division)&&e.seasonMet&&!e.seasonPaid){
+       made+=ensureSponsorPayment(entity,'season','goal',sp.season,sponsorSeasonPaymentDate(entity))?1:0;
+     }
+     e.raceStates.forEach(x=>{
+       const ref=String(x.race.number||x.race.round||x.race.id||'');
+       if(x.met&&!sponsorPayments[sponsorPaymentKey(entity.id,'race',ref)]){
+         made+=ensureSponsorPayment(entity,'race',ref,sp.race,sponsorPaymentDateForRace(x.race))?1:0;
+       }
+     });
+   });
+ });
+ return made;
+}
+function sponsorRacePaymentCandidates(raceId){
+ const r=races[raceId];if(!r)return [];
+ return sponsorEntitiesForSeason(seasonOfRace(r)).filter(e=>e.division===r.division).map(entity=>{
+   const sp=SPONSOR_OPTIONS[entity.sponsor];const o=sponsorResultForContract(entity,r);if(!o)return null;
+   const met=sp.raceGoals.length?sp.raceGoals.every(g=>sponsorRaceGoalMet(g,o,r)):false;
+   const ref=String(r.number||r.round||r.id||'');
+   if(!met||sponsorPayments[sponsorPaymentKey(entity.id,'race',ref)])return null;
+   return {entity,amount:sp.race,ref,goals:sp.raceGoals.map(g=>({goal:g,met:sponsorRaceGoalMet(g,o,r)})),date:sponsorPaymentDateForRace(r)};
+ }).filter(Boolean);
+}
+function promptSponsorRacePayments(raceId){
+ if(!isEditor())return;
+ const candidates=sponsorRacePaymentCandidates(raceId);if(!candidates.length)return;
+ const r=races[raceId];
+ const rows=candidates.map((x,i)=>`<div class="sponsor-pay-row"><span><b>${esc(x.entity.driver)}</b> · ${esc(x.entity.sponsor)}</span><span>R${esc(x.ref)} · ${x.goals.map(g=>`${g.met?'✓':'✕'} ${esc(g.goal)}`).join(' · ')}</span><b>${money(x.amount)}</b></div>`).join('');
+ document.getElementById('modal-content').innerHTML=`<div class="modal-head"><div><h2>💰 Sponsorzahlungen nach ${esc(r.track)}</h2><p class="race-edit-note">Erfüllte Rennziele wurden erkannt.</p></div><button onclick="closeModal()">×</button></div><div class="sponsor-pay-list">${rows}</div><div class="modal-actions"><button class="ghost" onclick="closeModal()">Später</button><button class="primary" onclick="confirmSponsorRacePayments('${esc(raceId)}')">✓ Jetzt auszahlen</button></div>`;
+ openModal();
+}
+function confirmSponsorRacePayments(raceId){
+ if(!requireEditor())return;
+ const candidates=sponsorRacePaymentCandidates(raceId);let made=0;
+ candidates.forEach(x=>{if(ensureSponsorPayment(x.entity,'race',x.ref,x.amount,x.date))made++;});
+ save();closeModal();renderFinance();toast(`${made} Sponsor-Rennzahlung${made===1?'':'en'} gebucht.`);
 }
 function openSponsorFinance(){
  if(!requireEditor())return;
- const season=seasonState.current||'02/26'; const list=contracts.filter(c=>c.season===season&&c.sponsor&&c.status!=='Beendet');
- const rows=list.map(c=>{const sp=SPONSOR_OPTIONS[c.sponsor],e=sponsorEvaluation(c);const upfront=!e.upfrontPaid,seasonReady=e.seasonMet&&!e.seasonPaid;const raceReady=e.raceStates.filter((x)=>x.met&&!sponsorPayments[sponsorPaymentKey(c.id,'race',String(x.r.number||x.r.round||x.r.id||''))]);return `<div class="sponsor-fin-row"><div><b>${esc(c.driver)}</b><small>${esc(c.team)} · ${esc(c.division)} · ${esc(c.sponsor)}</small></div><span>${upfront?'💶 Sofortzahlung offen':'✓ Sofortzahlung'}</span><span>${seasonReady?'🏆 Saisonziel erreicht':e.seasonPaid?'✓ Saisonbonus ausgezahlt':`Saisonziel ${esc(sp.seasonGoal)} · ${e.seasonMet?'✓':'offen'}`}</span><span>${raceReady.length} Rennzahlungen offen</span><button class="mini-link" onclick="openSponsorContractFinance('${esc(c.id)}')">Details</button></div>`}).join('')||'<div class="empty-race">Keine Fahrersponsoren für diese Saison.</div>';
+ const season=seasonState.current||'02/26'; const list=sponsorEntitiesForSeason(season);
+ const rows=list.map(c=>{const sp=SPONSOR_OPTIONS[c.sponsor],e=sponsorEvaluation(c);const upfront=!e.upfrontPaid,seasonReady=e.seasonMet&&!e.seasonPaid;const raceReady=e.raceStates.filter((x)=>x.met&&!sponsorPayments[sponsorPaymentKey(c.id,'race',String(x.r.number||x.r.round||x.r.id||''))]);return `<div class="sponsor-fin-row"><div><b>${esc(c.driver)}</b><small>${esc(c.team||'Free Agent')} · ${esc(c.division)} · ${esc(c.sponsor)}</small></div><span>${upfront?'💶 Sofortzahlung offen':'✓ Sofortzahlung'}</span><span>${seasonReady?'🏆 Saisonziel erreicht':e.seasonPaid?'✓ Saisonbonus ausgezahlt':`Saisonziel ${esc(sp.seasonGoal)} · ${e.seasonMet?'✓':'offen'}`}</span><span>${raceReady.length} Rennzahlungen offen</span><button class="mini-link" onclick="openSponsorContractFinance('${esc(c.id)}')">Details</button></div>`}).join('')||'<div class="empty-race">Keine Fahrersponsoren für diese Saison.</div>';
  document.getElementById('modal-content').innerHTML=`<div class="modal-head"><div><h2>🤝 Sponsoren-Auswertung · ${esc(season)}</h2><p class="race-edit-note">Grid-Position wird gemäß DoG-Regel als Start-/Qualifying-Position verwendet.</p></div><button onclick="closeModal()">×</button></div><div class="sponsor-finance-list">${rows}</div><div class="modal-actions"><button class="ghost" onclick="closeModal()">Fertig</button></div>`;openModal();
 }
 function openSponsorContractFinance(id){
- const c=contracts.find(x=>x.id===id);if(!c)return;const sp=SPONSOR_OPTIONS[c.sponsor],e=sponsorEvaluation(c);const seasonReady=e.seasonMet&&!e.seasonPaid;const raceRows=e.raceStates.map((x,i)=>{const ref=String(x.r.number||x.r.round||x.r.id||i+1),paid=!!sponsorPayments[sponsorPaymentKey(c.id,'race',ref)];return `<div class="sponsor-pay-row"><span><b>R${esc(ref)}</b> · ${esc(x.r.track)}</span><span>${x.goals.map(g=>`${g.met?'✓':'✕'} ${esc(g.goal)}`).join(' · ')}</span><b>${x.met?'Bereit':'Nicht erfüllt'}</b>${x.met&&!paid&&isEditor()?`<button class="mini-link" onclick="paySponsor('${esc(c.id)}','race','${esc(ref)}')">Auszahlen ${money(sp.race)}</button>`:paid?'<span>✓ ausgezahlt</span>':''}</div>`}).join('');
- document.getElementById('modal-content').innerHTML=`<div class="modal-head"><div><h2>🤝 ${esc(c.sponsor)} · ${esc(c.driver)}</h2><p class="race-edit-note">${esc(c.team)} · ${esc(c.division)} · ${esc(c.season)}</p></div><button onclick="openSponsorFinance()">×</button></div><div class="sponsor-detail"><div class="sponsor-detail-card"><b>Sofortzahlung</b><span>${e.upfrontPaid?'✓ bereits verbucht':isEditor()?`<button class="mini-link" onclick="paySponsor('${esc(c.id)}','upfront','start')">Auszahlen ${money(sp.upfront)}</button>`:'offen'}</span></div><div class="sponsor-detail-card"><b>Saisonziel · ${esc(sp.seasonGoal)}</b><span>${e.seasonMet?'✓ erreicht':'offen'}${e.seasonMet&&e.seasonPaid?' · ✓ ausgezahlt':''}${e.seasonMet&&!e.seasonPaid&&isEditor()?` · <button class="mini-link" onclick="paySponsor('${esc(c.id)}','season','goal')">${money(sp.season)} auszahlen</button>`:''}</span></div></div><h3>Rennziele</h3><div class="sponsor-pay-list">${raceRows||'<div class="empty-race">Noch keine Rennen erfasst.</div>'}</div><div class="modal-actions"><button class="ghost" onclick="openSponsorFinance()">Zurück</button></div>`;
+ const c=sponsorEntityById(id);if(!c)return;const sp=SPONSOR_OPTIONS[c.sponsor],e=sponsorEvaluation(c);const seasonReady=e.seasonMet&&!e.seasonPaid;const raceRows=e.raceStates.map((x,i)=>{const ref=String(x.r.number||x.r.round||x.r.id||i+1),paid=!!sponsorPayments[sponsorPaymentKey(c.id,'race',ref)];return `<div class="sponsor-pay-row"><span><b>R${esc(ref)}</b> · ${esc(x.r.track)}</span><span>${x.goals.map(g=>`${g.met?'✓':'✕'} ${esc(g.goal)}`).join(' · ')}</span><b>${x.met?'Bereit':'Nicht erfüllt'}</b>${x.met&&!paid&&isEditor()?`<button class="mini-link" onclick="paySponsor('${esc(c.id)}','race','${esc(ref)}')">Auszahlen ${money(sp.race)}</button>`:paid?'<span>✓ ausgezahlt</span>':''}</div>`}).join('');
+ document.getElementById('modal-content').innerHTML=`<div class="modal-head"><div><h2>🤝 ${esc(c.sponsor)} · ${esc(c.driver)}</h2><p class="race-edit-note">${esc(c.team||'Free Agent')} · ${esc(c.division)} · ${esc(c.season)}</p></div><button onclick="openSponsorFinance()">×</button></div><div class="sponsor-detail"><div class="sponsor-detail-card"><b>Sofortzahlung</b><span>${e.upfrontPaid?'✓ bereits verbucht':isEditor()?`<button class="mini-link" onclick="paySponsor('${esc(c.id)}','upfront','start')">Auszahlen ${money(sp.upfront)}</button>`:'offen'}</span></div><div class="sponsor-detail-card"><b>Saisonziel · ${esc(sp.seasonGoal)}</b><span>${e.seasonMet?'✓ erreicht':'offen'}${e.seasonMet&&e.seasonPaid?' · ✓ ausgezahlt':''}${e.seasonMet&&!e.seasonPaid&&isEditor()?` · <button class="mini-link" onclick="paySponsor('${esc(c.id)}','season','goal')">${money(sp.season)} auszahlen</button>`:''}</span></div></div><h3>Rennziele</h3><div class="sponsor-pay-list">${raceRows||'<div class="empty-race">Noch keine Rennen erfasst.</div>'}</div><div class="modal-actions"><button class="ghost" onclick="openSponsorFinance()">Zurück</button></div>`;
  openModal();
 }
-function paySponsor(contractId,type,ref){if(!requireEditor())return;const c=contracts.find(x=>x.id===contractId);if(!c||!SPONSOR_OPTIONS[c.sponsor])return;const sp=SPONSOR_OPTIONS[c.sponsor],e=sponsorEvaluation(c);let amount=0;if(type==='upfront'){if(e.upfrontPaid)return;amount=sp.upfront}else if(type==='season'){if(!e.seasonMet||e.seasonPaid)return;amount=sp.season}else if(type==='race'){const state=e.raceStates.find(x=>String(x.r.number||x.r.round||x.r.id||'')===String(ref));if(!state||!state.met||sponsorPayments[sponsorPaymentKey(c.id,'race',String(ref))])return;amount=sp.race}else return;if(recordSponsorPayment(c,type,ref,amount)){financeAddTransaction({season:c.season,team:c.team,driver:c.driver,contractId:c.id,type:'sponsor_'+type,description:`Sponsor ${c.sponsor} · ${type==='upfront'?'Sofortzahlung':type==='season'?'Saisonziel':'Rennziel '+ref}`,amount});save();toast(`${c.sponsor}: ${money(amount)} als Zahlung verbucht.`);openSponsorContractFinance(c.id);renderFinance();}}
+function paySponsor(contractId,type,ref){
+ if(!requireEditor())return;
+ const c=sponsorEntityById(contractId);if(!c||!SPONSOR_OPTIONS[c.sponsor])return;
+ const sp=SPONSOR_OPTIONS[c.sponsor],e=sponsorEvaluation(c);let amount=0,date=new Date().toISOString();
+ if(type==='upfront'){if(e.upfrontPaid)return;amount=sp.upfront;date=sponsorUpfrontDate(c)}
+ else if(type==='season'){if(!e.seasonMet||e.seasonPaid)return;amount=sp.season;date=sponsorSeasonPaymentDate(c)}
+ else if(type==='race'){const state=e.raceStates.find(x=>String(x.r.number||x.r.round||x.r.id||'')===String(ref));if(!state||!state.met||sponsorPayments[sponsorPaymentKey(c.id,'race',String(ref))])return;amount=sp.race;date=sponsorPaymentDateForRace(state.r)}
+ else return;
+ if(ensureSponsorPayment(c,type,ref,amount,date)){save();toast(`${c.sponsor}: ${money(amount)} als Zahlung verbucht.`);openSponsorContractFinance(c.id);renderFinance();}
+}
 function financeTxId(){return 'ftx_'+Date.now().toString(36)+'_'+Math.random().toString(36).slice(2,8)}
-function financeAddTransaction({season=seasonState.current||'02/26',team,description,type='manual',amount=0,driver='',contractId='',date=new Date().toISOString()}){
+function financeAddTransaction({season=seasonState.current||'02/26',team,description,type='manual',amount=0,driver='',contractId='',sponsorRef='',date=new Date().toISOString()}){
  const n=Number(amount)||0;if((!team&&!driver)||!n)return false;
- financeTransactions.push({id:financeTxId(),season,team,description,type,amount:n,driver,contractId,date});return true;
+ financeTransactions.push({id:financeTxId(),season,team,description,type,amount:n,driver,contractId,sponsorRef,date});return true;
 }
 function financeTeamBalance(teamName,season=seasonState.current||'02/26'){
  const opening=Number(financeOpeningBalances[season]?.[teamName]||0);
@@ -1779,7 +2047,7 @@ function requireEditor(){if(!editor){openAdmin();return false}return true}
 function adminPanel(){const q=databaseIntegrity();document.getElementById('modal-content').innerHTML=`<div class="modal-head"><h2>DoG Liga-Verwaltung</h2><button onclick="closeModal()">×</button></div><p class="race-edit-note">Nur das registrierte Admin-Konto darf Daten verändern. Alle anderen Besucher haben Ansichtszugriff.</p><div class="admin-integrity"><b>Datenstatus</b><span>${q.races} Rennen · ${q.weekends} Rennwochenenden · ${q.results} Ergebnisse</span><span>${q.orphan?'⚠ '+q.orphan+' unbekannte Fahrer':'✓ Fahrerzuordnungen OK'}</span><span>${q.duplicate?'⚠ '+q.duplicate+' doppelte Ergebniszeilen':'✓ Keine doppelten Ergebniszeilen'}</span><span>${q.invalid?'⚠ Punkte prüfen':'✓ Punkte konsistent'}</span></div><button class="primary" onclick="recalculateDatabase()">🔄 Gesamte Datenbank neu berechnen</button><button class="ghost" onclick="cloudSave().then(ok=>ok&&toast('Cloud-Daten gespeichert.'))">☁️ Jetzt in Cloud speichern</button><button class="ghost" onclick="logoutAdmin()">🔒 Abmelden / Bearbeitung sperren</button>`;openModal()}
 function openModal(){document.getElementById('modal').classList.add('show')} function closeModal(){document.getElementById('modal').classList.remove('show')} function toast(t){const x=document.getElementById('toast');x.textContent=t;x.style.display='block';clearTimeout(window.__toast);window.__toast=setTimeout(()=>x.style.display='none',2600)} function money(n){return new Intl.NumberFormat('de-DE',{style:'currency',currency:'EUR',maximumFractionDigits:0}).format(n)} function esc(s){return String(s??'').replace(/[&<>'"]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[m]))}
 try{ensureRaceMetadata();load();syncTeamChiefRoles();}catch(e){console.error('RaceHub startup',e);toast('RaceHub konnte einige Daten nicht laden. Die Navigation bleibt verfügbar.')}
-try{updateSeasonChrome();showView('dashboard');updateEditorUI();}catch(e){console.error('RaceHub render',e)}
+try{ensureLicenseView();updateSeasonChrome();showView('dashboard');updateEditorUI();}catch(e){console.error('RaceHub render',e)}
 setTimeout(()=>initCloud(),50);
 
 /* v1.76 reference UI helpers */
