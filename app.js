@@ -176,9 +176,40 @@ function repairContracts(){
 let cloudClient=null, cloudUser=null, cloudOwnerId=null, cloudOwner=false, cloudReady=false, cloudBusy=false, cloudSaveQueued=false, cloudChannel=null;
 function cloudConfigured(){return !!(window.DOG_SUPABASE_URL&&window.DOG_SUPABASE_ANON_KEY&&window.DOG_SUPABASE_URL.indexOf('YOUR_')<0&&window.DOG_SUPABASE_ANON_KEY.indexOf('YOUR_')<0&&window.supabase?.createClient)}
 function cloudState(){return {drivers,driverMeta,races,teams,seasonState,contracts,transferRecords,financeBudgets,financeCapUsage,sponsorPayments,financeTransactions,financeOpeningBalances,financeTxOverrides,driverFinanceOpeningBalances,driverFinanceOpeningDates,loanAgreements,driverLicenses,activeTracks:ACTIVE_TRACKS,trackNumbers:TRACK_NUMBERS}}
+async function encodeCloudData(data){
+ const json=JSON.stringify(data);
+ try{
+  if(typeof CompressionStream==='undefined')return data;
+  const cs=new CompressionStream('gzip');
+  const writer=cs.writable.getWriter();
+  await writer.write(new TextEncoder().encode(json));
+  await writer.close();
+  const buf=await new Response(cs.readable).arrayBuffer();
+  let binary=''; const bytes=new Uint8Array(buf);
+  const chunk=0x8000;
+  for(let i=0;i<bytes.length;i+=chunk)binary+=String.fromCharCode(...bytes.subarray(i,i+chunk));
+  return {_compressed:'gzip-base64',payload:btoa(binary)};
+ }catch(e){
+  console.warn('DoG RaceHub Cloud: Komprimierung nicht möglich, normaler Datensatz wird verwendet.',e);
+  return data;
+ }
+}
+async function decodeCloudData(data){
+ if(!data||typeof data!=='object'||data._compressed!=='gzip-base64')return data;
+ try{
+  const binary=atob(data.payload||''); const bytes=Uint8Array.from(binary,c=>c.charCodeAt(0));
+  const ds=new DecompressionStream('gzip');
+  const writer=ds.writable.getWriter();
+  await writer.write(bytes); await writer.close();
+  const text=await new Response(ds.readable).text();
+  return JSON.parse(text);
+ }catch(e){console.error('DoG RaceHub Cloud: Komprimierte Daten konnten nicht gelesen werden.',e);return null}
+}
 function applyCloudState(d){if(!d||typeof d!=='object')return; if(Array.isArray(d.drivers))drivers=d.drivers; if(d.driverMeta&&typeof d.driverMeta==='object')driverMeta=d.driverMeta; if(d.races&&typeof d.races==='object')races=d.races; if(Array.isArray(d.teams)&&d.teams.length)teams=d.teams; if(d.seasonState&&typeof d.seasonState==='object')seasonState={...seasonState,...d.seasonState}; if(Array.isArray(d.contracts))contracts=d.contracts; if(Array.isArray(d.transferRecords))transferRecords=d.transferRecords; if(d.financeBudgets&&typeof d.financeBudgets==='object')financeBudgets=d.financeBudgets; if(d.financeCapUsage&&typeof d.financeCapUsage==='object')financeCapUsage=d.financeCapUsage; if(d.sponsorPayments&&typeof d.sponsorPayments==='object')sponsorPayments=d.sponsorPayments; if(Array.isArray(d.financeTransactions))financeTransactions=d.financeTransactions; if(d.financeOpeningBalances&&typeof d.financeOpeningBalances==='object')financeOpeningBalances=d.financeOpeningBalances; if(d.financeTxOverrides&&typeof d.financeTxOverrides==='object')financeTxOverrides=d.financeTxOverrides; if(d.driverFinanceOpeningBalances&&typeof d.driverFinanceOpeningBalances==='object')driverFinanceOpeningBalances=d.driverFinanceOpeningBalances; if(d.driverFinanceOpeningDates&&typeof d.driverFinanceOpeningDates==='object')driverFinanceOpeningDates=d.driverFinanceOpeningDates; if(Array.isArray(d.loanAgreements))loanAgreements=d.loanAgreements; if(d.driverLicenses&&typeof d.driverLicenses==='object')driverLicenses=d.driverLicenses; if(Array.isArray(d.activeTracks))ACTIVE_TRACKS.splice(0,ACTIVE_TRACKS.length,...d.activeTracks); if(d.trackNumbers&&typeof d.trackNumbers==='object')Object.assign(TRACK_NUMBERS,d.trackNumbers); ensureRaceMetadata(); syncTeamChiefRoles();}
 function saveLocalCache(markDirty=false,stamp){try{localStorage.setItem('dogrh_drivers',JSON.stringify(drivers));localStorage.setItem('dogrh_driver_meta',JSON.stringify(driverMeta));localStorage.setItem('dogrh_races',JSON.stringify(races));localStorage.setItem('dogrh_teams',JSON.stringify(teams));localStorage.setItem('dogrh_season_state',JSON.stringify(seasonState));localStorage.setItem('dogrh_contracts',JSON.stringify(contracts));localStorage.setItem('dogrh_transfers',JSON.stringify(transferRecords));localStorage.setItem('dogrh_finance_budgets',JSON.stringify(financeBudgets));localStorage.setItem('dogrh_finance_cap_usage',JSON.stringify(financeCapUsage));localStorage.setItem('dogrh_sponsor_payments',JSON.stringify(sponsorPayments));localStorage.setItem('dogrh_finance_transactions',JSON.stringify(financeTransactions));localStorage.setItem('dogrh_finance_opening',JSON.stringify(financeOpeningBalances));localStorage.setItem('dogrh_finance_tx_overrides',JSON.stringify(financeTxOverrides));localStorage.setItem('dogrh_driver_finance_opening',JSON.stringify(driverFinanceOpeningBalances));localStorage.setItem('dogrh_driver_finance_opening_dates',JSON.stringify(driverFinanceOpeningDates));localStorage.setItem('dogrh_loan_agreements',JSON.stringify(loanAgreements));localStorage.setItem('dogrh_driver_licenses',JSON.stringify(driverLicenses));if(markDirty)localStorage.setItem('dogrh_local_updated_at',stamp||new Date().toISOString());else if(stamp)localStorage.setItem('dogrh_local_updated_at',stamp)}catch(e){}}
 function localDataUpdatedAt(){try{return localStorage.getItem('dogrh_local_updated_at')||''}catch(e){return ''}}
+function cloudDataUpdatedAt(){try{return localStorage.getItem('dogrh_cloud_updated_at')||''}catch(e){return ''}}
+function markCloudDataUpdatedAt(stamp){try{if(stamp)localStorage.setItem('dogrh_cloud_updated_at',stamp)}catch(e){}}
 function cloudRowIsNewer(row){const localTs=localDataUpdatedAt();const cloudTs=row?.updated_at||'';if(!localTs||!cloudTs)return false;const l=Date.parse(localTs),c=Date.parse(cloudTs);return Number.isFinite(l)&&Number.isFinite(c)&&c>l}
 async function protectLocalChangesBeforeCloudApply(row){
  const localTs=localDataUpdatedAt();
@@ -225,11 +256,16 @@ async function initCloud(){
    if(row){
      cloudOwnerId=row.owner_id||null;
      cloudReady=true;
-     const localWasNewer=await protectLocalChangesBeforeCloudApply(row);
-     if(!localWasNewer && row.data&&typeof row.data==='object'){
-       applyCloudState(row.data);
-       saveLocalCache(false,row.updated_at||'');
-       requestAnimationFrame(()=>renderAll());
+     // Die Cloud ist beim Start immer die maßgebliche Quelle.
+     // Ein lokaler Stand darf niemals automatisch in die Cloud zurückgeschrieben werden.
+     if(row.data&&typeof row.data==='object'){
+       const decoded=await decodeCloudData(row.data);
+       if(decoded){
+         applyCloudState(decoded);
+         markCloudDataUpdatedAt(row.updated_at||'');
+         saveLocalCache(false,row.updated_at||'');
+         requestAnimationFrame(()=>renderAll());
+       }
      }
    }else if(cloudUser){
      // Nur beim erstmaligen Anlegen darf der angemeldete Admin die zentrale
@@ -256,10 +292,6 @@ async function initCloud(){
    editor=cloudOwner;
    updateEditorUI();
    subscribeCloud();
-   if(cloudOwner){
-     const retroactiveSponsorPayments=syncSponsorPaymentsRetroactive();
-     if(retroactiveSponsorPayments){saveLocalCache();await cloudSave();toast(`${retroactiveSponsorPayments} fehlende Sponsorzahlung${retroactiveSponsorPayments===1?'':'en'} rückwirkend ergänzt.`);}
-   }
    return true;
  }catch(e){
    console.error('Cloud init',e);
@@ -289,12 +321,26 @@ async function cloudSave(){
    updateEditorUI();
    if(!cloudOwner){toast('Dieses Konto ist nicht als Admin hinterlegt.');return false}
    cloudReady=true;
+
+   // Schutz vor Überschreiben eines neueren Cloud-Stands von einem anderen Gerät.
+   const {data:versionRow,error:versionError}=await cloudClient.from('app_state').select('updated_at').eq('id',1).maybeSingle();
+   if(versionError){console.error('DoG RaceHub Cloud version check',versionError);toast('Cloud-Version konnte nicht geprüft werden.');return false}
+   const serverTs=versionRow?.updated_at||'';
+   const knownCloudTs=cloudDataUpdatedAt();
+   if(serverTs&&knownCloudTs){
+     const serverMs=Date.parse(serverTs),knownMs=Date.parse(knownCloudTs);
+     if(Number.isFinite(serverMs)&&Number.isFinite(knownMs)&&serverMs>knownMs){
+       console.warn('DoG RaceHub Cloud: Neuerer Cloud-Stand vorhanden. Lokales Speichern abgebrochen.');
+       toast('Ein neuerer Cloud-Stand ist vorhanden. Bitte Seite neu laden, bevor du weiter speicherst.');
+       return false;
+     }
+   }
  }catch(e){console.error('DoG RaceHub Cloud auth check',e);toast('Cloud-Verbindung konnte nicht geprüft werden.');return false}
  if(cloudBusy){cloudSaveQueued=true;return true}
  cloudBusy=true;cloudSaveQueued=false;
  try{
    const updatedAt=new Date().toISOString();
-   const payload={data:cloudState(),updated_at:updatedAt};
+   const payload={data:await encodeCloudData(cloudState()),updated_at:updatedAt};
    // Wichtig: Kein SELECT/RETURNING nach dem UPDATE. Bei einem großen
    // app_state-Datensatz kann das unnötig viel Arbeit erzeugen und den
    // Supabase-Statement-Timeout auslösen. Ein erfolgreiches UPDATE liefert
@@ -306,6 +352,7 @@ async function cloudSave(){
        .eq('id',1)
        .eq('owner_id',cloudUser.id);
      if(!error){
+       markCloudDataUpdatedAt(updatedAt);
        saveLocalCache(false,updatedAt);
        return true;
      }
@@ -327,7 +374,7 @@ async function cloudSave(){
 }
 function subscribeCloud(){
  if(!cloudClient||cloudChannel)return;
- cloudChannel=cloudClient.channel('dog-racehub-state').on('postgres_changes',{event:'UPDATE',schema:'public',table:'app_state',filter:'id=eq.1'},payload=>{
+ cloudChannel=cloudClient.channel('dog-racehub-state').on('postgres_changes',{event:'UPDATE',schema:'public',table:'app_state',filter:'id=eq.1'},async payload=>{
    if(!payload?.new?.data)return;
    const cloudTs=payload.new.updated_at||'';
    const localTs=localDataUpdatedAt();
@@ -338,7 +385,10 @@ function subscribeCloud(){
      console.warn('DoG RaceHub Realtime: älterer Cloud-Stand ignoriert.');
      return;
    }
-   applyCloudState(payload.new.data);
+   const decoded=await decodeCloudData(payload.new.data);
+   if(!decoded)return;
+   applyCloudState(decoded);
+   markCloudDataUpdatedAt(cloudTs||'');
    saveLocalCache(false,cloudTs||'');
    renderAll();
    toast('Daten aus der Cloud aktualisiert.');
@@ -2091,11 +2141,15 @@ async function loginAdmin(){
  if(row){
    cloudOwnerId=row.owner_id||null;
    cloudReady=true;
-   const localWasNewer=await protectLocalChangesBeforeCloudApply(row);
-   if(!localWasNewer && row.data&&typeof row.data==='object'){
-     applyCloudState(row.data);
-     saveLocalCache(false,row.updated_at||'');
-     renderAll();
+   // Auch nach einer Anmeldung ist die Cloud der maßgebliche Stand.
+   if(row.data&&typeof row.data==='object'){
+     const decoded=await decodeCloudData(row.data);
+     if(decoded){
+       applyCloudState(decoded);
+       markCloudDataUpdatedAt(row.updated_at||'');
+       saveLocalCache(false,row.updated_at||'');
+       renderAll();
+     }
    }
  }else{
    cloudOwnerId=cloudUser.id;
