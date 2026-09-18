@@ -371,6 +371,7 @@ function renderLicenses(){
   const names=[...new Set((drivers||[]).map(normDriver).filter(Boolean))].filter(n=>getStatus(n)!=='Nicht verfügbar').sort((a,b)=>a.localeCompare(b,'de'));
   const rows=names.map(name=>{
     const st=driverLicenseState(name,season), b=financeDriverBalance(name,season), team=driverTeam(name)||'Free Agent';
+    const budgetStart=driverBudgetAtSeasonStart(name,season,st.division);
     const nextBalance=financeDriverBalance(name,st.next);
     const points=contractSeasonStats(name,season,st.division).points;
     const paid=!!st.rec.paid;
@@ -379,10 +380,14 @@ function renderLicenses(){
     const nextEnough=nextBalance.balance>=licenseCost(st.priority);
     const paidAt=paid?licenseDateLabel(st.rec.paidAt):'—';
     const nextPaidAt=nextPaid?licenseDateLabel(st.nrec.paidAt):'—';
-    return {name,team,division:st.division,points,income:b.income,expense:b.expense,opening:b.opening,balance:b.balance,paid,enough,paidAt,cost:licenseCost(st.division),next:st.next,nextDivision:st.priority,nextCost:licenseCost(st.priority),nextPaid,nextEnough,nextPaidAt,nextBalance:nextBalance.balance};
+    return {name,team,division:st.division,points,income:b.income,expense:b.expense,opening:b.opening,budgetStart:budgetStart.budgetStart,budgetStartPrev:budgetStart.previousBalance,budgetStartIncome:budgetStart.incomeBeforeFirstRace,balance:b.balance,paid,enough,paidAt,cost:licenseCost(st.division),next:st.next,nextDivision:st.priority,nextCost:licenseCost(st.priority),nextPaid,nextEnough,nextPaidAt,nextBalance:nextBalance.balance};
   });
   const paidCount=rows.filter(r=>r.paid).length;
+  const nextPaidCount=rows.filter(r=>r.nextPaid).length;
   const totalCost=rows.reduce((a,r)=>a+r.cost,0);
+  const totalStart=rows.reduce((a,r)=>a+Number(r.budgetStart||0),0);
+  const totalBalance=rows.reduce((a,r)=>a+Number(r.balance||0),0);
+  const nextSeason=nextSeasonLabel(season);
   host.innerHTML=`<div class="license-page-grid">
     <div class="license-info">
       <h4>🪪 Lizenzübersicht · ${esc(season)}</h4>
@@ -390,13 +395,16 @@ function renderLicenses(){
       <div class="license-rule"><span>Division 2</span><b>${money(licenseCost('Div 2'))}</b></div>
       <div class="license-summary">
         <div><span>Fahrer</span><b>${rows.length}</b></div>
-        <div><span>Lizenzen erhalten</span><b>${paidCount} / ${rows.length}</b></div>
+        <div><span>Budget Saisonstart gesamt</span><b>${money(totalStart)}</b></div>
+        <div><span>Budget aktuell gesamt</span><b>${money(totalBalance)}</b></div>
+        <div><span>Lizenzen ${esc(season)} erhalten</span><b>${paidCount} / ${rows.length}</b></div>
+        <div><span>Lizenzen ${esc(nextSeason)} erhalten</span><b>${nextPaidCount} / ${rows.length}</b></div>
         <div><span>Gesamter Lizenzbedarf</span><b>${money(totalCost)}</b></div>
       </div>
-      <p class="race-edit-note">„Budget Saisonstart“ ist das hinterlegte persönliche Startkapital. „Budget aktuell“ berücksichtigt alle bisherigen Einnahmen und Ausgaben. Die nächste Lizenz wird für die Folgesaison angezeigt.</p>
+      <p class="race-edit-note">„Budget Saisonstart“ = Kontostand der Vorsaison am Ende plus alle Einnahmen, die bis zum ersten Rennen der ausgewählten Saison eingehen. „Budget aktuell“ berücksichtigt alle bisherigen Einnahmen und Ausgaben.</p>
     </div>
-    <div class="table-panel license-table-wrap"><table class="license-table"><thead><tr><th>Fahrer</th><th>Team</th><th>Div.</th><th>Punkte</th><th>Einnahmen</th><th>Ausgaben</th><th>Budget Saisonstart</th><th>Budget aktuell</th><th>Lizenz aktuell</th><th>Erhalten am</th><th>Lizenz ${esc(nextSeasonLabel(season))}</th><th>Aktion</th></tr></thead><tbody>
-      ${rows.length?rows.map(r=>`<tr><td class="license-driver">${esc(r.name)}</td><td>${esc(r.team)}</td><td>${esc(r.division)}</td><td>${r.points}</td><td class="license-ok">${money(r.income)}</td><td>${money(r.expense)}</td><td>${money(r.opening)}</td><td class="license-budget">${money(r.balance)}</td><td class="${r.paid?'license-ok':'license-no'}">${r.paid?'✓ JA':'✕ NEIN'}</td><td class="license-paid-date">${r.paidAt}</td><td class="${r.nextPaid?'license-ok':'license-no'}">${r.nextPaid?`✓ JA · ${esc(r.nextDivision)}`:`✕ NEIN · ${esc(r.nextDivision)} (${money(r.nextCost)})`}</td><td>${isEditor()?`<div class="license-action-stack"><button class="primary license-pay" ${r.paid||!r.enough?'disabled':''} onclick="bookDriverLicense('${esc(r.name)}','${esc(season)}');renderLicenses();">${r.paid?'✓ '+esc(season)+' bezahlt':r.enough?'💳 '+esc(season)+' bezahlen':'⚠ Budget zu klein'}</button>${r.nextPaid?'':`<button class="ghost license-pay" ${r.nextEnough?'':'disabled'} onclick="bookDriverLicense('${esc(r.name)}','${esc(r.next)}');renderLicenses();">${r.nextEnough?'💳 '+esc(r.next)+' bezahlen':'⚠ '+esc(r.next)+' Budget fehlt'}</button>`}</div>`:`<span class="muted">Nur Ansicht</span>`}</td></tr>`).join(''):'<tr><td colspan="12" class="muted">Keine Fahrer für diese Saison vorhanden.</td></tr>'}
+    <div class="table-panel license-table-wrap"><table class="license-table"><thead><tr><th>Fahrer</th><th>Team</th><th>Division</th><th>Budget Saisonstart</th><th>Einnahmen</th><th>Ausgaben</th><th>Punkte</th><th>Budget aktuell</th><th>Lizenz aktuell</th><th>Erhalten am</th><th>Lizenz ${esc(nextSeasonLabel(season))}</th><th>Aktion</th></tr></thead><tbody>
+      ${rows.length?rows.map(r=>`<tr><td class="license-driver">${esc(r.name)}</td><td>${esc(r.team)}</td><td>${esc(r.division)}</td><td class="license-budget">${money(r.budgetStart)}</td><td class="license-ok">${money(r.income)}</td><td>${money(r.expense)}</td><td>${r.points}</td><td class="license-budget">${money(r.balance)}</td><td class="${r.paid?'license-ok':'license-no'}">${r.paid?'✓ JA':'✕ NEIN'}</td><td class="license-paid-date">${r.paidAt}</td><td class="${r.nextPaid?'license-ok':'license-no'}">${r.nextPaid?`✓ JA · ${esc(r.nextDivision)}`:`✕ NEIN · ${esc(r.nextDivision)} (${money(r.nextCost)})`}</td><td>${isEditor()?`<div class="license-action-stack"><button class="primary license-pay" ${r.paid||!r.enough?'disabled':''} onclick="bookDriverLicense('${esc(r.name)}','${esc(season)}');renderLicenses();">${r.paid?'✓ '+esc(season)+' bezahlt':r.enough?'💳 '+esc(season)+' bezahlen':'⚠ Budget zu klein'}</button>${r.nextPaid?'':`<button class="ghost license-pay" ${r.nextEnough?'':'disabled'} onclick="bookDriverLicense('${esc(r.name)}','${esc(r.next)}');renderLicenses();">${r.nextEnough?'💳 '+esc(r.next)+' bezahlen':'⚠ '+esc(r.next)+' Budget fehlt'}</button>`}</div>`:`<span class="muted">Nur Ansicht</span>`}</td></tr>`).join(''):'<tr><td colspan="12" class="muted">Keine Fahrer für diese Saison vorhanden.</td></tr>'}
     </tbody></table></div>
   </div>`;
 }
@@ -1293,6 +1301,29 @@ function financeDriverBalance(driverName,season=seasonState.current||'02/26'){
  return {opening,income:tx.filter(t=>t.amount>0).reduce((a,t)=>a+(Number(t.amount)||0),0),expense:tx.filter(t=>t.amount<0).reduce((a,t)=>a+Math.abs(Number(t.amount)||0),0),balance:opening+tx.reduce((a,t)=>a+(Number(t.amount)||0),0),transactions:tx.sort((a,b)=>String(b.date).localeCompare(String(a.date)))};
 }
 function licenseCost(division){return division==='Div 1'?5000000:2500000}
+
+function previousSeasonLabel(season){
+  const m=String(season||'').match(/^(\d+)\/(\d+)$/);
+  if(!m)return '';
+  const n=Number(m[1])-1;
+  return n>0?`${String(n).padStart(2,'0')}/${m[2]}`:'';
+}
+function firstRaceCutoffForDriver(driverName,season,division){
+  const rs=seasonRaceList(season).filter(r=>!division||r.division===division).sort((a,b)=>{
+    const ad=a.raceDate||a.createdAt||'9999-12-31';
+    const bd=b.raceDate||b.createdAt||'9999-12-31';
+    return String(ad).localeCompare(String(bd))||Number(a.number||a.round||0)-Number(b.number||b.round||0);
+  });
+  return rs[0]?(rs[0].raceDate?new Date(rs[0].raceDate+'T23:59:59').toISOString():rs[0].createdAt||'') : '';
+}
+function driverBudgetAtSeasonStart(driverName,season,division){
+  const previous=previousSeasonLabel(season);
+  const previousBalance=previous?Number(financeDriverBalance(driverName,previous).balance||0):0;
+  const cutoff=firstRaceCutoffForDriver(driverName,season,division);
+  const currentTx=financeTransactions.filter(t=>t.season===season&&normDriver(t.driver)===normDriver(driverName));
+  const incomeBeforeFirstRace=currentTx.filter(t=>Number(t.amount)>0&&(!cutoff||String(t.date||'9999-12-31')<=cutoff)).reduce((a,t)=>a+(Number(t.amount)||0),0);
+  return {previousBalance,incomeBeforeFirstRace,budgetStart:previousBalance+incomeBeforeFirstRace,cutoff,previousSeason:previous};
+}
 function nextSeasonLabel(season=seasonState.current||'02/26'){
  const m=String(season).match(/^(\d+)\/(\d+)$/); if(!m)return '';
  const n=Number(m[1])+1; return `${String(n).padStart(2,'0')}/${m[2]}`;
