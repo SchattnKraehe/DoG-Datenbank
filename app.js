@@ -173,7 +173,9 @@ function repairContracts(){
 }
 
 // v2.0 central cloud database: Supabase is the single source of truth.
-let cloudClient=null, cloudUser=null, cloudOwnerId=null, cloudOwner=false, cloudReady=false, cloudBusy=false, cloudSaveQueued=false, cloudChannel=null;
+let cloudClient=null, cloudUser=null, cloudOwnerId=null, cloudOwner=false, cloudReady=false, cloudBusy=false, cloudSaveQueued=false, cloudChannel=null, cloudChunkReady=false;
+const CLOUD_CHUNK_SIZE=120000;
+/* DoG RaceHub v2.21 – zentrale Cloud-Snapshots in versionierten Blöcken. */
 function cloudConfigured(){return !!(window.DOG_SUPABASE_URL&&window.DOG_SUPABASE_ANON_KEY&&window.DOG_SUPABASE_URL.indexOf('YOUR_')<0&&window.DOG_SUPABASE_ANON_KEY.indexOf('YOUR_')<0&&window.supabase?.createClient)}
 function cloudState(){return {drivers,driverMeta,races,teams,seasonState,contracts,transferRecords,financeBudgets,financeCapUsage,sponsorPayments,financeTransactions,financeOpeningBalances,financeTxOverrides,driverFinanceOpeningBalances,driverFinanceOpeningDates,loanAgreements,driverLicenses,activeTracks:ACTIVE_TRACKS,trackNumbers:TRACK_NUMBERS}}
 async function encodeCloudData(data){
@@ -222,115 +224,130 @@ async function protectLocalChangesBeforeCloudApply(row){
  return true;
 }
 
+async function readCloudLegacyRow(){
+ const {data,error}=await cloudClient.from('app_state').select('owner_id,data,updated_at').eq('id',1).maybeSingle();
+ return {data,error};
+}
+async function readCloudPointer(){
+ return await cloudClient.from('app_state_pointer').select('id,owner_id,version_id,updated_at').eq('id',1).maybeSingle();
+}
+async function readCloudChunks(versionId){
+ const {data,error}=await cloudClient.from('app_state_chunks').select('chunk_index,payload').eq('version_id',versionId).order('chunk_index',{ascending:true});
+ if(error)return {data:null,error};
+ const rows=Array.isArray(data)?data:[];
+ if(!rows.length)return {data:null,error:new Error('Keine Cloud-Datenblöcke gefunden.')};
+ const text=rows.map(x=>String(x.payload||'')).join('');
+ try{return {data:JSON.parse(text),error:null};}catch(e){return {data:null,error:e};}
+}
+async function loadCloudSnapshot(){
+ cloudChunkReady=false;
+ const pointer=await readCloudPointer();
+ if(!pointer.error){
+   cloudChunkReady=true;
+   if(pointer.data?.version_id){
+     const chunks=await readCloudChunks(pointer.data.version_id);
+     if(chunks.error)throw chunks.error;
+     const decoded=await decodeCloudData(chunks.data);
+     if(!decoded)throw new Error('Cloud-Daten konnten nicht dekodiert werden.');
+     return {state:decoded,owner_id:pointer.data.owner_id||null,updated_at:pointer.data.updated_at||'' ,source:'chunks'};
+   }
+ }
+ // Solange noch kein Snapshot in den neuen Blöcken existiert, bleibt die bisherige
+ // app_state-Zeile die geschützte Ausgangsbasis. Sie wird hier nur gelesen.
+ const legacy=await readCloudLegacyRow();
+ if(legacy.error)throw legacy.error;
+ if(legacy.data){
+   let state=null;
+   if(legacy.data.data&&typeof legacy.data.data==='object')state=await decodeCloudData(legacy.data.data);
+   return {state,owner_id:legacy.data.owner_id||null,updated_at:legacy.data.updated_at||'',source:'legacy',pointerMissing:!pointer.data};
+ }
+ return {state:null,owner_id:null,updated_at:'',source:'none',pointerMissing:!pointer.data};
+}
 async function initCloud(){
  if(!cloudConfigured()){console.warn('DoG RaceHub Cloud: config fehlt.');return false}
  try{
-   cloudClient=window.supabase.createClient(window.DOG_SUPABASE_URL,window.DOG_SUPABASE_ANON_KEY,{
-     auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:false}
-   });
-
-   // Auth-Status sofort beobachten. Supabase speichert die Session im Browser,
-   // dadurch bleibt der Admin auch nach F5 angemeldet.
-   cloudClient.auth.onAuthStateChange((_event,session)=>{
-     cloudUser=session?.user||null;
-     cloudOwner=!!cloudUser&&!!cloudOwnerId&&cloudUser.id===cloudOwnerId;
-     editor=cloudOwner;
-     updateEditorUI();
-   });
-
+   if(!cloudClient){
+     cloudClient=window.supabase.createClient(window.DOG_SUPABASE_URL,window.DOG_SUPABASE_ANON_KEY,{
+       auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:false}
+     });
+     cloudClient.auth.onAuthStateChange((_event,session)=>{
+       cloudUser=session?.user||null;
+       cloudOwner=!!cloudUser&&!!cloudOwnerId&&cloudUser.id===cloudOwnerId;
+       editor=cloudOwner;
+       updateEditorUI();
+     });
+   }
    const {data:sessionData,error:sessionError}=await cloudClient.auth.getSession();
    if(sessionError)console.warn('DoG RaceHub Auth:',sessionError);
    cloudUser=sessionData?.session?.user||null;
 
-   const {data:row,error}=await cloudClient.from('app_state').select('owner_id,data').eq('id',1).maybeSingle();
-   if(error){
-     console.error(error);
-     cloudReady=false;
-     cloudOwner=false;
-     editor=false;
-     updateEditorUI();
-     toast('Cloud-Datenbank nicht erreichbar. Die Ansicht bleibt verfügbar.');
+   let snapshot;
+   try{snapshot=await loadCloudSnapshot();}
+   catch(e){
+     console.error('DoG RaceHub Cloud snapshot',e);
+     cloudReady=false;cloudOwner=false;editor=false;updateEditorUI();
+     toast('Cloud-Daten konnten nicht gelesen werden. Der vorhandene Datenstand bleibt unangetastet.');
      return false;
    }
 
-   if(row){
-     cloudOwnerId=row.owner_id||null;
+   if(snapshot.owner_id){
+     cloudOwnerId=snapshot.owner_id;
      cloudReady=true;
-     // Die Cloud ist beim Start immer die maßgebliche Quelle.
-     // Ein lokaler Stand darf niemals automatisch in die Cloud zurückgeschrieben werden.
-     if(row.data&&typeof row.data==='object'){
-       const decoded=await decodeCloudData(row.data);
-       if(decoded){
-         applyCloudState(decoded);
-         markCloudDataUpdatedAt(row.updated_at||'');
-         saveLocalCache(false,row.updated_at||'');
-         requestAnimationFrame(()=>renderAll());
-       }
+     if(snapshot.state&&typeof snapshot.state==='object'){
+       applyCloudState(snapshot.state);
+       markCloudDataUpdatedAt(snapshot.updated_at||'');
+       saveLocalCache(false,snapshot.updated_at||'');
+       requestAnimationFrame(()=>renderAll());
      }
    }else if(cloudUser){
-     // Nur beim erstmaligen Anlegen darf der angemeldete Admin die zentrale
-     // Datenzeile erstellen.
+     // Nur beim erstmaligen Einrichten darf der angemeldete Admin die geschützte
+     // app_state-Zeile anlegen. Bestehende Daten werden niemals ersetzt.
      cloudOwnerId=cloudUser.id;
      cloudReady=true;
      const {error:insertError}=await cloudClient.from('app_state').insert({id:1,owner_id:cloudUser.id,data:cloudState()});
      if(insertError){
-       console.error(insertError);
-       cloudReady=false;
-       cloudOwnerId=null;
-       cloudOwner=false;
-       editor=false;
-       updateEditorUI();
-       toast('Cloud-Start konnte nicht angelegt werden.');
-       return false;
+       console.error(insertError);cloudReady=false;cloudOwnerId=null;cloudOwner=false;editor=false;updateEditorUI();
+       toast('Cloud-Start konnte nicht angelegt werden.');return false;
      }
    }else{
-     cloudReady=false;
-     cloudOwnerId=null;
+     cloudReady=false;cloudOwnerId=null;
    }
-
    cloudOwner=!!cloudUser&&!!cloudOwnerId&&cloudUser.id===cloudOwnerId;
-   editor=cloudOwner;
-   updateEditorUI();
-   subscribeCloud();
+   editor=cloudOwner;updateEditorUI();subscribeCloud();
    return true;
  }catch(e){
-   console.error('Cloud init',e);
-   cloudReady=false;
-   cloudOwner=false;
-   editor=false;
-   updateEditorUI();
-   toast('Cloud-Start fehlgeschlagen. Ansicht bleibt verfügbar.');
-   return false;
+   console.error('Cloud init',e);cloudReady=false;cloudOwner=false;editor=false;updateEditorUI();
+   toast('Cloud-Start fehlgeschlagen. Ansicht bleibt verfügbar.');return false;
  }
 }
 async function cloudSave(){
  if(!cloudConfigured())return false;
  if(!cloudClient){try{await initCloud()}catch(e){console.error('DoG RaceHub Cloud init before save',e)}}
  if(!cloudClient)return false;
- // Session/Owner vor jedem Schreibvorgang nochmals sicher feststellen.
  try{
    const {data:sessionData}=await cloudClient.auth.getSession();
    cloudUser=sessionData?.session?.user||cloudUser||null;
    if(!cloudUser){toast('Admin-Anmeldung ist nicht mehr aktiv.');return false}
    const {data:row,error:rowError}=await cloudClient.from('app_state').select('owner_id').eq('id',1).maybeSingle();
    if(rowError){console.error('DoG RaceHub Cloud owner check',rowError);toast('Cloud-Berechtigung konnte nicht geprüft werden.');return false}
-   if(!row){toast('Cloud-Datenbank ist noch nicht eingerichtet.');return false}
-   cloudOwnerId=row.owner_id||null;
-   cloudOwner=cloudUser.id===cloudOwnerId;
-   editor=cloudOwner;
-   updateEditorUI();
+   if(!row){toast('Cloud-Datenbank ist nicht eingerichtet.');return false}
+   cloudOwnerId=row.owner_id||null;cloudOwner=cloudUser.id===cloudOwnerId;editor=cloudOwner;updateEditorUI();
    if(!cloudOwner){toast('Dieses Konto ist nicht als Admin hinterlegt.');return false}
    cloudReady=true;
 
-   // Schutz vor Überschreiben eines neueren Cloud-Stands von einem anderen Gerät.
-   const {data:versionRow,error:versionError}=await cloudClient.from('app_state').select('updated_at').eq('id',1).maybeSingle();
-   if(versionError){console.error('DoG RaceHub Cloud version check',versionError);toast('Cloud-Version konnte nicht geprüft werden.');return false}
-   const serverTs=versionRow?.updated_at||'';
+   const pointer=await readCloudPointer();
+   if(pointer.error){
+     cloudChunkReady=false;
+     console.error('DoG RaceHub Cloud: app_state_pointer fehlt oder ist nicht erreichbar.',pointer.error);
+     toast('Cloud-Speicher-Erweiterung fehlt. Bitte die v2.21-Datenbankerweiterung einrichten.');
+     return false;
+   }
+   cloudChunkReady=true;
+   const serverTs=pointer.data?.updated_at||'';
    const knownCloudTs=cloudDataUpdatedAt();
    if(serverTs&&knownCloudTs){
      const serverMs=Date.parse(serverTs),knownMs=Date.parse(knownCloudTs);
      if(Number.isFinite(serverMs)&&Number.isFinite(knownMs)&&serverMs>knownMs){
-       console.warn('DoG RaceHub Cloud: Neuerer Cloud-Stand vorhanden. Lokales Speichern abgebrochen.');
        toast('Ein neuerer Cloud-Stand ist vorhanden. Bitte Seite neu laden, bevor du weiter speicherst.');
        return false;
      }
@@ -340,58 +357,58 @@ async function cloudSave(){
  cloudBusy=true;cloudSaveQueued=false;
  try{
    const updatedAt=new Date().toISOString();
-   const payload={data:await encodeCloudData(cloudState()),updated_at:updatedAt};
-   // Wichtig: Kein SELECT/RETURNING nach dem UPDATE. Bei einem großen
-   // app_state-Datensatz kann das unnötig viel Arbeit erzeugen und den
-   // Supabase-Statement-Timeout auslösen. Ein erfolgreiches UPDATE liefert
-   // bei Supabase ohne RETURNING bereits error=null.
-   let lastError=null;
-   for(let attempt=0;attempt<3;attempt++){
-     const {error}=await cloudClient.from('app_state')
-       .update(payload)
-       .eq('id',1)
-       .eq('owner_id',cloudUser.id);
-     if(!error){
-       markCloudDataUpdatedAt(updatedAt);
-       saveLocalCache(false,updatedAt);
-       return true;
+   const encoded=await encodeCloudData(cloudState());
+   const serialized=JSON.stringify(encoded);
+   const versionId=(crypto.randomUUID?crypto.randomUUID():'dog-'+Date.now()+'-'+Math.random());
+   const chunks=[];
+   for(let i=0,index=0;i<serialized.length;i+=CLOUD_CHUNK_SIZE,index++)chunks.push({owner_id:cloudUser.id,version_id:versionId,chunk_index:index,payload:serialized.slice(i,i+CLOUD_CHUNK_SIZE),updated_at:updatedAt});
+   if(!chunks.length)chunks.push({owner_id:cloudUser.id,version_id:versionId,chunk_index:0,payload:'{}',updated_at:updatedAt});
+
+   // Erst vollständigen neuen Snapshot schreiben. Der bisherige Cloud-Stand bleibt
+   // aktiv, bis ALLE Blöcke erfolgreich gespeichert wurden.
+   for(let i=0;i<chunks.length;i++){
+     let lastError=null;
+     for(let attempt=0;attempt<3;attempt++){
+       const {error}=await cloudClient.from('app_state_chunks').insert(chunks[i]);
+       if(!error){lastError=null;break}
+       lastError=error;
+       if(attempt<2)await new Promise(resolve=>setTimeout(resolve,600*(attempt+1)));
      }
-     lastError=error;
-     console.warn('DoG RaceHub Cloud Save Versuch '+(attempt+1),error);
-     if(attempt<2)await new Promise(resolve=>setTimeout(resolve,700*(attempt+1)));
+     if(lastError)throw lastError;
    }
-   console.error('DoG RaceHub Cloud Save',lastError);
-   toast('Cloud-Speicherung fehlgeschlagen: '+(lastError?.message||'Unbekannter Fehler'));
-   return false;
+
+   // Erst jetzt wird der kleine Pointer umgeschaltet. Das ist der atomare
+   // Veröffentlichungs-Schritt für den neuen Snapshot.
+   const {error:pointerError}=await cloudClient.from('app_state_pointer')
+     .update({owner_id:cloudUser.id,version_id:versionId,updated_at:updatedAt})
+     .eq('id',1).eq('owner_id',cloudUser.id);
+   if(pointerError)throw pointerError;
+
+   markCloudDataUpdatedAt(updatedAt);
+   saveLocalCache(false,updatedAt);
+   // Alte Snapshots bleiben zunächst als Sicherheitsreserve bestehen.
+   return true;
  }catch(e){
    console.error('DoG RaceHub Cloud Save',e);
    toast('Cloud-Speicherung fehlgeschlagen: '+(e?.message||'Unbekannter Fehler'));
    return false;
  }finally{
-   cloudBusy=false;
-   if(cloudSaveQueued)setTimeout(()=>cloudSave(),50);
+   cloudBusy=false;if(cloudSaveQueued)setTimeout(()=>cloudSave(),50);
  }
 }
 function subscribeCloud(){
  if(!cloudClient||cloudChannel)return;
- cloudChannel=cloudClient.channel('dog-racehub-state').on('postgres_changes',{event:'UPDATE',schema:'public',table:'app_state',filter:'id=eq.1'},async payload=>{
-   if(!payload?.new?.data)return;
+ cloudChannel=cloudClient.channel('dog-racehub-state').on('postgres_changes',{event:'UPDATE',schema:'public',table:'app_state_pointer',filter:'id=eq.1'},async payload=>{
+   if(!payload?.new?.version_id)return;
    const cloudTs=payload.new.updated_at||'';
    const localTs=localDataUpdatedAt();
    const c=Date.parse(cloudTs),l=Date.parse(localTs);
-   // Einen älteren Cloud-Stand niemals über lokale, noch nicht bestätigte
-   // Änderungen legen.
-   if(Number.isFinite(c)&&Number.isFinite(l)&&c<l){
-     console.warn('DoG RaceHub Realtime: älterer Cloud-Stand ignoriert.');
-     return;
-   }
-   const decoded=await decodeCloudData(payload.new.data);
-   if(!decoded)return;
-   applyCloudState(decoded);
-   markCloudDataUpdatedAt(cloudTs||'');
-   saveLocalCache(false,cloudTs||'');
-   renderAll();
-   toast('Daten aus der Cloud aktualisiert.');
+   if(Number.isFinite(c)&&Number.isFinite(l)&&c<l){console.warn('DoG RaceHub Realtime: älterer Cloud-Stand ignoriert.');return;}
+   try{
+     const chunks=await readCloudChunks(payload.new.version_id);if(chunks.error)throw chunks.error;
+     const decoded=await decodeCloudData(chunks.data);if(!decoded)throw new Error('Cloud-Daten konnten nicht dekodiert werden.');
+     applyCloudState(decoded);markCloudDataUpdatedAt(cloudTs||'');saveLocalCache(false,cloudTs||'');renderAll();toast('Daten aus der Cloud aktualisiert.');
+   }catch(e){console.error('DoG RaceHub Realtime',e);}
  }).subscribe();
 }
 function renderAll(){try{updateSeasonChrome();updateStats();renderDashboard();renderWM();renderKWM();renderLicenses();renderArchive();initDriverOverview();renderTeams();renderFinance();}catch(e){console.warn('renderAll',e)}}
@@ -2134,35 +2151,17 @@ async function loginAdmin(){
  const result=await cloudClient.auth.signInWithPassword({email,password});
  if(result.error){toast(result.error.message||'Anmeldung fehlgeschlagen.');return}
  cloudUser=result.data.user||null;
-
- // Owner-ID nach dem Login noch einmal direkt aus der Cloud lesen.
- const {data:row,error:rowError}=await cloudClient.from('app_state').select('owner_id,data').eq('id',1).maybeSingle();
- if(rowError){console.error(rowError);toast('Cloud-Datenbank konnte nach der Anmeldung nicht gelesen werden.');return}
- if(row){
-   cloudOwnerId=row.owner_id||null;
-   cloudReady=true;
-   // Auch nach einer Anmeldung ist die Cloud der maßgebliche Stand.
-   if(row.data&&typeof row.data==='object'){
-     const decoded=await decodeCloudData(row.data);
-     if(decoded){
-       applyCloudState(decoded);
-       markCloudDataUpdatedAt(row.updated_at||'');
-       saveLocalCache(false,row.updated_at||'');
-       renderAll();
+ try{
+   const snapshot=await loadCloudSnapshot();
+   if(snapshot.owner_id){
+     cloudOwnerId=snapshot.owner_id;cloudReady=true;
+     if(snapshot.state&&typeof snapshot.state==='object'){
+       applyCloudState(snapshot.state);markCloudDataUpdatedAt(snapshot.updated_at||'');saveLocalCache(false,snapshot.updated_at||'');renderAll();
      }
    }
- }else{
-   cloudOwnerId=cloudUser.id;
-   cloudReady=true;
-   const {error:insertError}=await cloudClient.from('app_state').insert({id:1,owner_id:cloudUser.id,data:cloudState()});
-   if(insertError){console.error(insertError);toast('Cloud-Start konnte nicht angelegt werden.');return}
- }
- cloudOwner=!!cloudUser&&!!cloudOwnerId&&cloudUser.id===cloudOwnerId;
- editor=cloudOwner;
- updateEditorUI();
- // Nach erfolgreicher Anmeldung das Login-Fenster automatisch schließen.
- closeModal();
- const pw=document.getElementById('admin-password');if(pw)pw.value='';
+ }catch(e){console.error('DoG RaceHub Cloud login load',e);toast('Cloud-Daten konnten nach der Anmeldung nicht gelesen werden.');return}
+ cloudOwner=!!cloudUser&&!!cloudOwnerId&&cloudUser.id===cloudOwnerId;editor=cloudOwner;updateEditorUI();
+ closeModal();const pw=document.getElementById('admin-password');if(pw)pw.value='';
  toast(editor?'Admin-Bearbeitung freigeschaltet.':'Angemeldet, aber dieses Konto hat nur Leserechte.');
 }
 async function logoutAdmin(){
