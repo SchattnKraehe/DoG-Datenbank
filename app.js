@@ -379,9 +379,21 @@ async function cloudSave(){
 
    // Erst jetzt wird der kleine Pointer umgeschaltet. Das ist der atomare
    // Veröffentlichungs-Schritt für den neuen Snapshot.
-   const {error:pointerError}=await cloudClient.from('app_state_pointer')
-     .update({owner_id:cloudUser.id,version_id:versionId,updated_at:updatedAt})
-     .eq('id',1).eq('owner_id',cloudUser.id);
+   // Beim ersten v2.21-Speichern existiert der Pointer noch nicht: dann INSERT,
+   // bei allen weiteren Speichervorgängen UPDATE. Der bestehende app_state-Stand
+   // wird dabei niemals überschrieben.
+   const pointerPayload={owner_id:cloudUser.id,version_id:versionId,updated_at:updatedAt};
+   let pointerError=null;
+   if(pointer.data?.id){
+     const result=await cloudClient.from('app_state_pointer')
+       .update(pointerPayload)
+       .eq('id',1).eq('owner_id',cloudUser.id);
+     pointerError=result.error||null;
+   }else{
+     const result=await cloudClient.from('app_state_pointer')
+       .insert({id:1,...pointerPayload});
+     pointerError=result.error||null;
+   }
    if(pointerError)throw pointerError;
 
    markCloudDataUpdatedAt(updatedAt);
