@@ -1651,7 +1651,96 @@ function openContractEditor(name,id){
  const saveBtn=document.getElementById('contract-save-btn');
  if(saveBtn)saveBtn.addEventListener('click',()=>saveContract(window.__editingContractId||''));
 }
-function attachContractImages(input){if(!isEditor()){input.value='';return}const files=[...input.files||[]];if(!files.length)return;const id=document.getElementById('contract-driver')?.value||'';const existingId=window.__editingContractId||'';let c=existingId?contracts.find(x=>x.id===existingId):null;if(!c){c={id:existingId||('draftimg-'+Date.now()),driver:id,season:document.getElementById('contract-season')?.value||seasonState.current};if(!existingId){contracts.push(c);window.__editingContractId=c.id}}c.contractImages=c.contractImages||[];let left=files.length;files.forEach(f=>{const rd=new FileReader();rd.onload=()=>{c.contractImages.push(rd.result);left--;if(!left){save();const p=document.getElementById('contract-image-preview');if(p)p.innerHTML=c.contractImages.map(x=>`<img src="${esc(x)}" onclick="viewImage(this.src)">`).join('');toast(`${files.length} Vertragsbild${files.length===1?'':'er'} gespeichert.`)}};rd.readAsDataURL(f)})}
+async function uploadContractImageDataUrl(contract,imageData,index){
+ if(!cloudClient||!cloudUser)return null;
+ const m=String(imageData||'').match(/^data:([^;,]+);base64,([\s\S]*)$/);
+ if(!m)return String(imageData||'');
+ const mime=m[1]||'image/png';
+ const ext=(mime.split('/')[1]||'png').replace(/[^a-z0-9]/gi,'')||'png';
+ const safeSeason=String(contract?.season||seasonState.current||'02-26').replace(/[^a-z0-9._-]+/gi,'_');
+ const safeDriver=String(contract?.driver||'fahrer').replace(/[^a-z0-9._-]+/gi,'_');
+ const path='contracts/'+safeSeason+'/'+safeDriver+'/'+String(contract.id||'contract')+'-'+index+'.'+ext;
+ const binary=atob(m[2]); const bytes=new Uint8Array(binary.length);
+ for(let i=0;i<binary.length;i++)bytes[i]=binary.charCodeAt(i);
+ const blob=new Blob([bytes],{type:mime});
+ const result=await cloudClient.storage.from('contract-images').upload(path,blob,{contentType:mime,upsert:true,cacheControl:'31536000'});
+ if(result.error)throw result.error;
+ const pub=cloudClient.storage.from('contract-images').getPublicUrl(path);
+ const url=pub?.data?.publicUrl||'';
+ if(!url)throw new Error('Keine Vertragsbild-URL erhalten.');
+ const verify=await fetch(url,{method:'HEAD',cache:'no-store'});
+ if(!verify.ok)throw new Error('Vertragsbild konnte nach dem Upload nicht verifiziert werden.');
+ return url;
+}
+async function migrateContractImagesToStorage(){
+ if(!requireEditor())return;
+ if(!cloudClient||!cloudUser){try{await initCloud()}catch(e){}}
+ if(!cloudClient||!cloudUser){toast('Cloud-Anmeldung ist fuer die Bildmigration erforderlich.');return}
+ const jobs=[];
+ contracts.forEach(c=>(c.contractImages||[]).forEach((img,i)=>{
+   if(/^data:image\//i.test(String(img||'')))jobs.push({contract:c,index:i,data:img});
+ }));
+ if(!jobs.length){toast('Keine eingebetteten Vertragsbilder mehr gefunden.');return}
+ if(!confirm(jobs.length+' eingebettete Vertragsbilder werden in den Cloud-Speicher kopiert. Erst nach erfolgreicher Pruefung wird der Vertrag umgestellt. Fortfahren?'))return;
+ const original=new Map();
+ try{
+   jobs.forEach(j=>original.set(j.contract.id,[...(j.contract.contractImages||[])]));
+   toast('Cloud: Vertragsbilder werden ausgelagert ...');
+   for(let i=0;i<jobs.length;i++){
+     const j=jobs[i];
+     const url=await uploadContractImageDataUrl(j.contract,j.data,j.index);
+     j.contract.contractImages[j.index]=url;
+   }
+   const remaining=contracts.flatMap(c=>(c.contractImages||[])).filter(x=>/^data:image\//i.test(String(x||'')));
+   if(remaining.length)throw new Error(remaining.length+' Vertragsbilder sind noch eingebettet.');
+   const ok=await save();
+   if(!ok)throw new Error('Die Vertragsdaten konnten nach der Bildmigration nicht gespeichert werden.');
+   toast('Vertragsbilder erfolgreich ausgelagert. Neue Speichervorgaenge bleiben klein.');
+   closeModal();
+   renderAll();
+ }catch(e){
+   original.forEach((imgs,id)=>{
+     const c=contracts.find(x=>x.id===id);
+     if(c)c.contractImages=imgs;
+   });
+   console.error('DoG RaceHub contract image migration',e);
+   toast('Bildmigration abgebrochen: '+(e?.message||'Unbekannter Fehler'));
+ }
+}
+function attachContractImages(input){
+ if(!isEditor()){input.value='';return}
+ const files=[...input.files||[]];
+ if(!files.length)return;
+ const id=document.getElementById('contract-driver')?.value||'';
+ const existingId=window.__editingContractId||'';
+ let c=existingId?contracts.find(x=>x.id===existingId):null;
+ if(!c){
+   c={id:existingId||('draftimg-'+Date.now()),driver:id,season:document.getElementById('contract-season')?.value||seasonState.current};
+   if(!existingId){contracts.push(c);window.__editingContractId=c.id}
+ }
+ c.contractImages=c.contractImages||[];
+ const run=async()=>{
+   for(const f of files){
+     const rd=new FileReader();
+     const data=await new Promise((resolve,reject)=>{
+       rd.onload=()=>resolve(rd.result);
+       rd.onerror=reject;
+       rd.readAsDataURL(f);
+     });
+     let stored=data;
+     if(cloudClient&&cloudUser)stored=await uploadContractImageDataUrl(c,data,c.contractImages.length);
+     c.contractImages.push(stored);
+   }
+   const ok=await save();
+   const p=document.getElementById('contract-image-preview');
+   if(p)p.innerHTML=c.contractImages.map(x=>`<img src="${esc(x)}" onclick="viewImage(this.src)">`).join('');
+   toast(ok?'Vertragsbild(er) gespeichert.':'Vertragsbild(er) lokal gespeichert.');
+ };
+ run().catch(e=>{
+   console.error('DoG RaceHub contract image upload',e);
+   toast('Vertragsbild konnte nicht gespeichert werden: '+(e?.message||'Unbekannter Fehler'));
+ });
+}
 function normalizeOCRContractText(text){return String(text||'').replace(/\r/g,'').replace(/[“”„]/g,'"').replace(/[–—]/g,'-').replace(/\u00a0/g,' ').replace(/[ \t]+/g,' ').split('\n').map(x=>x.trim()).filter(Boolean)}
 function ocrContractValue(lines, labels){
  const pats=labels.map(x=>x.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')).join('|');
@@ -2186,7 +2275,7 @@ async function logoutAdmin(){
  toast('Bearbeitung gesperrt.');
 }
 function requireEditor(){if(!editor){openAdmin();return false}return true}
-function adminPanel(){const q=databaseIntegrity();document.getElementById('modal-content').innerHTML=`<div class="modal-head"><h2>DoG Liga-Verwaltung</h2><button onclick="closeModal()">×</button></div><p class="race-edit-note">Nur das registrierte Admin-Konto darf Daten verändern. Alle anderen Besucher haben Ansichtszugriff.</p><div class="admin-integrity"><b>Datenstatus</b><span>${q.races} Rennen · ${q.weekends} Rennwochenenden · ${q.results} Ergebnisse</span><span>${q.orphan?'⚠ '+q.orphan+' unbekannte Fahrer':'✓ Fahrerzuordnungen OK'}</span><span>${q.duplicate?'⚠ '+q.duplicate+' doppelte Ergebniszeilen':'✓ Keine doppelten Ergebniszeilen'}</span><span>${q.invalid?'⚠ Punkte prüfen':'✓ Punkte konsistent'}</span></div><button class="primary" onclick="recalculateDatabase()">🔄 Gesamte Datenbank neu berechnen</button><button class="ghost" onclick="cloudSave().then(ok=>ok&&toast('Cloud-Daten gespeichert.'))">☁️ Jetzt in Cloud speichern</button><button class="ghost" onclick="logoutAdmin()">🔒 Abmelden / Bearbeitung sperren</button>`;openModal()}
+function adminPanel(){const q=databaseIntegrity();document.getElementById('modal-content').innerHTML=`<div class="modal-head"><h2>DoG Liga-Verwaltung</h2><button onclick="closeModal()">×</button></div><p class="race-edit-note">Nur das registrierte Admin-Konto darf Daten verändern. Alle anderen Besucher haben Ansichtszugriff.</p><div class="admin-integrity"><b>Datenstatus</b><span>${q.races} Rennen · ${q.weekends} Rennwochenenden · ${q.results} Ergebnisse</span><span>${q.orphan?'⚠ '+q.orphan+' unbekannte Fahrer':'✓ Fahrerzuordnungen OK'}</span><span>${q.duplicate?'⚠ '+q.duplicate+' doppelte Ergebniszeilen':'✓ Keine doppelten Ergebniszeilen'}</span><span>${q.invalid?'⚠ Punkte prüfen':'✓ Punkte konsistent'}</span></div><button class="primary" onclick="recalculateDatabase()">🔄 Gesamte Datenbank neu berechnen</button><button class="ghost" onclick="cloudSave().then(ok=>ok&&toast('Cloud-Daten gespeichert.'))">☁️ Jetzt in Cloud speichern</button><button class="ghost" onclick="logoutAdmin()">🔒 Abmelden / Bearbeitung sperren</button><button class="ghost" onclick="migrateContractImagesToStorage()">Vertragsbilder in Cloud-Speicher auslagern</button>`;openModal()}
 function openModal(){document.getElementById('modal').classList.add('show')} function closeModal(){document.getElementById('modal').classList.remove('show')} function toast(t){const x=document.getElementById('toast');x.textContent=t;x.style.display='block';clearTimeout(window.__toast);window.__toast=setTimeout(()=>x.style.display='none',2600)} function money(n){return new Intl.NumberFormat('de-DE',{style:'currency',currency:'EUR',maximumFractionDigits:0}).format(n)} function esc(s){return String(s??'').replace(/[&<>'"]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[m]))}
 try{ensureRaceMetadata();load();syncTeamChiefRoles();}catch(e){console.error('RaceHub startup',e);toast('RaceHub konnte einige Daten nicht laden. Die Navigation bleibt verfügbar.')}
 try{ensureLicenseView();updateSeasonChrome();showView('dashboard');updateEditorUI();}catch(e){console.error('RaceHub render',e)}
