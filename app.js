@@ -245,7 +245,7 @@ async function loadCloudSnapshot(){
  if(!pointer.error){
    cloudChunkReady=true;
    if(pointer.data?.version_id){
-     const chunks=await readCloudChunks(pointer.data.version_id);
+     const chunks=await cloudWithTimeout(readCloudChunks(pointer.data.version_id),15000,'Cloud-Chunks');
      if(chunks.error)throw chunks.error;
      const decoded=await decodeCloudData(chunks.data);
      if(!decoded)throw new Error('Cloud-Daten konnten nicht dekodiert werden.');
@@ -342,7 +342,7 @@ async function cloudSave(){
    if(!cloudOwner){toast('Dieses Konto ist nicht als Admin hinterlegt.');return false}
    cloudReady=true;
 
-   const pointer=await readCloudPointer();
+   const pointer=await cloudWithTimeout(readCloudPointer(),10000,'Cloud-Pointer');
    if(pointer.error){
      cloudChunkReady=false;
      console.error('DoG RaceHub Cloud: app_state_pointer fehlt oder ist nicht erreichbar.',pointer.error);
@@ -393,13 +393,13 @@ async function cloudSave(){
    const pointerPayload={owner_id:cloudUser.id,version_id:versionId,updated_at:updatedAt};
    let pointerError=null;
    if(pointer.data?.id){
-     const result=await cloudWithTimeout(cloudClient.from('app_state_pointer')
-       .update(pointerPayload),15000,'Cloud-Pointer speichern')
-       .eq('id',1).eq('owner_id',cloudUser.id);
+     const result=await cloudWithTimeout(
+       cloudClient.from('app_state_pointer').update(pointerPayload).eq('id',1).eq('owner_id',cloudUser.id),
+       15000,'Cloud-Pointer speichern'
+     );
      pointerError=result.error||null;
    }else{
-     const result=await cloudWithTimeout(cloudClient.from('app_state_pointer')
-       .insert({id:1,...pointerPayload}),15000,'Cloud-Pointer anlegen');
+     const result=await cloudWithTimeout(cloudClient.from('app_state_pointer').insert({id:1,...pointerPayload}),15000,'Cloud-Pointer anlegen');
      pointerError=result.error||null;
    }
    if(pointerError)throw pointerError;
