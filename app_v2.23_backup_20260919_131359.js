@@ -1,14 +1,14 @@
-﻿let editor=false;
+let editor=false;
 const CAR_DIR='';
 const RACE_DIR='';
 const carMap={'McLaren':'car_large_mclaren.png','Oracle Red Bull Racing':'car_large_oracle_red_bull_racing.png','Audi':'car_large_audi.png','Mercedes':'car_large_mercedes.png','Williams':'car_large_williams.png','Cadillac':'car_large_cadillac.png','Alpine':'car_large_alpine.png','Aston Martin':'car_large_aston_martin.png','Ferrari':'car_large_ferrari.png','Haas':'car_large_haas.png','Visa Cash':'car_large_visa_cash.png'};
-// Fahrer-Ãœbersicht/Profile: groÃŸe Fahrzeuge. Fahrer-WM + KWM: kleine Fahrzeuge.
+// Fahrer-Übersicht/Profile: große Fahrzeuge. Fahrer-WM + KWM: kleine Fahrzeuge.
 const standingsCarMap={'McLaren':'car_mini_mclaren.png','Oracle Red Bull Racing':'car_mini_oracle_red_bull_racing.png','Audi':'car_mini_audi.png','Mercedes':'car_mini_mercedes.png','Williams':'car_mini_williams.png','Cadillac':'car_mini_cadillac.png','Alpine':'car_mini_alpine.png','Aston Martin':'car_mini_aston_martin.png','Ferrari':'car_mini_ferrari.png','Haas':'car_mini_haas.png','Visa Cash':'car_mini_visa_cash.png'};
 function driverCar(name){const c=canonicalTeamName(name);return CAR_DIR+(carMap[c]||carMap[teamKey(c)]||'not-available.jpg')}
 function standingsCar(name){const c=canonicalTeamName(name);return CAR_DIR+(standingsCarMap[c]||carMap[c]||carMap[teamKey(c)]||'not-available.jpg')}
 const teamFactors={'Mercedes':1.2,'Ferrari':1.4,'McLaren':1.6,'Red Bull':1.8,'Alpine':2.6,'Haas':2.8,'Audi':3.0,'Visa Cash':3.2,'Williams':3.3,'Cadillac':4.0,'Aston Martin':4.8};
 const DOG_POINTS={1:25,2:21,3:18,4:15,5:13,6:11,7:9,8:8,9:7,10:6,11:5,12:4,13:3,14:2,15:1};
-// DoG Fahrernummern: 1â€“99, aktuelle F1-Nummern sind gesperrt. 89 ist auf Wunsch zusÃ¤tzlich gesperrt.
+// DoG Fahrernummern: 1–99, aktuelle F1-Nummern sind gesperrt. 89 ist auf Wunsch zusätzlich gesperrt.
 const F1_BLOCKED_NUMBERS=[1,3,5,6,10,11,12,14,16,18,23,27,30,31,41,43,44,55,63,77,81,87];
 const DOG_DRIVER_NUMBERS=Array.from({length:98},(_,i)=>i+2);
 function driverNumber(name){return Number(driverRecord(name)?.number||0)||0}
@@ -22,12 +22,12 @@ function driverNumberState(number,forName='',status='Stammfahrer') {
  const stamm=owners.find(x=>getStatus(x)==='Stammfahrer');
  if(stamm)return {state:'taken-stamm',label:`Stammfahrer: ${stamm}`};
  const ersatz=owners.find(x=>getStatus(x)==='Ersatzfahrer');
- if(ersatz && status==='Stammfahrer')return {state:'reserved-stamm',label:`Ersatzfahrer: ${ersatz} Â· fÃ¼r Stammfahrer frei`};
+ if(ersatz && status==='Stammfahrer')return {state:'reserved-stamm',label:`Ersatzfahrer: ${ersatz} · für Stammfahrer frei`};
  if(ersatz)return {state:'taken-ersatz',label:`Ersatzfahrer: ${ersatz}`};
  return {state:'free',label:'frei'};
 }
 function driverNumberOptions(forName='',status='Stammfahrer',selected=0){
- return `<option value="0">â€” keine Nummer â€”</option>`+DOG_DRIVER_NUMBERS.map(n=>{const st=driverNumberState(n,forName,status);const sel=Number(selected)===n?'selected':'';const disabled=st.state==='blocked'||st.state==='taken-stamm'||(st.state==='taken-ersatz'&&status!=='Stammfahrer')?'disabled':'';const suffix=st.label==='frei'?'frei':st.label;return `<option value="${n}" ${sel} ${disabled?'disabled':''}>#${n} Â· ${esc(suffix)}</option>`}).join('');
+ return `<option value="0">— keine Nummer —</option>`+DOG_DRIVER_NUMBERS.map(n=>{const st=driverNumberState(n,forName,status);const sel=Number(selected)===n?'selected':'';const disabled=st.state==='blocked'||st.state==='taken-stamm'||(st.state==='taken-ersatz'&&status!=='Stammfahrer')?'disabled':'';const suffix=st.label==='frei'?'frei':st.label;return `<option value="${n}" ${sel} ${disabled?'disabled':''}>#${n} · ${esc(suffix)}</option>`}).join('');
 }
 function normalizeDriverNumbers(){
  const seenStamm=new Set(),seenErsatz=new Set();
@@ -46,9 +46,9 @@ const SPONSOR_OPTIONS={
  'Louis Vuitton':{upfront:400000,season:600000,race:30000,seasonGoal:'mindestens 5 F-WM-Punkte',raceGoals:['Fahrer nicht DNF/DSQ']}
 };
 function sponsorTotal(s){return (s?.upfront||0)+(s?.season||0)+ (s?.race||0)*12}
-function sponsorLabel(name){return name&&SPONSOR_OPTIONS[name]?name:'â€”'}
+function sponsorLabel(name){return name&&SPONSOR_OPTIONS[name]?name:'—'}
 function sponsorGoalStatus(contract){
- const sp=SPONSOR_OPTIONS[contract?.sponsor]; if(!sp)return {season:'â€”',races:0,possible:0};
+ const sp=SPONSOR_OPTIONS[contract?.sponsor]; if(!sp)return {season:'—',races:0,possible:0};
  const rs=seasonRaceList(contract.season||seasonState.current).filter(r=>r.division===contract.division && r.results.some(x=>normDriver(x.name)===normDriver(contract.driver)));
  const rows=rs.map(r=>({r,x:r.results.find(x=>normDriver(x.name)===normDriver(contract.driver))})).filter(o=>o.x);
  const valid=rows.filter(o=>statusOfResult(o.x)==='RESULT');
@@ -66,7 +66,7 @@ function sponsorGoalStatus(contract){
 }
 function renderSponsorCatalog(){
  const el=document.getElementById('sponsor-catalog'); if(!el)return;
- el.innerHTML=Object.entries(SPONSOR_OPTIONS).map(([name,s])=>`<div class="sponsor-card"><div class="sponsor-card-head"><h3>${esc(name)}</h3><b>${money(s.upfront+s.season+s.race)}</b><small>pro Rennziel Â· Gesamt ohne variable Zielanzahl</small></div><div class="sponsor-money"><span>Sofortzahlung <b>${money(s.upfront)}</b></span><span>Saisonziel <b>${money(s.season)}</b></span><span>Rennziel <b>${money(s.race)}</b></span></div><div class="sponsor-goals"><div><b>Saisonziel</b><p>${esc(s.seasonGoal)}</p></div><div><b>Rennziele</b>${s.raceGoals.map(g=>`<p>â€¢ ${esc(g)}</p>`).join('')}</div></div></div>`).join('');
+ el.innerHTML=Object.entries(SPONSOR_OPTIONS).map(([name,s])=>`<div class="sponsor-card"><div class="sponsor-card-head"><h3>${esc(name)}</h3><b>${money(s.upfront+s.season+s.race)}</b><small>pro Rennziel · Gesamt ohne variable Zielanzahl</small></div><div class="sponsor-money"><span>Sofortzahlung <b>${money(s.upfront)}</b></span><span>Saisonziel <b>${money(s.season)}</b></span><span>Rennziel <b>${money(s.race)}</b></span></div><div class="sponsor-goals"><div><b>Saisonziel</b><p>${esc(s.seasonGoal)}</p></div><div><b>Rennziele</b>${s.raceGoals.map(g=>`<p>• ${esc(g)}</p>`).join('')}</div></div></div>`).join('');
 }
 
 let ACTIVE_TRACKS=['Las Vegas','Brasilien','Belgien'];
@@ -85,27 +85,27 @@ let teams=[
 {name:'Visa Cash',chief:'GeistesFrank',car:'Visa Cash',d1:['VwGerd','HeaDy2106'],d2:['GeistesFrank','Buythio']}
 ];
 let drivers=['John_Marco','Erion','MaxT7gerrang','physioalex_ttv','Marlon202525','danieliko99','Chiara','Energy18WCL','SchattnKraehe','EastGermanGhost','RPFL_Panis','Keulebre07','Marci_Blend','BrennusX','LeoMessi1511','Luisa Weinstadl','thoxstar32','Vietsi_47','Ahorndonut71324','SGRLxGottThorx','Jenny TattooGirl','Dome0907','F1_Tobi_Vettel21','TTV_Gianninho46','xTom-3','ToXcay','Dr-Geil-Egon','VwGerd','HeaDy2106','GeistesFrank','Buythio','Salamander2110','Uchse-Rene','the_nobody86','TattooGirl_1997','keule_der_kicker','joeyleon2000','mitch8511','xxb_a_s_t_yx07x','PerserKing1805','Dando_Rorris','LuyaXX','Oliver_Panls','ghost_of_peace','Misterhany','Viox_Nyrex2','Paul Pavitschitz','VDR_RaptusSee7'];
-const statusOverrides={'Marci_Blend':'Free Agent','Dando_Rorris':'Nicht verfÃ¼gbar','LuyaXX':'Nicht verfÃ¼gbar'};
+const statusOverrides={'Marci_Blend':'Free Agent','Dando_Rorris':'Nicht verfügbar','LuyaXX':'Nicht verfügbar'};
 const aliases={'Szalamander2110':'Salamander2110','luisa_LH44':'Luisa Weinstadl','danieliko':'danieliko99','John Marco':'John_Marco','Erion_':'Erion','[VR] John Marco':'John_Marco','vwgerd':'VwGerd','Oliver_Panls':'Olliver_Panls'};
 let driverMeta={};
 const NATIONALITY_OPTIONS=[
- {code:'DE',name:'Deutschland',flag:'flag-de.png',emoji:'ðŸ‡©ðŸ‡ª'},
- {code:'CH',name:'Schweiz',flag:'flag-ch.png',emoji:'ðŸ‡¨ðŸ‡­'},
- {code:'ES',name:'Spanien',flag:'flag-es.png',emoji:'ðŸ‡ªðŸ‡¸'},
- {code:'AT',name:'Ã–sterreich',flag:'flag-at.png',emoji:'ðŸ‡¦ðŸ‡¹'},
- {code:'GB',name:'GroÃŸbritannien',flag:'flag-gb.png',emoji:'ðŸ‡¬ðŸ‡§'},
- {code:'DK',name:'DÃ¤nemark',flag:'flag-dk.png',emoji:'ðŸ‡©ðŸ‡°'},
- {code:'SE',name:'Schweden',flag:'flag-se.png',emoji:'ðŸ‡¸ðŸ‡ª'},
- {code:'PT',name:'Portugal',flag:'',emoji:'ðŸ‡µðŸ‡¹'},
- {code:'NO',name:'Norwegen',flag:'flag-no.png',emoji:'ðŸ‡³ðŸ‡´'},
- {code:'PL',name:'Polen',flag:'flag-pl.png',emoji:'ðŸ‡µðŸ‡±'}
+ {code:'DE',name:'Deutschland',flag:'flag-de.png',emoji:'🇩🇪'},
+ {code:'CH',name:'Schweiz',flag:'flag-ch.png',emoji:'🇨🇭'},
+ {code:'ES',name:'Spanien',flag:'flag-es.png',emoji:'🇪🇸'},
+ {code:'AT',name:'Österreich',flag:'flag-at.png',emoji:'🇦🇹'},
+ {code:'GB',name:'Großbritannien',flag:'flag-gb.png',emoji:'🇬🇧'},
+ {code:'DK',name:'Dänemark',flag:'flag-dk.png',emoji:'🇩🇰'},
+ {code:'SE',name:'Schweden',flag:'flag-se.png',emoji:'🇸🇪'},
+ {code:'PT',name:'Portugal',flag:'',emoji:'🇵🇹'},
+ {code:'NO',name:'Norwegen',flag:'flag-no.png',emoji:'🇳🇴'},
+ {code:'PL',name:'Polen',flag:'flag-pl.png',emoji:'🇵🇱'}
 ];
 const NATIONALITY_BY_CODE=Object.fromEntries(NATIONALITY_OPTIONS.map(x=>[x.code,x]));
 function driverNationality(name){return driverRecord(name)?.nationality||''}
 function nationalityInfo(name){return NATIONALITY_BY_CODE[driverNationality(name)]||null}
 function driverFlag(name){return nationalityInfo(name)?.flag||''}
 function nationalityLabel(name){const n=nationalityInfo(name);return n?`${n.emoji} ${n.name}`:''}
-function nationalityOptions(selected=''){return `<option value="">â€” keine NationalitÃ¤t â€”</option>`+NATIONALITY_OPTIONS.map(n=>`<option value="${n.code}" ${n.code===selected?'selected':''}>${n.emoji} ${esc(n.name)}</option>`).join('')}
+function nationalityOptions(selected=''){return `<option value="">— keine Nationalität —</option>`+NATIONALITY_OPTIONS.map(n=>`<option value="${n.code}" ${n.code===selected?'selected':''}>${n.emoji} ${esc(n.name)}</option>`).join('')}
 let contracts=[];
 let transferRecords=[];
 let financeBudgets={};
@@ -121,7 +121,7 @@ let driverLicenses={};
 const TEAM_CHOICES=['','Mercedes','Ferrari','McLaren','Oracle Red Bull Racing','Alpine','Haas','Audi','Visa Cash','Williams','Cadillac','Aston Martin'];
 const SEASON_META={
   current:'02/26',
-  seasons:{'02/26':{label:'02/26',status:'active',type:'Offiziell Â· 1. Saison',official:true,rules:'DoG 02/26 Â· v1'},'03/26':{label:'03/26',status:'planned',type:'Offiziell Â· nÃ¤chste Saison',official:true,rules:'DoG 03/26 Â· v1'}}
+  seasons:{'02/26':{label:'02/26',status:'active',type:'Offiziell · 1. Saison',official:true,rules:'DoG 02/26 · v1'},'03/26':{label:'03/26',status:'planned',type:'Offiziell · nächste Saison',official:true,rules:'DoG 03/26 · v1'}}
 };
 let seasonState={current:'02/26',lastCalculatedAt:'',schemaVersion:2};
 function driverRecord(name){return driverMeta[normDriver(name)]||driverMeta[name]||null}
@@ -134,7 +134,7 @@ function driverTeam(name){const roster=currentRosterEntry(name);if(roster?.team)
 function normDriver(n){return aliases[n]||n}
 // Current team roster is the authoritative source for the current status/team.
 // Historical race records keep their own team and are never overwritten by this.
-function getStatus(n){const roster=currentRosterEntry(n);if(roster)return 'Stammfahrer';if(statusOverrides[n])return statusOverrides[n];const m=driverRecord(n);if(m?.status==='Nicht verfÃ¼gbar')return 'Nicht verfÃ¼gbar';if(m?.status==='Stammfahrer')return 'Stammfahrer';if(m?.status==='Ersatzfahrer')return 'Ersatzfahrer';if(m?.status==='Free Agent')return 'Free Agent';return 'Free Agent'}
+function getStatus(n){const roster=currentRosterEntry(n);if(roster)return 'Stammfahrer';if(statusOverrides[n])return statusOverrides[n];const m=driverRecord(n);if(m?.status==='Nicht verfügbar')return 'Nicht verfügbar';if(m?.status==='Stammfahrer')return 'Stammfahrer';if(m?.status==='Ersatzfahrer')return 'Ersatzfahrer';if(m?.status==='Free Agent')return 'Free Agent';return 'Free Agent'}
 const TEAM_CANONICAL={
  'Aston Martin Aramco Formula One Team':'Aston Martin',
  'Aston Martin Aramco F1 Team':'Aston Martin',
@@ -175,7 +175,7 @@ function repairContracts(){
 // v2.0 central cloud database: Supabase is the single source of truth.
 let cloudClient=null, cloudUser=null, cloudOwnerId=null, cloudOwner=false, cloudReady=false, cloudBusy=false, cloudSaveQueued=false, cloudChannel=null, cloudChunkReady=false;
 const CLOUD_CHUNK_SIZE=120000;
-/* DoG RaceHub v2.21 â€“ zentrale Cloud-Snapshots in versionierten BlÃ¶cken. */
+/* DoG RaceHub v2.21 – zentrale Cloud-Snapshots in versionierten Blöcken. */
 function cloudConfigured(){return !!(window.DOG_SUPABASE_URL&&window.DOG_SUPABASE_ANON_KEY&&window.DOG_SUPABASE_URL.indexOf('YOUR_')<0&&window.DOG_SUPABASE_ANON_KEY.indexOf('YOUR_')<0&&window.supabase?.createClient)}
 function cloudState(){return {drivers,driverMeta,races,teams,seasonState,contracts,transferRecords,financeBudgets,financeCapUsage,sponsorPayments,financeTransactions,financeOpeningBalances,financeTxOverrides,driverFinanceOpeningBalances,driverFinanceOpeningDates,loanAgreements,driverLicenses,activeTracks:ACTIVE_TRACKS,trackNumbers:TRACK_NUMBERS}}
 async function encodeCloudData(data){
@@ -192,7 +192,7 @@ async function encodeCloudData(data){
   for(let i=0;i<bytes.length;i+=chunk)binary+=String.fromCharCode(...bytes.subarray(i,i+chunk));
   return {_compressed:'gzip-base64',payload:btoa(binary)};
  }catch(e){
-  console.warn('DoG RaceHub Cloud: Komprimierung nicht mÃ¶glich, normaler Datensatz wird verwendet.',e);
+  console.warn('DoG RaceHub Cloud: Komprimierung nicht möglich, normaler Datensatz wird verwendet.',e);
   return data;
  }
 }
@@ -219,223 +219,212 @@ async function protectLocalChangesBeforeCloudApply(row){
  const l=Date.parse(localTs),c=Date.parse(row.updated_at);
  if(!Number.isFinite(l)||!Number.isFinite(c)||l<=c)return false;
  if(!cloudUser||!row.owner_id||cloudUser.id!==row.owner_id)return false;
- console.warn('DoG RaceHub Cloud: Lokaler Stand ist neuer als die Cloud. Lokale Ã„nderungen werden zuerst gespeichert.');
+ console.warn('DoG RaceHub Cloud: Lokaler Stand ist neuer als die Cloud. Lokale Änderungen werden zuerst gespeichert.');
  await cloudSave();
  return true;
 }
 
-async function cloudRequest(query,ms=10000,label='Cloud-Anfrage'){
-  const controller=typeof AbortController!=='undefined'?new AbortController():null;
-  if(controller&&query&&typeof query.abortSignal==='function')query=query.abortSignal(controller.signal);
-  let timer=null;
-  try{
-    if(controller)timer=setTimeout(()=>controller.abort(),ms);
-    return await query;
-  }catch(e){
-    if(e?.name==='AbortError')throw new Error(label+' Timeout nach '+Math.round(ms/1000)+' Sekunden');
-    throw e;
-  }finally{if(timer)clearTimeout(timer)}
-}
 async function readCloudLegacyRow(){
-  return await cloudRequest(
-    cloudClient.from('app_state').select('owner_id,data,updated_at').eq('id',1).maybeSingle(),
-    8000,'Cloud-Legacy-Stand'
-  );
+ const {data,error}=await cloudClient.from('app_state').select('owner_id,data,updated_at').eq('id',1).maybeSingle();
+ return {data,error};
 }
 async function readCloudPointer(){
-  return await cloudRequest(
-    cloudClient.from('app_state_pointer').select('id,owner_id,version_id,updated_at').eq('id',1).maybeSingle(),
-    8000,'Cloud-Pointer'
-  );
+ return await cloudClient.from('app_state_pointer').select('id,owner_id,version_id,updated_at').eq('id',1).maybeSingle();
 }
 async function readCloudChunks(versionId){
-  const result=await cloudRequest(
-    cloudClient.from('app_state_chunks').select('chunk_index,payload').eq('version_id',versionId).order('chunk_index',{ascending:true}),
-    12000,'Cloud-DatenblÃ¶cke'
-  );
-  const {data,error}=result;
-  if(error)return {data:null,error};
-  const rows=Array.isArray(data)?data:[];
-  if(!rows.length)return {data:null,error:new Error('Keine Cloud-DatenblÃ¶cke gefunden.')};
-  const text=rows.map(x=>String(x.payload||'')).join('');
-  try{return {data:JSON.parse(text),error:null};}catch(e){return {data:null,error:e};}
+ const {data,error}=await cloudClient.from('app_state_chunks').select('chunk_index,payload').eq('version_id',versionId).order('chunk_index',{ascending:true});
+ if(error)return {data:null,error};
+ const rows=Array.isArray(data)?data:[];
+ if(!rows.length)return {data:null,error:new Error('Keine Cloud-Datenblöcke gefunden.')};
+ const text=rows.map(x=>String(x.payload||'')).join('');
+ try{return {data:JSON.parse(text),error:null};}catch(e){return {data:null,error:e};}
 }
 async function loadCloudSnapshot(){
-  cloudChunkReady=false;
-  let pointer;
-  try{pointer=await readCloudPointer();}
-  catch(e){pointer={data:null,error:e};}
-  if(pointer&&!pointer.error){
-    cloudChunkReady=true;
-    if(pointer.data?.version_id){
-      const chunks=await readCloudChunks(pointer.data.version_id);
-      if(chunks.error)throw chunks.error;
-      const decoded=await decodeCloudData(chunks.data);
-      if(!decoded)throw new Error('Cloud-Daten konnten nicht dekodiert werden.');
-      return {state:decoded,owner_id:pointer.data.owner_id||null,updated_at:pointer.data.updated_at||'',source:'chunks'};
-    }
-  }
-  const legacy=await readCloudLegacyRow();
-  if(legacy.error)throw legacy.error;
-  if(legacy.data){
-    let state=null;
-    if(legacy.data.data&&typeof legacy.data.data==='object')state=await decodeCloudData(legacy.data.data);
-    return {state,owner_id:legacy.data.owner_id||null,updated_at:legacy.data.updated_at||'',source:'legacy',pointerMissing:!pointer?.data};
-  }
-  return {state:null,owner_id:null,updated_at:'',source:'none',pointerMissing:true};
+ cloudChunkReady=false;
+ const pointer=await cloudWithTimeout(readCloudPointer(),10000,'Cloud-Pointer');
+ if(!pointer.error){
+   cloudChunkReady=true;
+   if(pointer.data?.version_id){
+     const chunks=await readCloudChunks(pointer.data.version_id);
+     if(chunks.error)throw chunks.error;
+     const decoded=await decodeCloudData(chunks.data);
+     if(!decoded)throw new Error('Cloud-Daten konnten nicht dekodiert werden.');
+     return {state:decoded,owner_id:pointer.data.owner_id||null,updated_at:pointer.data.updated_at||'' ,source:'chunks'};
+   }
+ }
+ // Solange noch kein Snapshot in den neuen Blöcken existiert, bleibt die bisherige
+ // app_state-Zeile die geschützte Ausgangsbasis. Sie wird hier nur gelesen.
+ const legacy=await readCloudLegacyRow();
+ if(legacy.error)throw legacy.error;
+ if(legacy.data){
+   let state=null;
+   if(legacy.data.data&&typeof legacy.data.data==='object')state=await decodeCloudData(legacy.data.data);
+   return {state,owner_id:legacy.data.owner_id||null,updated_at:legacy.data.updated_at||'',source:'legacy',pointerMissing:!pointer.data};
+ }
+ return {state:null,owner_id:null,updated_at:'',source:'none',pointerMissing:!pointer.data};
 }
 async function initCloud(){
-  if(!cloudConfigured()){console.warn('DoG RaceHub Cloud: config fehlt.');return false}
-  try{
-    if(!cloudClient){
-      cloudClient=window.supabase.createClient(window.DOG_SUPABASE_URL,window.DOG_SUPABASE_ANON_KEY,{
-        auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:false}
-      });
-      cloudClient.auth.onAuthStateChange((_event,session)=>{
-        cloudUser=session?.user||null;
-        cloudOwner=!!cloudUser&&!!cloudOwnerId&&cloudUser.id===cloudOwnerId;
-        editor=cloudOwner;
-        updateEditorUI();
-      });
-    }
-    const {data:sessionData,error:sessionError}=await cloudWithTimeout(cloudClient.auth.getSession(),8000,'Cloud-Anmeldung');
-    if(sessionError)console.warn('DoG RaceHub Auth:',sessionError);
-    cloudUser=sessionData?.session?.user||null;
+ if(!cloudConfigured()){console.warn('DoG RaceHub Cloud: config fehlt.');return false}
+ try{
+   if(!cloudClient){
+     cloudClient=window.supabase.createClient(window.DOG_SUPABASE_URL,window.DOG_SUPABASE_ANON_KEY,{
+       auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:false}
+     });
+     cloudClient.auth.onAuthStateChange((_event,session)=>{
+       cloudUser=session?.user||null;
+       cloudOwner=!!cloudUser&&!!cloudOwnerId&&cloudUser.id===cloudOwnerId;
+       editor=cloudOwner;
+       updateEditorUI();
+     });
+   }
+   const {data:sessionData,error:sessionError}=await cloudClient.auth.getSession();
+   if(sessionError)console.warn('DoG RaceHub Auth:',sessionError);
+   cloudUser=sessionData?.session?.user||null;
 
-    let snapshot;
-    try{snapshot=await loadCloudSnapshot();}
-    catch(e){
-      console.error('DoG RaceHub Cloud snapshot',e);
-      cloudReady=false;cloudOwner=false;editor=false;updateEditorUI();
-      toast('Cloud-Daten konnten nicht gelesen werden. Der vorhandene Datenstand bleibt unangetastet.');
-      return false;
-    }
+   let snapshot;
+   try{snapshot=await loadCloudSnapshot();}
+   catch(e){
+     console.error('DoG RaceHub Cloud snapshot',e);
+     cloudReady=false;cloudOwner=false;editor=false;updateEditorUI();
+     toast('Cloud-Daten konnten nicht gelesen werden. Der vorhandene Datenstand bleibt unangetastet.');
+     return false;
+   }
 
-    if(snapshot.owner_id){
-      cloudOwnerId=snapshot.owner_id;
-      cloudReady=true;
-      if(snapshot.state&&typeof snapshot.state==='object'){
-        applyCloudState(snapshot.state);
-        markCloudDataUpdatedAt(snapshot.updated_at||'');
-        saveLocalCache(false,snapshot.updated_at||'');
-        requestAnimationFrame(()=>renderAll());
-      }
-    }else if(cloudUser){
-      cloudOwnerId=cloudUser.id;
-      cloudReady=true;
-      const result=await cloudRequest(
-        cloudClient.from('app_state').insert({id:1,owner_id:cloudUser.id,data:cloudState()}),
-        10000,'Cloud-Ersteinrichtung'
-      );
-      if(result.error){
-        console.error(result.error);cloudReady=false;cloudOwnerId=null;cloudOwner=false;editor=false;updateEditorUI();
-        toast('Cloud-Start konnte nicht angelegt werden.');return false;
-      }
-    }else{
-      cloudReady=false;cloudOwnerId=null;
-    }
-    cloudOwner=!!cloudUser&&!!cloudOwnerId&&cloudUser.id===cloudOwnerId;
-    editor=cloudOwner;updateEditorUI();subscribeCloud();
-    return true;
-  }catch(e){
-    console.error('Cloud init',e);cloudReady=false;cloudOwner=false;editor=false;updateEditorUI();
-    toast('Cloud-Start fehlgeschlagen: '+(e?.message||'Unbekannter Fehler'));return false;
-  }
+   if(snapshot.owner_id){
+     cloudOwnerId=snapshot.owner_id;
+     cloudReady=true;
+     if(snapshot.state&&typeof snapshot.state==='object'){
+       applyCloudState(snapshot.state);
+       markCloudDataUpdatedAt(snapshot.updated_at||'');
+       saveLocalCache(false,snapshot.updated_at||'');
+       requestAnimationFrame(()=>renderAll());
+     }
+   }else if(cloudUser){
+     // Nur beim erstmaligen Einrichten darf der angemeldete Admin die geschützte
+     // app_state-Zeile anlegen. Bestehende Daten werden niemals ersetzt.
+     cloudOwnerId=cloudUser.id;
+     cloudReady=true;
+     const {error:insertError}=await cloudClient.from('app_state').insert({id:1,owner_id:cloudUser.id,data:cloudState()});
+     if(insertError){
+       console.error(insertError);cloudReady=false;cloudOwnerId=null;cloudOwner=false;editor=false;updateEditorUI();
+       toast('Cloud-Start konnte nicht angelegt werden.');return false;
+     }
+   }else{
+     cloudReady=false;cloudOwnerId=null;
+   }
+   cloudOwner=!!cloudUser&&!!cloudOwnerId&&cloudUser.id===cloudOwnerId;
+   editor=cloudOwner;updateEditorUI();subscribeCloud();
+   return true;
+ }catch(e){
+   console.error('Cloud init',e);cloudReady=false;cloudOwner=false;editor=false;updateEditorUI();
+   toast('Cloud-Start fehlgeschlagen. Ansicht bleibt verfügbar.');return false;
+ }
 }
 function cloudWithTimeout(promise,ms,label='Cloud-Anfrage'){
-  return Promise.race([
-    promise,
-    new Promise((_,reject)=>setTimeout(()=>reject(new Error(label+' Timeout nach '+Math.round(ms/1000)+' Sekunden')),ms))
-  ]);
+ return Promise.race([
+   promise,
+   new Promise((_,reject)=>setTimeout(()=>reject(new Error(`${label} Timeout nach ${Math.round(ms/1000)} Sekunden`)),ms))
+ ]);
 }
+
 async function cloudSave(){
-  if(!cloudConfigured())return false;
-  if(cloudBusy){cloudSaveQueued=true;toast('â˜ï¸ Cloud-Speicherung lÃ¤uft bereits â€¦');return false}
-  if(!cloudClient){try{await initCloud()}catch(e){console.error('DoG RaceHub Cloud init before save',e)}}
-  if(!cloudClient)return false;
-  cloudBusy=true;
-  cloudSaveQueued=false;
-  toast('â˜ï¸ Cloud-Speicherung lÃ¤uft â€¦');
-  try{
-    const {data:sessionData}=await cloudWithTimeout(cloudClient.auth.getSession(),8000,'Cloud-Anmeldung');
-    cloudUser=sessionData?.session?.user||cloudUser||null;
-    if(!cloudUser){toast('Admin-Anmeldung ist nicht mehr aktiv.');return false}
+ if(!cloudConfigured())return false;
+ if(!cloudClient){try{await initCloud()}catch(e){console.error('DoG RaceHub Cloud init before save',e)}}
+ if(!cloudClient)return false;
+ try{
+   const {data:sessionData}=await cloudWithTimeout(cloudClient.auth.getSession(),10000,'Cloud-Anmeldung');
+   cloudUser=sessionData?.session?.user||cloudUser||null;
+   if(!cloudUser){toast('Admin-Anmeldung ist nicht mehr aktiv.');return false}
+   const {data:row,error:rowError}=await cloudWithTimeout(cloudClient.from('app_state').select('owner_id').eq('id',1).maybeSingle(),10000,'Cloud-Berechtigungsprüfung');
+   if(rowError){console.error('DoG RaceHub Cloud owner check',rowError);toast('Cloud-Berechtigung konnte nicht geprüft werden.');return false}
+   if(!row){toast('Cloud-Datenbank ist nicht eingerichtet.');return false}
+   cloudOwnerId=row.owner_id||null;cloudOwner=cloudUser.id===cloudOwnerId;editor=cloudOwner;updateEditorUI();
+   if(!cloudOwner){toast('Dieses Konto ist nicht als Admin hinterlegt.');return false}
+   cloudReady=true;
 
-    const ownerResult=await cloudRequest(
-      cloudClient.from('app_state').select('owner_id').eq('id',1).maybeSingle(),
-      8000,'Cloud-BerechtigungsprÃ¼fung'
-    );
-    if(ownerResult.error){console.error(ownerResult.error);toast('Cloud-Berechtigung konnte nicht geprÃ¼ft werden.');return false}
-    if(!ownerResult.data){toast('Cloud-Datenbank ist nicht eingerichtet.');return false}
-    cloudOwnerId=ownerResult.data.owner_id||null;
-    cloudOwner=cloudUser.id===cloudOwnerId;editor=cloudOwner;updateEditorUI();
-    if(!cloudOwner){toast('Dieses Konto ist nicht als Admin hinterlegt.');return false}
-    cloudReady=true;
+   const pointer=await readCloudPointer();
+   if(pointer.error){
+     cloudChunkReady=false;
+     console.error('DoG RaceHub Cloud: app_state_pointer fehlt oder ist nicht erreichbar.',pointer.error);
+     toast('Cloud-Speicher-Erweiterung fehlt. Bitte die v2.21-Datenbankerweiterung einrichten.');
+     return false;
+   }
+   cloudChunkReady=true;
+   const serverTs=pointer.data?.updated_at||'';
+   const knownCloudTs=cloudDataUpdatedAt();
+   if(serverTs&&knownCloudTs){
+     const serverMs=Date.parse(serverTs),knownMs=Date.parse(knownCloudTs);
+     if(Number.isFinite(serverMs)&&Number.isFinite(knownMs)&&serverMs>knownMs){
+       toast('Ein neuerer Cloud-Stand ist vorhanden. Bitte Seite neu laden, bevor du weiter speicherst.');
+       return false;
+     }
+   }
+ }catch(e){console.error('DoG RaceHub Cloud auth check',e);toast('Cloud-Verbindung konnte nicht geprüft werden.');return false}
+ if(cloudBusy){cloudSaveQueued=true;toast('Cloud-Speicherung läuft bereits …');return false}
+ cloudBusy=true;cloudSaveQueued=false;
+ toast('☁️ Cloud-Speicherung läuft …');
+ try{
+   const updatedAt=new Date().toISOString();
+   const encoded=await encodeCloudData(cloudState());
+   const serialized=JSON.stringify(encoded);
+   const versionId=(crypto.randomUUID?crypto.randomUUID():'dog-'+Date.now()+'-'+Math.random());
+   const chunks=[];
+   for(let i=0,index=0;i<serialized.length;i+=CLOUD_CHUNK_SIZE,index++)chunks.push({owner_id:cloudUser.id,version_id:versionId,chunk_index:index,payload:serialized.slice(i,i+CLOUD_CHUNK_SIZE),updated_at:updatedAt});
+   if(!chunks.length)chunks.push({owner_id:cloudUser.id,version_id:versionId,chunk_index:0,payload:'{}',updated_at:updatedAt});
 
-    let pointer;
-    try{pointer=await readCloudPointer();}
-    catch(e){console.error('DoG RaceHub Cloud Pointer',e);toast('Cloud-Pointer nicht erreichbar: '+e.message);return false}
-    const serverTs=pointer.data?.updated_at||'';
-    const knownCloudTs=cloudDataUpdatedAt();
-    if(serverTs&&knownCloudTs){
-      const serverMs=Date.parse(serverTs),knownMs=Date.parse(knownCloudTs);
-      if(Number.isFinite(serverMs)&&Number.isFinite(knownMs)&&serverMs>knownMs){
-        toast('Ein neuerer Cloud-Stand ist vorhanden. Bitte Seite neu laden, bevor du weiter speicherst.');
-        return false;
-      }
-    }
+   // Erst vollständigen neuen Snapshot schreiben. Der bisherige Cloud-Stand bleibt
+   // aktiv, bis ALLE Blöcke erfolgreich gespeichert wurden.
+   for(let i=0;i<chunks.length;i++){
+     let lastError=null;
+     for(let attempt=0;attempt<3;attempt++){
+       const {error}=await cloudWithTimeout(cloudClient.from('app_state_chunks').insert(chunks[i]),15000,`Cloud-Datenblock ${i+1}`);
+       if(!error){lastError=null;break}
+       lastError=error;
+       if(attempt<2)await new Promise(resolve=>setTimeout(resolve,600*(attempt+1)));
+     }
+     if(lastError)throw lastError;
+   }
 
-    const updatedAt=new Date().toISOString();
-    const encoded=await encodeCloudData(cloudState());
-    const serialized=JSON.stringify(encoded);
-    const versionId=(crypto.randomUUID?crypto.randomUUID():'dog-'+Date.now()+'-'+Math.random());
-    const chunks=[];
-    for(let i=0,index=0;i<serialized.length;i+=CLOUD_CHUNK_SIZE,index++){
-      chunks.push({owner_id:cloudUser.id,version_id:versionId,chunk_index:index,payload:serialized.slice(i,i+CLOUD_CHUNK_SIZE),updated_at:updatedAt});
-    }
-    if(!chunks.length)chunks.push({owner_id:cloudUser.id,version_id:versionId,chunk_index:0,payload:'{}',updated_at:updatedAt});
+   // Erst jetzt wird der kleine Pointer umgeschaltet. Das ist der atomare
+   // Veröffentlichungs-Schritt für den neuen Snapshot.
+   // Beim ersten v2.21-Speichern existiert der Pointer noch nicht: dann INSERT,
+   // bei allen weiteren Speichervorgängen UPDATE. Der bestehende app_state-Stand
+   // wird dabei niemals überschrieben.
+   const pointerPayload={owner_id:cloudUser.id,version_id:versionId,updated_at:updatedAt};
+   let pointerError=null;
+   if(pointer.data?.id){
+     const result=await cloudWithTimeout(cloudClient.from('app_state_pointer')
+       .update(pointerPayload),15000,'Cloud-Pointer speichern')
+       .eq('id',1).eq('owner_id',cloudUser.id);
+     pointerError=result.error||null;
+   }else{
+     const result=await cloudWithTimeout(cloudClient.from('app_state_pointer')
+       .insert({id:1,...pointerPayload}),15000,'Cloud-Pointer anlegen');
+     pointerError=result.error||null;
+   }
+   if(pointerError)throw pointerError;
 
-    const chunkResult=await cloudRequest(
-      cloudClient.from('app_state_chunks').insert(chunks),
-      15000,'Cloud-Daten speichern'
-    );
-    if(chunkResult.error)throw chunkResult.error;
-
-    const pointerPayload={owner_id:cloudUser.id,version_id:versionId,updated_at:updatedAt};
-    let pointerResult;
-    if(pointer.data?.id){
-      pointerResult=await cloudRequest(
-        cloudClient.from('app_state_pointer').update(pointerPayload).eq('id',1).eq('owner_id',cloudUser.id),
-        10000,'Cloud-Pointer speichern'
-      );
-    }else{
-      pointerResult=await cloudRequest(
-        cloudClient.from('app_state_pointer').insert({id:1,...pointerPayload}),
-        10000,'Cloud-Pointer anlegen'
-      );
-    }
-    if(pointerResult.error)throw pointerResult.error;
-
-    markCloudDataUpdatedAt(updatedAt);
-    saveLocalCache(false,updatedAt);
-    toast('â˜ï¸ Cloud-Daten gespeichert.');
-    return true;
-  }catch(e){
-    console.error('DoG RaceHub Cloud Save',e);
-    toast('Cloud-Speicherung fehlgeschlagen: '+(e?.message||'Unbekannter Fehler'));
-    return false;
-  }finally{
-    cloudBusy=false;
-    if(cloudSaveQueued){cloudSaveQueued=false;setTimeout(()=>cloudSave(),50)}
-  }
-}function subscribeCloud(){
+   markCloudDataUpdatedAt(updatedAt);
+   saveLocalCache(false,updatedAt);
+   toast('☁️ Cloud-Daten gespeichert.');
+   // Alte Snapshots bleiben zunächst als Sicherheitsreserve bestehen.
+   return true;
+ }catch(e){
+   console.error('DoG RaceHub Cloud Save',e);
+   toast('Cloud-Speicherung fehlgeschlagen: '+(e?.message||'Unbekannter Fehler'));
+   return false;
+ }finally{
+   cloudBusy=false;if(cloudSaveQueued)setTimeout(()=>cloudSave(),50);
+ }
+}
+function subscribeCloud(){
  if(!cloudClient||cloudChannel)return;
  cloudChannel=cloudClient.channel('dog-racehub-state').on('postgres_changes',{event:'UPDATE',schema:'public',table:'app_state_pointer',filter:'id=eq.1'},async payload=>{
    if(!payload?.new?.version_id)return;
    const cloudTs=payload.new.updated_at||'';
    const localTs=localDataUpdatedAt();
    const c=Date.parse(cloudTs),l=Date.parse(localTs);
-   if(Number.isFinite(c)&&Number.isFinite(l)&&c<l){console.warn('DoG RaceHub Realtime: Ã¤lterer Cloud-Stand ignoriert.');return;}
+   if(Number.isFinite(c)&&Number.isFinite(l)&&c<l){console.warn('DoG RaceHub Realtime: älterer Cloud-Stand ignoriert.');return;}
    try{
      const chunks=await readCloudChunks(payload.new.version_id);if(chunks.error)throw chunks.error;
      const decoded=await decodeCloudData(chunks.data);if(!decoded)throw new Error('Cloud-Daten konnten nicht dekodiert werden.');
@@ -444,38 +433,38 @@ async function cloudSave(){
  }).subscribe();
 }
 function renderAll(){try{updateSeasonChrome();updateStats();renderDashboard();renderWM();renderKWM();renderLicenses();renderArchive();initDriverOverview();renderTeams();renderFinance();}catch(e){console.warn('renderAll',e)}}
-function updateEditorUI(){document.querySelectorAll('.edit-btn').forEach(b=>{b.textContent=editor?'âœï¸ Bearbeiten Â· Admin':'ðŸ” Admin / Bearbeiten';});}
+function updateEditorUI(){document.querySelectorAll('.edit-btn').forEach(b=>{b.textContent=editor?'✏️ Bearbeiten · Admin':'🔐 Admin / Bearbeiten';});}
 
 function load(){const ver='2.9';if(localStorage.getItem('dogrh_data_version')!==ver){localStorage.setItem('dogrh_data_version',ver)}try{const d=JSON.parse(localStorage.getItem('dogrh_drivers'));if(Array.isArray(d)&&d.length)drivers=d}catch(e){};try{const m=JSON.parse(localStorage.getItem('dogrh_driver_meta'));if(m&&typeof m==='object')driverMeta=m}catch(e){};try{const c=JSON.parse(localStorage.getItem('dogrh_contracts'));if(Array.isArray(c))contracts=c}catch(e){}; try{const tr=JSON.parse(localStorage.getItem('dogrh_transfers'));if(Array.isArray(tr))transferRecords=tr}catch(e){}; try{const fb=JSON.parse(localStorage.getItem('dogrh_finance_budgets'));if(fb&&typeof fb==='object')financeBudgets=fb}catch(e){};try{const cu=JSON.parse(localStorage.getItem('dogrh_finance_cap_usage'));if(cu&&typeof cu==='object')financeCapUsage=cu}catch(e){};try{const sp=JSON.parse(localStorage.getItem('dogrh_sponsor_payments'));if(sp&&typeof sp==='object')sponsorPayments=sp}catch(e){};try{const ft=JSON.parse(localStorage.getItem('dogrh_finance_transactions'));if(Array.isArray(ft))financeTransactions=ft}catch(e){};try{const ob=JSON.parse(localStorage.getItem('dogrh_finance_opening'));if(ob&&typeof ob==='object')financeOpeningBalances=ob}catch(e){};try{const fo=JSON.parse(localStorage.getItem('dogrh_finance_tx_overrides'));if(fo&&typeof fo==='object')financeTxOverrides=fo}catch(e){};try{const dob=JSON.parse(localStorage.getItem('dogrh_driver_finance_opening'));if(dob&&typeof dob==='object')driverFinanceOpeningBalances=dob}catch(e){};try{const dod=JSON.parse(localStorage.getItem('dogrh_driver_finance_opening_dates'));if(dod&&typeof dod==='object')driverFinanceOpeningDates=dod}catch(e){};try{const la=JSON.parse(localStorage.getItem('dogrh_loan_agreements'));if(Array.isArray(la))loanAgreements=la}catch(e){};try{const dl=JSON.parse(localStorage.getItem('dogrh_driver_licenses'));if(dl&&typeof dl==='object')driverLicenses=dl}catch(e){};try{const savedTeams=JSON.parse(localStorage.getItem('dogrh_teams'));if(Array.isArray(savedTeams)&&savedTeams.length){savedTeams.forEach(st=>{const t=teams.find(x=>x.name===st.name);if(t){t.chief=st.chief??t.chief;t.d1=Array.isArray(st.d1)?st.d1:t.d1;t.d2=Array.isArray(st.d2)?st.d2:t.d2}})}}catch(e){}
 try{const m=JSON.parse(localStorage.getItem('dogrh_driver_meta'));if(m&&typeof m==='object')driverMeta=m}catch(e){}try{const r=JSON.parse(localStorage.getItem('dogrh_races'));if(r&&typeof r==='object')Object.assign(races,r)}catch(e){};try{const ss=JSON.parse(localStorage.getItem('dogrh_season_state'));if(ss&&typeof ss==='object')seasonState={...seasonState,...ss}}catch(e){}
 Object.values(races).forEach(r=>{if(TRACK_NUMBERS[r.track])r.number=TRACK_NUMBERS[r.track]});
 Object.values(races).forEach(r=>{r.results?.forEach(x=>{if(x.reason && !x.penaltyNote)x.penaltyNote=x.reason;delete x.str;delete x.ban;delete x.reason})})
-// v2.9: Kein fahrerspezifisches Zwangs-Migrationsskript mehr. Der gespeicherte Stand bleibt maÃŸgeblich.
+// v2.9: Kein fahrerspezifisches Zwangs-Migrationsskript mehr. Der gespeicherte Stand bleibt maßgeblich.
 localStorage.setItem('dogrh_races',JSON.stringify(races));localStorage.setItem('dogrh_teams',JSON.stringify(teams));
 normalizeAllRacePoints()}
 function reconcileCurrentRoster(){
  const rosterMap={};
  teams.forEach(t=>['d1','d2'].forEach((d)=>{(t[d]||[]).forEach(n=>{const key=normDriver(n);rosterMap[key]={team:t.name,division:d==='d1'?'Div 1':'Div 2'};if(!drivers.some(x=>normDriver(x)===key))drivers.push(n);});}));
- drivers.forEach(n=>{const key=normDriver(n);const m=driverMeta[n]||{id:(crypto.randomUUID?crypto.randomUUID():'dog-'+Date.now()+'-'+Math.random()),createdAt:new Date().toISOString()};const r=rosterMap[key];if(r){m.team=r.team;m.division=r.division;m.status='Stammfahrer';}else if(m.status!=='Nicht verfÃ¼gbar' && statusOverrides[n]!=='Nicht verfÃ¼gbar'){m.team='';m.status='Free Agent';}driverMeta[n]=m;});
+ drivers.forEach(n=>{const key=normDriver(n);const m=driverMeta[n]||{id:(crypto.randomUUID?crypto.randomUUID():'dog-'+Date.now()+'-'+Math.random()),createdAt:new Date().toISOString()};const r=rosterMap[key];if(r){m.team=r.team;m.division=r.division;m.status='Stammfahrer';}else if(m.status!=='Nicht verfügbar' && statusOverrides[n]!=='Nicht verfügbar'){m.team='';m.status='Free Agent';}driverMeta[n]=m;});
 }
 async function save(){syncTeamChiefRoles();reconcileCurrentRoster();normalizeAllRacePoints();saveLocalCache(true);if(!editor)return false;return await cloudSave();} ensureRaceMetadata(); load(); syncTeamChiefRoles();
 saveLocalCache(false);
-// v2.1: Historische Saisondaten werden nicht mehr automatisch gelÃ¶scht.
+// v2.1: Historische Saisondaten werden nicht mehr automatisch gelöscht.
 if(!driverMeta.SchattnKraehe){driverMeta.SchattnKraehe={id:(crypto.randomUUID?crypto.randomUUID():'dog-'+Date.now()),createdAt:new Date().toISOString()};} if(!Number(driverMeta.SchattnKraehe.number)){driverMeta.SchattnKraehe.number=89;} driverMeta.SchattnKraehe.status='Stammfahrer'; driverMeta.SchattnKraehe.division=driverMeta.SchattnKraehe.division||'Div 2'; driverMeta.SchattnKraehe.team='Mercedes'; driverMeta.SchattnKraehe.nationality=driverMeta.SchattnKraehe.nationality||'DE'; repairContracts(); ensureRaceMetadata(); reconcileCurrentRoster(); normalizeDriverNumbers(); calculateLeagueState(); saveLocalCache(false);
-/* DoG RaceHub Â· Lizenzen v2.14
-   Eigene Ãœbersicht fÃ¼r Fahrerbudgets und Saisonlizenzen.
-   Nutzt ausschlieÃŸlich vorhandene driverLicenses + Finanzdaten.
+/* DoG RaceHub · Lizenzen v2.14
+   Eigene Übersicht für Fahrerbudgets und Saisonlizenzen.
+   Nutzt ausschließlich vorhandene driverLicenses + Finanzdaten.
 */
 function licenseDateLabel(iso){
-  if(!iso)return 'â€”';
-  try{return new Date(iso).toLocaleDateString('de-DE')}catch(e){return 'â€”'}
+  if(!iso)return '—';
+  try{return new Date(iso).toLocaleDateString('de-DE')}catch(e){return '—'}
 }
 function ensureLicenseView(){
   if(document.getElementById('licenses'))return;
   const nav=document.querySelector('.nav-group');
   if(nav){
     const btn=document.createElement('button');
-    btn.className='nav'; btn.dataset.view='licenses'; btn.innerHTML='ðŸªª <span>Lizenzen</span>';
+    btn.className='nav'; btn.dataset.view='licenses'; btn.innerHTML='🪪 <span>Lizenzen</span>';
     const kwm=document.querySelector('.nav[data-view="kwm"]');
     if(kwm&&kwm.parentNode===nav)kwm.insertAdjacentElement('afterend',btn);else nav.appendChild(btn);
     btn.addEventListener('click',()=>showView('licenses'));
@@ -484,7 +473,7 @@ function ensureLicenseView(){
   if(main){
     const sec=document.createElement('section');
     sec.id='licenses'; sec.className='view';
-    sec.innerHTML=`<div class="section-head"><div><h3>ðŸªª Fahrer-Lizenzen</h3><p>Budget, Einnahmen, Ausgaben und Lizenzstatus aller Fahrer der ausgewÃ¤hlten Saison.</p></div><div class="selector-row"><select id="license-season" class="div-select"></select></div></div><div id="license-content"></div>`;
+    sec.innerHTML=`<div class="section-head"><div><h3>🪪 Fahrer-Lizenzen</h3><p>Budget, Einnahmen, Ausgaben und Lizenzstatus aller Fahrer der ausgewählten Saison.</p></div><div class="selector-row"><select id="license-season" class="div-select"></select></div></div><div id="license-content"></div>`;
     const archive=document.getElementById('archive');
     if(archive)main.insertBefore(sec,archive);else main.appendChild(sec);
     document.getElementById('license-season').addEventListener('change',()=>renderLicenses());
@@ -506,9 +495,9 @@ function renderLicenses(){
   if(!host||!sel)return;
   const seasons=Object.values(SEASON_META.seasons||{}).sort((a,b)=>String(b.label).localeCompare(String(a.label),'de'));
   const current=sel.value||seasonState.current||'02/26';
-  sel.innerHTML=seasons.map(x=>`<option value="${esc(x.label)}" ${x.label===current?'selected':''}>${esc(x.label)}${x.status==='test'?' Â· Test':''}</option>`).join('');
+  sel.innerHTML=seasons.map(x=>`<option value="${esc(x.label)}" ${x.label===current?'selected':''}>${esc(x.label)}${x.status==='test'?' · Test':''}</option>`).join('');
   const season=sel.value||current;
-  const names=[...new Set((drivers||[]).map(normDriver).filter(Boolean))].filter(n=>getStatus(n)!=='Nicht verfÃ¼gbar').sort((a,b)=>a.localeCompare(b,'de'));
+  const names=[...new Set((drivers||[]).map(normDriver).filter(Boolean))].filter(n=>getStatus(n)!=='Nicht verfügbar').sort((a,b)=>a.localeCompare(b,'de'));
   const rows=names.map(name=>{
     const st=driverLicenseState(name,season), b=financeDriverBalance(name,season), team=driverTeam(name)||'Free Agent';
     const budgetStart=driverBudgetAtSeasonStart(name,season,st.division);
@@ -518,8 +507,8 @@ function renderLicenses(){
     const nextPaid=!!st.nrec.paid;
     const enough=b.balance>=licenseCost(st.division);
     const nextEnough=nextBalance.balance>=licenseCost(st.priority);
-    const paidAt=paid?licenseDateLabel(st.rec.paidAt):'â€”';
-    const nextPaidAt=nextPaid?licenseDateLabel(st.nrec.paidAt):'â€”';
+    const paidAt=paid?licenseDateLabel(st.rec.paidAt):'—';
+    const nextPaidAt=nextPaid?licenseDateLabel(st.nrec.paidAt):'—';
     return {name,team,division:st.division,points,income:b.income,expense:b.expense,opening:b.opening,budgetStart:budgetStart.budgetStart,budgetStartPrev:budgetStart.previousBalance,budgetStartIncome:budgetStart.incomeBeforeFirstRace,balance:b.balance,paid,enough,paidAt,cost:licenseCost(st.division),next:st.next,nextDivision:st.priority,nextCost:licenseCost(st.priority),nextPaid,nextEnough,nextPaidAt,nextBalance:nextBalance.balance};
   });
   const paidCount=rows.filter(r=>r.paid).length;
@@ -530,7 +519,7 @@ function renderLicenses(){
   const nextSeason=nextSeasonLabel(season);
   host.innerHTML=`<div class="license-page-grid">
     <div class="license-info">
-      <h4>ðŸªª LizenzÃ¼bersicht Â· ${esc(season)}</h4>
+      <h4>🪪 Lizenzübersicht · ${esc(season)}</h4>
       <div class="license-rule"><span>Division 1</span><b>${money(licenseCost('Div 1'))}</b></div>
       <div class="license-rule"><span>Division 2</span><b>${money(licenseCost('Div 2'))}</b></div>
       <div class="license-summary">
@@ -541,10 +530,10 @@ function renderLicenses(){
         <div><span>Lizenzen ${esc(nextSeason)} erhalten</span><b>${nextPaidCount} / ${rows.length}</b></div>
         <div><span>Gesamter Lizenzbedarf</span><b>${money(totalCost)}</b></div>
       </div>
-      <p class="race-edit-note">â€žBudget Saisonstartâ€œ = Kontostand der Vorsaison am Ende plus alle Einnahmen, die bis zum ersten Rennen der ausgewÃ¤hlten Saison eingehen. â€žBudget aktuellâ€œ berÃ¼cksichtigt alle bisherigen Einnahmen und Ausgaben.</p>
+      <p class="race-edit-note">„Budget Saisonstart“ = Kontostand der Vorsaison am Ende plus alle Einnahmen, die bis zum ersten Rennen der ausgewählten Saison eingehen. „Budget aktuell“ berücksichtigt alle bisherigen Einnahmen und Ausgaben.</p>
     </div>
     <div class="table-panel license-table-wrap"><table class="license-table"><thead><tr><th>Fahrer</th><th>Team</th><th>Division</th><th>Budget Saisonstart</th><th>Einnahmen</th><th>Ausgaben</th><th>Punkte</th><th>Budget aktuell</th><th>Lizenz aktuell</th><th>Erhalten am</th><th>Lizenz ${esc(nextSeasonLabel(season))}</th><th>Aktion</th></tr></thead><tbody>
-      ${rows.length?rows.map(r=>`<tr><td class="license-driver">${esc(r.name)}</td><td>${esc(r.team)}</td><td>${esc(r.division)}</td><td class="license-budget">${money(r.budgetStart)}</td><td class="license-ok">${money(r.income)}</td><td>${money(r.expense)}</td><td>${r.points}</td><td class="license-budget">${money(r.balance)}</td><td class="${r.paid?'license-ok':'license-no'}">${r.paid?'âœ“ JA':'âœ• NEIN'}</td><td class="license-paid-date">${r.paidAt}</td><td class="${r.nextPaid?'license-ok':'license-no'}">${r.nextPaid?`âœ“ JA Â· ${esc(r.nextDivision)}`:`âœ• NEIN Â· ${esc(r.nextDivision)} (${money(r.nextCost)})`}</td><td>${isEditor()?`<div class="license-action-stack"><button class="primary license-pay" ${r.paid||!r.enough?'disabled':''} onclick="bookDriverLicense('${esc(r.name)}','${esc(season)}');renderLicenses();">${r.paid?'âœ“ '+esc(season)+' bezahlt':r.enough?'ðŸ’³ '+esc(season)+' bezahlen':'âš  Budget zu klein'}</button>${r.nextPaid?'':`<button class="ghost license-pay" ${r.nextEnough?'':'disabled'} onclick="bookDriverLicense('${esc(r.name)}','${esc(r.next)}');renderLicenses();">${r.nextEnough?'ðŸ’³ '+esc(r.next)+' bezahlen':'âš  '+esc(r.next)+' Budget fehlt'}</button>`}</div>`:`<span class="muted">Nur Ansicht</span>`}</td></tr>`).join(''):'<tr><td colspan="12" class="muted">Keine Fahrer fÃ¼r diese Saison vorhanden.</td></tr>'}
+      ${rows.length?rows.map(r=>`<tr><td class="license-driver">${esc(r.name)}</td><td>${esc(r.team)}</td><td>${esc(r.division)}</td><td class="license-budget">${money(r.budgetStart)}</td><td class="license-ok">${money(r.income)}</td><td>${money(r.expense)}</td><td>${r.points}</td><td class="license-budget">${money(r.balance)}</td><td class="${r.paid?'license-ok':'license-no'}">${r.paid?'✓ JA':'✕ NEIN'}</td><td class="license-paid-date">${r.paidAt}</td><td class="${r.nextPaid?'license-ok':'license-no'}">${r.nextPaid?`✓ JA · ${esc(r.nextDivision)}`:`✕ NEIN · ${esc(r.nextDivision)} (${money(r.nextCost)})`}</td><td>${isEditor()?`<div class="license-action-stack"><button class="primary license-pay" ${r.paid||!r.enough?'disabled':''} onclick="bookDriverLicense('${esc(r.name)}','${esc(season)}');renderLicenses();">${r.paid?'✓ '+esc(season)+' bezahlt':r.enough?'💳 '+esc(season)+' bezahlen':'⚠ Budget zu klein'}</button>${r.nextPaid?'':`<button class="ghost license-pay" ${r.nextEnough?'':'disabled'} onclick="bookDriverLicense('${esc(r.name)}','${esc(r.next)}');renderLicenses();">${r.nextEnough?'💳 '+esc(r.next)+' bezahlen':'⚠ '+esc(r.next)+' Budget fehlt'}</button>`}</div>`:`<span class="muted">Nur Ansicht</span>`}</td></tr>`).join(''):'<tr><td colspan="12" class="muted">Keine Fahrer für diese Saison vorhanden.</td></tr>'}
     </tbody></table></div>
   </div>`;
 }
@@ -552,11 +541,11 @@ function renderLicenses(){
 function showView(id){document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));document.getElementById(id).classList.add('active');document.querySelectorAll('.nav').forEach(n=>n.classList.toggle('active',n.dataset.view===id));document.getElementById('page-title').textContent={dashboard:'Dashboard',drivers:'Fahrer',compare:'Vergleich',teams:'Teams',races:'Rennen',wm:'Fahrer-WM',kwm:'KWM',licenses:'Lizenzen',archive:'Archiv'}[id]||'DoG RaceHub';try{if(id==='drivers')initDriverOverview();if(id==='compare')renderCompare();if(id==='teams')renderTeams();if(id==='races')initRaceSelectors();if(id==='wm')renderWM();if(id==='kwm')renderKWM();if(id==='licenses')renderLicenses();if(id==='dashboard')renderDashboard();if(id==='archive')renderArchive();updateStats()}catch(e){console.error('showView',e)}}
 document.querySelectorAll('.nav').forEach(n=>n.addEventListener('click',()=>showView(n.dataset.view)));
 function updateStats(){document.getElementById('stat-drivers').textContent=drivers.filter(n=>getStatus(n)==='Stammfahrer').length;document.getElementById('stat-races').textContent=new Set(raceList().map(r=>r.track)).size}
-function initDriverOverview(){const sel=document.getElementById('driver-select');if(!sel)return;const current=sel.value;sel.innerHTML=drivers.filter(n=>getStatus(n)!=='Nicht verfÃ¼gbar').sort((a,b)=>a.localeCompare(b,'de')).map(n=>`<option value="${esc(n)}">${driverNumber(n)?'#'+driverNumber(n)+' Â· ':''}${esc(n)} Â· ${esc(getStatus(n))}</option>`).join('');if(current&&drivers.includes(current)&&getStatus(current)!=='Nicht verfÃ¼gbar')sel.value=current;else if(sel.options.length)sel.selectedIndex=0;openDriver(sel.value)}
+function initDriverOverview(){const sel=document.getElementById('driver-select');if(!sel)return;const current=sel.value;sel.innerHTML=drivers.filter(n=>getStatus(n)!=='Nicht verfügbar').sort((a,b)=>a.localeCompare(b,'de')).map(n=>`<option value="${esc(n)}">${driverNumber(n)?'#'+driverNumber(n)+' · ':''}${esc(n)} · ${esc(getStatus(n))}</option>`).join('');if(current&&drivers.includes(current)&&getStatus(current)!=='Nicht verfügbar')sel.value=current;else if(sel.options.length)sel.selectedIndex=0;openDriver(sel.value)}
 function openAddDriver(prefill='',teamPrefill='',divPrefill='Div 2'){
  if(!requireEditor())return;
- const teamsOpt=TEAM_CHOICES.map(t=>`<option value="${esc(t)}" ${t===teamPrefill?'selected':''}>${t||'â€” kein Team / Free Agent â€”'}</option>`).join('');
- document.getElementById('modal-content').innerHTML=`<div class="modal-head"><div><h2>âž• Fahrer anlegen</h2><p class="race-edit-note">Ein neuer Fahrer bekommt automatisch eine eindeutige interne Fahrer-ID. Unklare Namen werden nicht automatisch zusammengefÃ¼hrt.</p></div><button onclick="closeModal()">Ã—</button></div><div class="new-driver-form"><label>Fahrername<input id="new-driver-name" value="${esc(prefill)}" placeholder="z. B. NeuerFahrer123"></label><label>NationalitÃ¤t<select id="new-driver-nationality">${nationalityOptions('')}</select></label><label>Division<select id="new-driver-div"><option ${divPrefill==='Div 1'?'selected':''}>Div 1</option><option ${divPrefill==='Div 2'?'selected':''}>Div 2</option></select></label><label>Aktueller Status<select id="new-driver-status" onchange="refreshNewDriverNumberOptions()"><option>Stammfahrer</option><option>Ersatzfahrer</option><option selected>Free Agent</option><option>Nicht verfÃ¼gbar</option></select></label><label>Fahrernummer<select id="new-driver-number">${driverNumberOptions(prefill, 'Free Agent', 0)}</select></label><label>Team<select id="new-driver-team">${teamsOpt}</select></label></div><div class="race-edit-note new-driver-hint">Bei â€žStammfahrerâ€œ wird der Fahrer â€“ sofern ein Slot frei ist â€“ direkt dem gewÃ¤hlten Team zugeordnet. Ist kein Slot frei, bleibt der Fahrer angelegt und wird nicht automatisch in die Teamaufstellung gedrÃ¼ckt.</div><div class="modal-actions"><button class="ghost" onclick="closeModal()">Abbrechen</button><button class="primary" onclick="createDriverFromForm()">Fahrer anlegen</button></div>`;
+ const teamsOpt=TEAM_CHOICES.map(t=>`<option value="${esc(t)}" ${t===teamPrefill?'selected':''}>${t||'— kein Team / Free Agent —'}</option>`).join('');
+ document.getElementById('modal-content').innerHTML=`<div class="modal-head"><div><h2>➕ Fahrer anlegen</h2><p class="race-edit-note">Ein neuer Fahrer bekommt automatisch eine eindeutige interne Fahrer-ID. Unklare Namen werden nicht automatisch zusammengeführt.</p></div><button onclick="closeModal()">×</button></div><div class="new-driver-form"><label>Fahrername<input id="new-driver-name" value="${esc(prefill)}" placeholder="z. B. NeuerFahrer123"></label><label>Nationalität<select id="new-driver-nationality">${nationalityOptions('')}</select></label><label>Division<select id="new-driver-div"><option ${divPrefill==='Div 1'?'selected':''}>Div 1</option><option ${divPrefill==='Div 2'?'selected':''}>Div 2</option></select></label><label>Aktueller Status<select id="new-driver-status" onchange="refreshNewDriverNumberOptions()"><option>Stammfahrer</option><option>Ersatzfahrer</option><option selected>Free Agent</option><option>Nicht verfügbar</option></select></label><label>Fahrernummer<select id="new-driver-number">${driverNumberOptions(prefill, 'Free Agent', 0)}</select></label><label>Team<select id="new-driver-team">${teamsOpt}</select></label></div><div class="race-edit-note new-driver-hint">Bei „Stammfahrer“ wird der Fahrer – sofern ein Slot frei ist – direkt dem gewählten Team zugeordnet. Ist kein Slot frei, bleibt der Fahrer angelegt und wird nicht automatisch in die Teamaufstellung gedrückt.</div><div class="modal-actions"><button class="ghost" onclick="closeModal()">Abbrechen</button><button class="primary" onclick="createDriverFromForm()">Fahrer anlegen</button></div>`;
  openModal();
 }
 function createDriverFromForm(){
@@ -567,11 +556,11 @@ function createDriverFromForm(){
  const canonical=normDriver(name);if(drivers.some(n=>normDriver(n).toLowerCase()===canonical.toLowerCase())){toast('Diesen Fahrer gibt es bereits.');return}
  drivers.push(name);
  driverMeta[name]={id:(crypto.randomUUID?crypto.randomUUID():'dog-'+Date.now()+'-'+Math.random().toString(16).slice(2)),division:div,team:team,status,number:0,nationality,createdAt:new Date().toISOString()};
- if(number){const ns=driverNumberState(number,name,status);if(ns.state==='blocked'||ns.state==='taken-stamm'||(ns.state==='taken-ersatz'&&status!=='Stammfahrer')){toast(`Fahrernummer #${number} ist nicht verfÃ¼gbar.`);driverMeta[name].number=0;}else{driverMeta[name].number=number;if(status==='Stammfahrer'){drivers.forEach(other=>{if(normDriver(other)!==normDriver(name)&&driverNumber(other)===number&&getStatus(other)==='Ersatzfahrer'){driverMeta[other].number=0}})}}}
- if(status==='Stammfahrer'&&team){const t=teams.find(x=>x.name===team);if(t){const arr=div==='Div 1'?t.d1:t.d2;if(!arr.includes(name)&&arr.length<2)arr.push(name);else if(arr.length>=2){driverMeta[name].status='Free Agent';driverMeta[name].team='';toast('Fahrer angelegt. Team hat bereits 2 Stammfahrer â€“ daher zunÃ¤chst Free Agent.');}}}
+ if(number){const ns=driverNumberState(number,name,status);if(ns.state==='blocked'||ns.state==='taken-stamm'||(ns.state==='taken-ersatz'&&status!=='Stammfahrer')){toast(`Fahrernummer #${number} ist nicht verfügbar.`);driverMeta[name].number=0;}else{driverMeta[name].number=number;if(status==='Stammfahrer'){drivers.forEach(other=>{if(normDriver(other)!==normDriver(name)&&driverNumber(other)===number&&getStatus(other)==='Ersatzfahrer'){driverMeta[other].number=0}})}}}
+ if(status==='Stammfahrer'&&team){const t=teams.find(x=>x.name===team);if(t){const arr=div==='Div 1'?t.d1:t.d2;if(!arr.includes(name)&&arr.length<2)arr.push(name);else if(arr.length>=2){driverMeta[name].status='Free Agent';driverMeta[name].team='';toast('Fahrer angelegt. Team hat bereits 2 Stammfahrer – daher zunächst Free Agent.');}}}
  save();
  const draft=window.__ocrRaceDraft;
- if(draft){const created=drivers.find(n=>ocrNormName(n)===ocrNormName(name))||name;draft.rows[draft.index].name=created;draft.rows[draft.index].match=created;draft.rows[draft.index].raw=created;draft.rows[draft.index].type='known';delete window.__ocrRaceDraft;closeModal();renderOCRRaceReview(draft.rows,draft.raw,draft.raceId);toast(`Fahrer ${created} angelegt und im Renn-OCR ausgewÃ¤hlt.`);return;}
+ if(draft){const created=drivers.find(n=>ocrNormName(n)===ocrNormName(name))||name;draft.rows[draft.index].name=created;draft.rows[draft.index].match=created;draft.rows[draft.index].raw=created;draft.rows[draft.index].type='known';delete window.__ocrRaceDraft;closeModal();renderOCRRaceReview(draft.rows,draft.raw,draft.raceId);toast(`Fahrer ${created} angelegt und im Renn-OCR ausgewählt.`);return;}
  closeModal();initDriverOverview();renderTeams();updateStats();toast('Fahrer angelegt.');
 }
 function ensureDriverFromContract(name,team,division){
@@ -584,10 +573,10 @@ function ensureDriverFromContract(name,team,division){
  return finalName;
 }
 function openDetectedDriver(candidate,team,div){openAddDriver(candidate,team,div)}
-function ocrNormName(s){return ocrCleanName(s).toLowerCase().replace(/\b(vr|vr\]|[a-z]\s*\[vr\])\b/g,'').replace(/[^a-z0-9Ã¤Ã¶Ã¼ÃŸ]/g,'')}
+function ocrNormName(s){return ocrCleanName(s).toLowerCase().replace(/\b(vr|vr\]|[a-z]\s*\[vr\])\b/g,'').replace(/[^a-z0-9äöüß]/g,'')}
 function fuzzySimilarity(a,b){a=ocrNormName(a);b=ocrNormName(b);if(!a||!b)return 0;if(a===b)return 1;const d=levenshtein(a,b),m=Math.max(a.length,b.length);return m?1-d/m:0}
 function levenshtein(a,b){const row=Array.from({length:b.length+1},(_,i)=>i);for(let i=1;i<=a.length;i++){let prev=row[0];row[0]=i;for(let j=1;j<=b.length;j++){const tmp=row[j];row[j]=Math.min(row[j]+1,row[j-1]+1,prev+(a[i-1]===b[j-1]?0:1));prev=tmp}}return row[b.length]}
-function ocrCleanName(s){return String(s||'').replace(/\[[^\]]*\]/g,' ').replace(/[|â€¢Â·Â©Â®â„¢â˜…â˜†â–²â–¼â—€â–¶â—†â—‡]/g,' ').replace(/\s+/g,' ').trim().replace(/^[-â€“â€”_=+]+|[-â€“â€”_=+]+$/g,'').trim()}
+function ocrCleanName(s){return String(s||'').replace(/\[[^\]]*\]/g,' ').replace(/[|•·©®™★☆▲▼◀▶◆◇]/g,' ').replace(/\s+/g,' ').trim().replace(/^[-–—_=+]+|[-–—_=+]+$/g,'').trim()}
 function knownDriverMatch(candidate){const list=drivers.map(n=>({name:n,score:fuzzySimilarity(candidate,normDriver(n))})).sort((a,b)=>b.score-a.score);return list[0]||null}
 function ocrTeamPatterns(){return [['Oracle Red Bull Racing',['Oracle Red Bull Racing','Red Bull Racing','Red Bull']],['Aston Martin',['Aston Martin Aramco','Aston Martin']],['Visa Cash',['Visa Cash App RB','Visa Cash','VCARB']],['Mercedes',['Mercedes-AMG F1 Team','Mercedes-AMG','Mercedes']],['McLaren',['McLaren Mercedes','McLaren']],['Ferrari',['Scuderia Ferrari HP','Scuderia Ferrari','Ferrari']],['Williams',['Atlassian Williams F1 Team','Williams']],['Alpine',['BWT Alpine F1 Team','Alpine']],['Haas',['MoneyGram Haas F1 Team','Haas']],['Audi',['Audi Revolut F1 Team','Audi']],['Cadillac',['Cadillac']]]}
 function ocrFindTeam(text){const low=String(text||'').toLowerCase();for(const [team,pats] of ocrTeamPatterns()){for(const pat of pats){const idx=low.indexOf(pat.toLowerCase());if(idx>=0)return{team,idx,pat,score:1}}}return null}
@@ -614,14 +603,14 @@ function ocrExtractGridFromWords(words){
 }
 function ocrStripRowNoise(line){
  return String(line||'')
-  .replace(/^\s*\d{1,2}\s*(?:[â†‘â†“â€“â€”-])?\s*/,'')
+  .replace(/^\s*\d{1,2}\s*(?:[↑↓–—-])?\s*/,'')
   .replace(/\b\d{1,2}:\d{2}[,.]\d{3}\b/g,' ')
   .replace(/[+]\s*(?:\d+:)?\d{1,3}[,.]\d{3}\b/g,' ')
   .replace(/[+]\s*\d+\s*Runde(?:n)?/gi,' ')
   .replace(/x\s*\d+\s*[[(]?\s*\+?\s*\d+\s*(?:sek\.?|s)\s*[\])]?/gi,' ')
   .replace(/[[(]\s*\+?\s*\d+\s*(?:sek\.?|s)\s*[\])]/gi,' ')
   .replace(/\b(?:POS\.?|FAHRER|TEAM|GRID|STOPPS|BESTE|ZEIT|PKT\.?)\b/gi,' ')
-  .replace(/[^A-Za-zÃ„Ã–ÃœÃ¤Ã¶Ã¼ÃŸ0-9_\- ]/g,' ')
+  .replace(/[^A-Za-zÄÖÜäöüß0-9_\- ]/g,' ')
   .replace(/\s+/g,' ').trim();
 }
 function ocrExtractCandidate(line,teamHit){
@@ -740,12 +729,12 @@ async function startOCR(input){return startRaceOCR(input)}
 async function startRaceOCR(input){
  if(!requireEditor()){input.value='';return}const files=[...input.files];if(!files.length)return;if(typeof Tesseract==='undefined'){toast('OCR-Bibliothek konnte nicht geladen werden.');return}
  const raceId=input.dataset.raceId;const race=races[raceId];if(!race){toast('Rennen nicht gefunden.');return}
- document.getElementById('modal-content').innerHTML=`<div class="modal-head"><div><h2>ðŸ”Ž Rennergebnis per OCR</h2><p class="race-edit-note">${esc(race.division)} Â· Rennen ${race.number} Â· ${esc(race.track)}. Die Ergebnistabelle wird zeilenweise und spaltenorientiert analysiert; Ã¼berlappende Screenshots werden zusammengefÃ¼hrt.</p></div><button onclick="closeModal()">Ã—</button></div><div id="ocr-progress" class="ocr-progress">OCR wird vorbereitet â€¦</div><div id="ocr-results"></div>`;openModal();
+ document.getElementById('modal-content').innerHTML=`<div class="modal-head"><div><h2>🔎 Rennergebnis per OCR</h2><p class="race-edit-note">${esc(race.division)} · Rennen ${race.number} · ${esc(race.track)}. Die Ergebnistabelle wird zeilenweise und spaltenorientiert analysiert; überlappende Screenshots werden zusammengeführt.</p></div><button onclick="closeModal()">×</button></div><div id="ocr-progress" class="ocr-progress">OCR wird vorbereitet …</div><div id="ocr-results"></div>`;openModal();
  try{
    const worker=await Tesseract.createWorker('eng');await worker.setParameters({tessedit_pageseg_mode:'6',preserve_interword_spaces:'1'});
    let all='',structured=[];
    for(let i=0;i<files.length;i++){
-     document.getElementById('ocr-progress').textContent=`Bild ${i+1}/${files.length}: Ergebnistabelle wird zeilenweise gelesen â€¦`;
+     document.getElementById('ocr-progress').textContent=`Bild ${i+1}/${files.length}: Ergebnistabelle wird zeilenweise gelesen …`;
      const canvas=await ocrPreprocess(files[i],'table');
      // Two segmentation modes: the normal block mode is strongest for the complete
      // table, while sparse mode often recovers the last rows that are close to the
@@ -754,7 +743,7 @@ async function startRaceOCR(input){
        await worker.setParameters({tessedit_pageseg_mode:psm,preserve_interword_spaces:'1'});
        const res=await worker.recognize(canvas);
        structured.push({data:res.data||{},canvas,psm});
-       all+=`\n--- Tabelle ${i+1} Â· PSM ${psm} ---\n`+(res.data?.text||'');
+       all+=`\n--- Tabelle ${i+1} · PSM ${psm} ---\n`+(res.data?.text||'');
      }
    }
    await worker.terminate();const rows=extractOCRRaceRows(all,structured);renderOCRRaceReview(rows,all,raceId);
@@ -763,21 +752,21 @@ async function startRaceOCR(input){
 function ocrRowPoints(pos,status){return pointsForPosition(Number(pos)||99,status||'RESULT')}
 function captureOCRRowsFromDOM(){return [...document.querySelectorAll('.ocr-race-row:not(.head)')].map(row=>({pos:Number(row.querySelector('.ocr-pos')?.value)||99,name:row.querySelector('.ocr-name')?.value.trim()||'',team:row.querySelector('.ocr-team')?.value||'',grid:Number(row.querySelector('.ocr-grid')?.value)||0,time:row.querySelector('.ocr-time')?.value.trim()||'',penSec:Number(row.querySelector('.ocr-pen')?.value)||0,status:/^DNF$/i.test(row.querySelector('.ocr-time')?.value.trim()||'')?'DNF':/^DSQ$/i.test(row.querySelector('.ocr-time')?.value.trim()||'')?'DSQ':'RESULT'}));}
 function openOCRNewDriver(index){const draft={raceId:window.__ocrRaceId||'',raw:window.__ocrRaw||'',rows:captureOCRRowsFromDOM(),index};const row=draft.rows[index]||{};window.__ocrRaceDraft=draft;openAddDriver(row.name||'',row.team||'',window.__ocrRaceDivision||'Div 1');}
-function updateOCRDriverSelect(el,index){const value=el.value;if(value==='__NEW__'){openOCRNewDriver(index);return;}const row=el.closest('.ocr-race-row');if(!row)return;const input=row.querySelector('.ocr-name');if(input)input.value=value||'';const note=row.querySelector('.ocr-match');if(note)note.textContent=value?`âœ“ Fahrer ausgewÃ¤hlt: ${normDriver(value)}`:'âš  Fahrer bitte auswÃ¤hlen oder neu anlegen';updateOCRRow(el);}
+function updateOCRDriverSelect(el,index){const value=el.value;if(value==='__NEW__'){openOCRNewDriver(index);return;}const row=el.closest('.ocr-race-row');if(!row)return;const input=row.querySelector('.ocr-name');if(input)input.value=value||'';const note=row.querySelector('.ocr-match');if(note)note.textContent=value?`✓ Fahrer ausgewählt: ${normDriver(value)}`:'⚠ Fahrer bitte auswählen oder neu anlegen';updateOCRRow(el);}
 function renderOCRRaceReview(rows,raw,raceId){
  window.__ocrRaceId=raceId;window.__ocrRaw=raw;window.__ocrRaceDivision=races[raceId]?.division||'Div 1';
  const known=rows.filter(r=>r.type==='known').length,similar=rows.filter(r=>r.type==='similar').length,fresh=rows.filter(r=>r.type==='new').length;
  const sortedDrivers=drivers.slice().sort((a,b)=>normDriver(a).localeCompare(normDriver(b),'de'));
- const body=rows.length?`<div class="ocr-summary"><span>âœ“ ${known} sicher</span><span>âš  ${similar} prÃ¼fen</span><span>ðŸ†• ${fresh} neu/unklar</span><span>ðŸ“¸ ${rows.length} Zeilen</span></div><div class="ocr-hint">Bei jedem Fahrer kannst du per <b>Pfeil</b> einen vorhandenen Fahrer auswÃ¤hlen. Wenn er nicht existiert, wÃ¤hle <b>âž• Neuen Fahrer anlegen â€¦</b>. Das historische Team bleibt separat gespeichert.</div><div class="ocr-race-table"><div class="ocr-race-row head"><span>POS</span><span>FAHRER</span><span>TEAM</span><span>START</span><span>ZEIT</span><span>STRAFE</span><span>PKT.</span><span></span></div>${rows.map((r,i)=>{const selected=drivers.find(n=>ocrNormName(n)===ocrNormName(r.match||r.name||r.raw||''));const opts=`<option value="">â€” Fahrer auswÃ¤hlen â€”</option>${sortedDrivers.map(n=>`<option value="${esc(n)}" ${selected&&normDriver(selected)===normDriver(n)?'selected':''}>${esc(n)}</option>`).join('')}<option value="__NEW__">âž• Neuen Fahrer anlegen â€¦</option>`;return `<div class="ocr-race-row ${r.type==='similar'?'needs-review':''} ${r.type==='new'?'new-driver-row':''}"><input class="ocr-pos" type="number" value="${r.pos}" min="1" max="30" oninput="updateOCRRow(this)"><div><select class="ocr-driver-select" onchange="updateOCRDriverSelect(this,${i})">${opts}</select><input class="ocr-name" type="hidden" value="${esc(selected||r.match||r.name||r.raw||'')}"><small class="ocr-match ${r.type}">${selected?`âœ“ Fahrer ausgewÃ¤hlt: ${esc(normDriver(selected))}`:'âš  Fahrer bitte auswÃ¤hlen oder neu anlegen'}</small></div><select class="ocr-team" onchange="updateOCRRow(this)"><option value="">â€” Team auswÃ¤hlen â€”</option>${TEAM_CHOICES.filter(Boolean).map(t=>`<option value="${esc(t)}" ${canonicalTeamName(t)===canonicalTeamName(r.team||'')?'selected':''}>${esc(t)}</option>`).join('')}</select><input class="ocr-grid" type="number" value="${r.grid||0}" min="0" max="30" oninput="updateOCRRow(this)"><input class="ocr-time" value="${esc(r.time)}" oninput="updateOCRRow(this)"><div><input class="ocr-pen" type="number" value="${r.penSec||0}" min="0" oninput="updateOCRRow(this)"><small>${r.tl?`${r.tl} TL`:''}</small></div><b class="ocr-points">${ocrRowPoints(r.pos,r.status)}</b><button class="ghost" onclick="this.closest('.ocr-race-row').remove();updateOCRSummary()">âœ•</button></div>`}).join('')}</div><datalist id="ocr-team-list">${TEAM_CHOICES.filter(Boolean).map(t=>`<option value="${esc(t)}"></option>`).join('')}</datalist>`:'<div class="empty-race">Keine verwertbaren Ergebniszeilen gefunden.</div>';
- document.getElementById('ocr-progress').innerHTML=`<b>${rows.length}</b> Ergebniszeilen erkannt Â· <span class="muted">${esc(raceId)}</span>`;
- document.getElementById('ocr-results').innerHTML=body+`<details class="ocr-raw"><summary>OCR-Rohtext anzeigen</summary><pre>${esc(raw)}</pre></details><div class="modal-actions"><button class="ghost" onclick="closeModal()">Abbrechen</button>${rows.length?`<button class="primary" onclick="applyOCRRace('${raceId}')">âœ“ Ergebnis Ã¼bernehmen</button>`:''}</div>`;
+ const body=rows.length?`<div class="ocr-summary"><span>✓ ${known} sicher</span><span>⚠ ${similar} prüfen</span><span>🆕 ${fresh} neu/unklar</span><span>📸 ${rows.length} Zeilen</span></div><div class="ocr-hint">Bei jedem Fahrer kannst du per <b>Pfeil</b> einen vorhandenen Fahrer auswählen. Wenn er nicht existiert, wähle <b>➕ Neuen Fahrer anlegen …</b>. Das historische Team bleibt separat gespeichert.</div><div class="ocr-race-table"><div class="ocr-race-row head"><span>POS</span><span>FAHRER</span><span>TEAM</span><span>START</span><span>ZEIT</span><span>STRAFE</span><span>PKT.</span><span></span></div>${rows.map((r,i)=>{const selected=drivers.find(n=>ocrNormName(n)===ocrNormName(r.match||r.name||r.raw||''));const opts=`<option value="">— Fahrer auswählen —</option>${sortedDrivers.map(n=>`<option value="${esc(n)}" ${selected&&normDriver(selected)===normDriver(n)?'selected':''}>${esc(n)}</option>`).join('')}<option value="__NEW__">➕ Neuen Fahrer anlegen …</option>`;return `<div class="ocr-race-row ${r.type==='similar'?'needs-review':''} ${r.type==='new'?'new-driver-row':''}"><input class="ocr-pos" type="number" value="${r.pos}" min="1" max="30" oninput="updateOCRRow(this)"><div><select class="ocr-driver-select" onchange="updateOCRDriverSelect(this,${i})">${opts}</select><input class="ocr-name" type="hidden" value="${esc(selected||r.match||r.name||r.raw||'')}"><small class="ocr-match ${r.type}">${selected?`✓ Fahrer ausgewählt: ${esc(normDriver(selected))}`:'⚠ Fahrer bitte auswählen oder neu anlegen'}</small></div><select class="ocr-team" onchange="updateOCRRow(this)"><option value="">— Team auswählen —</option>${TEAM_CHOICES.filter(Boolean).map(t=>`<option value="${esc(t)}" ${canonicalTeamName(t)===canonicalTeamName(r.team||'')?'selected':''}>${esc(t)}</option>`).join('')}</select><input class="ocr-grid" type="number" value="${r.grid||0}" min="0" max="30" oninput="updateOCRRow(this)"><input class="ocr-time" value="${esc(r.time)}" oninput="updateOCRRow(this)"><div><input class="ocr-pen" type="number" value="${r.penSec||0}" min="0" oninput="updateOCRRow(this)"><small>${r.tl?`${r.tl} TL`:''}</small></div><b class="ocr-points">${ocrRowPoints(r.pos,r.status)}</b><button class="ghost" onclick="this.closest('.ocr-race-row').remove();updateOCRSummary()">✕</button></div>`}).join('')}</div><datalist id="ocr-team-list">${TEAM_CHOICES.filter(Boolean).map(t=>`<option value="${esc(t)}"></option>`).join('')}</datalist>`:'<div class="empty-race">Keine verwertbaren Ergebniszeilen gefunden.</div>';
+ document.getElementById('ocr-progress').innerHTML=`<b>${rows.length}</b> Ergebniszeilen erkannt · <span class="muted">${esc(raceId)}</span>`;
+ document.getElementById('ocr-results').innerHTML=body+`<details class="ocr-raw"><summary>OCR-Rohtext anzeigen</summary><pre>${esc(raw)}</pre></details><div class="modal-actions"><button class="ghost" onclick="closeModal()">Abbrechen</button>${rows.length?`<button class="primary" onclick="applyOCRRace('${raceId}')">✓ Ergebnis übernehmen</button>`:''}</div>`;
 }
 function updateOCRDriverInput(el){
  const row=el.closest('.ocr-race-row');if(!row)return;
  const selected=el.value.trim();
  const match=drivers.find(n=>ocrNormName(n)===ocrNormName(selected));
  const note=row.querySelector('.ocr-match');
- if(note)note.textContent=match?`âœ“ Fahrer ausgewÃ¤hlt: ${normDriver(match)}`:(selected?'âœï¸ Name manuell eingegeben':'âš  Fahrer bitte auswÃ¤hlen oder Namen eingeben');
+ if(note)note.textContent=match?`✓ Fahrer ausgewählt: ${normDriver(match)}`:(selected?'✏️ Name manuell eingegeben':'⚠ Fahrer bitte auswählen oder Namen eingeben');
  updateOCRRow(el);
 }
 function updateOCRDriverSelect(el){ updateOCRDriverInput(el); }
@@ -787,7 +776,7 @@ function updateOCRRow(el){
  const p=row.querySelector('.ocr-points');if(p)p.textContent=ocrRowPoints(pos,status);
 }
 function updateOCRSummary(){
- const rows=[...document.querySelectorAll('.ocr-race-row:not(.head)')];const el=document.getElementById('ocr-progress');if(el)el.innerHTML=`<b>${rows.length}</b> Ergebniszeilen vorbereitet Â· Punkte werden live berechnet.`;
+ const rows=[...document.querySelectorAll('.ocr-race-row:not(.head)')];const el=document.getElementById('ocr-progress');if(el)el.innerHTML=`<b>${rows.length}</b> Ergebniszeilen vorbereitet · Punkte werden live berechnet.`;
 }
 function ensureOCRDriver(name,team,division,allowCreate=true){
  const canonical=normDriver(name);let existing=drivers.find(n=>ocrNormName(n)===ocrNormName(canonical));if(existing)return existing;
@@ -802,33 +791,33 @@ function applyOCRRace(id){
  const rows=[...document.querySelectorAll('.ocr-race-row:not(.head)')].map(row=>{
    const name=row.querySelector('.ocr-name')?.value.trim()||row.querySelector('.ocr-driver-select')?.value.trim();const team=row.querySelector('.ocr-team')?.value||'';const grid=Number(row.querySelector('.ocr-grid')?.value)||0;const time=row.querySelector('.ocr-time')?.value.trim()||'';const penSec=Number(row.querySelector('.ocr-pen')?.value)||0;const pos=Number(row.querySelector('.ocr-pos')?.value)||99;const status=/^DNF$/i.test(time)?'DNF':/^DSQ$/i.test(time)?'DSQ':'RESULT';const tl=penSec?({3:1,6:2,9:3,10:3,19:4}[penSec]||Math.max(1,Math.round(penSec/3))):0;return{pos,name,team,grid,time,penSec,tl,status};
  }).filter(x=>x.name);
- if(!rows.length){toast('Bitte mindestens einen Fahrer auswÃ¤hlen.');return}
+ if(!rows.length){toast('Bitte mindestens einen Fahrer auswählen.');return}
  const unknown=rows.filter(x=>!drivers.some(n=>ocrNormName(n)===ocrNormName(x.name)));
- if(unknown.length){toast('Bitte alle Fahrer per Pfeil auswÃ¤hlen oder neu anlegen.');return}
+ if(unknown.length){toast('Bitte alle Fahrer per Pfeil auswählen oder neu anlegen.');return}
  const finalRows=rows.map(x=>({...x,name:normDriver(x.name)})).sort((a,b)=>a.pos-b.pos);
  const oldByName={};race.results.forEach(x=>oldByName[ocrNormName(normDriver(x.name))]=x);
  finalRows.forEach(x=>{const old=oldByName[ocrNormName(normDriver(x.name))];if(old){if(!x.penaltyNote&&old.penaltyNote)x.penaltyNote=old.penaltyNote;if(!x.penaltyImage&&old.penaltyImage)x.penaltyImage=old.penaltyImage}});
- race.results=finalRows;race.ocr={capturedAt:new Date().toISOString(),rows:finalRows.length,source:'Tesseract.js Â· table-row OCR'};saveRaceAndRecalculate(id,'OCR Ã¼bernommen',`${finalRows.length} Ergebniszeilen aus OCR Ã¼bernommen`);closeModal();renderSelectedRace();renderWM();renderKWM();renderDashboard();initDriverOverview();renderTeams();toast(`${finalRows.length} Ergebniszeilen Ã¼bernommen Â· WM/KWM/Fahrerwerte aktualisiert.`);
+ race.results=finalRows;race.ocr={capturedAt:new Date().toISOString(),rows:finalRows.length,source:'Tesseract.js · table-row OCR'};saveRaceAndRecalculate(id,'OCR übernommen',`${finalRows.length} Ergebniszeilen aus OCR übernommen`);closeModal();renderSelectedRace();renderWM();renderKWM();renderDashboard();initDriverOverview();renderTeams();toast(`${finalRows.length} Ergebniszeilen übernommen · WM/KWM/Fahrerwerte aktualisiert.`);
 }
-function renderOCRReview(rows,raw){const body=rows.length?rows.map(r=>`<div class="ocr-row"><div><b>${esc(r.raw)}</b><small>${esc(r.team)} Â· ${r.type==='known'?'Bekannter Fahrer':r.type==='similar'?'Ã„hnlicher Name':'Neuer Fahrer'}${r.match?` Â· Vorschlag: ${esc(r.match)} (${Math.round(r.score*100)}%)`:''}</small></div><div class="ocr-actions">${r.type==='known'?`<span class="ocr-ok">âœ“ ${esc(normDriver(r.match))}</span>`:`<span class="ocr-review">${r.type==='similar'?'âš  PrÃ¼fung nÃ¶tig':'ðŸ†• Neuer Fahrer'}</span>`}</div></div>`).join(''):'<div class="empty-race">Keine Ergebniszeile mit eindeutig erkennbarem Fahrer gefunden.</div>';document.getElementById('ocr-progress').innerHTML=`<b>${rows.length}</b> mÃ¶gliche Fahrer erkannt.`;document.getElementById('ocr-results').innerHTML=body+`<details class="ocr-raw"><summary>OCR-Rohtext anzeigen</summary><pre>${esc(raw)}</pre></details><div class="modal-actions"><button class="ghost" onclick="closeModal()">SchlieÃŸen</button></div>`}
+function renderOCRReview(rows,raw){const body=rows.length?rows.map(r=>`<div class="ocr-row"><div><b>${esc(r.raw)}</b><small>${esc(r.team)} · ${r.type==='known'?'Bekannter Fahrer':r.type==='similar'?'Ähnlicher Name':'Neuer Fahrer'}${r.match?` · Vorschlag: ${esc(r.match)} (${Math.round(r.score*100)}%)`:''}</small></div><div class="ocr-actions">${r.type==='known'?`<span class="ocr-ok">✓ ${esc(normDriver(r.match))}</span>`:`<span class="ocr-review">${r.type==='similar'?'⚠ Prüfung nötig':'🆕 Neuer Fahrer'}</span>`}</div></div>`).join(''):'<div class="empty-race">Keine Ergebniszeile mit eindeutig erkennbarem Fahrer gefunden.</div>';document.getElementById('ocr-progress').innerHTML=`<b>${rows.length}</b> mögliche Fahrer erkannt.`;document.getElementById('ocr-results').innerHTML=body+`<details class="ocr-raw"><summary>OCR-Rohtext anzeigen</summary><pre>${esc(raw)}</pre></details><div class="modal-actions"><button class="ghost" onclick="closeModal()">Schließen</button></div>`}
 function renderCompare(){
  const el=document.getElementById('compare-content'); if(!el)return;
  const selectedIds=['compare-driver-1','compare-driver-2','compare-driver-3','compare-driver-4'];
  const selected=selectedIds.map(id=>document.getElementById(id)?.value||'').filter(Boolean);
  const defaults=drivers.slice().sort((a,b)=>normDriver(a).localeCompare(normDriver(b),'de'));
  const picks=selected.length?selected:defaults.slice(0,4);
- const opts=(value)=>`<option value="">â€” Fahrer wÃ¤hlen â€”</option>${defaults.map(n=>`<option value="${esc(n)}" ${normDriver(n)===normDriver(value)?'selected':''}>${esc(n)}</option>`).join('')}`;
+ const opts=(value)=>`<option value="">— Fahrer wählen —</option>${defaults.map(n=>`<option value="${esc(n)}" ${normDriver(n)===normDriver(value)?'selected':''}>${esc(n)}</option>`).join('')}`;
  const metrics=[['GESAMT / OVA','ova'],['Marktwert','mw'],['REN','ren'],['PER','per'],['TEM','tem'],['AMK','amk'],['ERF','erf']];
- const cards=picks.map((n,i)=>{const c=calcDriver(n),t=driverTeam(n)||'Free Agent',s=driverRaceStats(n);return `<div class="compare-driver-card compare-c${i+1}"><div class="compare-badge">${i+1}</div><div class="compare-driver-name">${esc(n)}</div><div class="compare-team">${esc(t)} Â· ${esc(currentDivision(n))}</div><div class="compare-total"><span>GESAMT</span><b>${c.ova}</b></div><div class="compare-mini"><span>Rennen <b>${s.races}</b></span><span>Siege <b>${s.wins}</b></span><span>Podien <b>${s.podiums}</b></span></div></div>`}).join('');
- const rows=metrics.map(([label,key])=>`<tr><th>${label}</th>${picks.map(n=>{const c=calcDriver(n);return `<td>${key==='mw'?money(c[key]):c[key]}</td>`}).join('')}${Array.from({length:4-picks.length},()=>'<td>â€”</td>').join('')}</tr>`).join('');
- el.innerHTML=`<div class="compare-select-panel"><div><h3>Fahrervergleich</h3><p>Bis zu 4 Fahrer direkt gegenÃ¼berstellen. Die Werte werden aus den aktuell gespeicherten Renn- und Fahrerdaten berechnet.</p></div><div class="compare-select-grid">${selectedIds.map((id,i)=>`<label>Fahrer ${i+1}<select id="${id}" onchange="renderCompare()">${opts(picks[i]||'')}</select></label>`).join('')}</div></div><div class="compare-driver-grid">${cards||'<div class="empty-race">Noch keine Fahrer vorhanden.</div>'}</div><div class="table-panel compare-table"><table class="standings"><thead><tr><th>Wert</th><th>Fahrer 1</th><th>Fahrer 2</th><th>Fahrer 3</th><th>Fahrer 4</th></tr></thead><tbody>${rows}</tbody></table></div>`;
+ const cards=picks.map((n,i)=>{const c=calcDriver(n),t=driverTeam(n)||'Free Agent',s=driverRaceStats(n);return `<div class="compare-driver-card compare-c${i+1}"><div class="compare-badge">${i+1}</div><div class="compare-driver-name">${esc(n)}</div><div class="compare-team">${esc(t)} · ${esc(currentDivision(n))}</div><div class="compare-total"><span>GESAMT</span><b>${c.ova}</b></div><div class="compare-mini"><span>Rennen <b>${s.races}</b></span><span>Siege <b>${s.wins}</b></span><span>Podien <b>${s.podiums}</b></span></div></div>`}).join('');
+ const rows=metrics.map(([label,key])=>`<tr><th>${label}</th>${picks.map(n=>{const c=calcDriver(n);return `<td>${key==='mw'?money(c[key]):c[key]}</td>`}).join('')}${Array.from({length:4-picks.length},()=>'<td>—</td>').join('')}</tr>`).join('');
+ el.innerHTML=`<div class="compare-select-panel"><div><h3>Fahrervergleich</h3><p>Bis zu 4 Fahrer direkt gegenüberstellen. Die Werte werden aus den aktuell gespeicherten Renn- und Fahrerdaten berechnet.</p></div><div class="compare-select-grid">${selectedIds.map((id,i)=>`<label>Fahrer ${i+1}<select id="${id}" onchange="renderCompare()">${opts(picks[i]||'')}</select></label>`).join('')}</div></div><div class="compare-driver-grid">${cards||'<div class="empty-race">Noch keine Fahrer vorhanden.</div>'}</div><div class="table-panel compare-table"><table class="standings"><thead><tr><th>Wert</th><th>Fahrer 1</th><th>Fahrer 2</th><th>Fahrer 3</th><th>Fahrer 4</th></tr></thead><tbody>${rows}</tbody></table></div>`;
 }
 function openContractManager(){
  if(!requireEditor())return;
  const current=seasonState.current||'02/26';
  const list=contracts.filter(c=>c.season===current).sort((a,b)=>String(a.driver).localeCompare(String(b.driver),'de'));
- const rows=list.length?list.map(c=>`<div class="contract-row"><span><b>${esc(c.driver)}</b></span><span>${esc(c.team)}</span><span>${esc(c.division)}</span><span>Gesamte Saison</span><span>${c.value?esc(c.value):'â€”'}</span><button class="mini-link" onclick="openContractEditor('${esc(c.driver)}','${esc(c.id)}')">Bearbeiten</button></div>`).join(''):'<div class="empty-race">FÃ¼r diese Saison sind noch keine VertrÃ¤ge hinterlegt.</div>';
- document.getElementById('modal-content').innerHTML=`<div class="modal-head"><div><h2>ðŸ“‹ Vertragsverwaltung Â· ${esc(current)}</h2><p class="race-edit-note">VertrÃ¤ge gelten nur fÃ¼r die gewÃ¤hlte Saison. Ã„nderungen an VertrÃ¤gen verÃ¤ndern keine historischen Rennergebnisse.</p></div><button onclick="closeModal()">Ã—</button></div><div class="contract-history">${rows}</div><div class="modal-actions"><button class="ghost" onclick="openSeasonTransition()">ðŸ”„ SaisonÃ¼bergang vorbereiten</button><button class="primary" onclick="closeModal()">Fertig</button></div>`;
+ const rows=list.length?list.map(c=>`<div class="contract-row"><span><b>${esc(c.driver)}</b></span><span>${esc(c.team)}</span><span>${esc(c.division)}</span><span>Gesamte Saison</span><span>${c.value?esc(c.value):'—'}</span><button class="mini-link" onclick="openContractEditor('${esc(c.driver)}','${esc(c.id)}')">Bearbeiten</button></div>`).join(''):'<div class="empty-race">Für diese Saison sind noch keine Verträge hinterlegt.</div>';
+ document.getElementById('modal-content').innerHTML=`<div class="modal-head"><div><h2>📋 Vertragsverwaltung · ${esc(current)}</h2><p class="race-edit-note">Verträge gelten nur für die gewählte Saison. Änderungen an Verträgen verändern keine historischen Rennergebnisse.</p></div><button onclick="closeModal()">×</button></div><div class="contract-history">${rows}</div><div class="modal-actions"><button class="ghost" onclick="openSeasonTransition()">🔄 Saisonübergang vorbereiten</button><button class="primary" onclick="closeModal()">Fertig</button></div>`;
  openModal();
 }
 function openSeasonTransition(){
@@ -836,33 +825,33 @@ function openSeasonTransition(){
  const current=seasonState.current||'02/26';
  const next=Object.keys(SEASON_META.seasons).sort().find(x=>x>current) || '';
  const active=contracts.filter(c=>c.season===current && c.status!=='Beendet' && !c.draft);
- const rows=active.length?active.map((c,i)=>`<label class="transition-row"><input type="checkbox" id="carry-${i}" checked><span><b>${esc(c.driver)}</b><small>${esc(c.team)} Â· ${esc(c.division)} Â· gesamte Saison</small></span></label>`).join(''):'<div class="empty-race">Keine aktiven oder vorlÃ¤ufigen VertrÃ¤ge in der aktuellen Saison.</div>';
- document.getElementById('modal-content').innerHTML=`<div class="modal-head"><div><h2>ðŸ”„ SaisonÃ¼bergang vorbereiten</h2><p class="race-edit-note">Aktive VertrÃ¤ge werden nur als <b>vorlÃ¤ufige EntwÃ¼rfe</b> fÃ¼r die nÃ¤chste Saison Ã¼bernommen. Es wird nichts automatisch als endgÃ¼ltiger Vertrag gewertet.</p></div><button onclick="openContractManager()">Ã—</button></div><div class="new-driver-form"><label>Zielsaison<select id="transition-season">${Object.values(SEASON_META.seasons).filter(s=>s.label!==current).sort((a,b)=>b.label.localeCompare(a.label,'de')).map(s=>`<option value="${esc(s.label)}" ${s.label===next?'selected':''}>${esc(s.label)}</option>`).join('')}</select></label></div><div class="transition-list">${rows}</div><div class="modal-actions"><button class="ghost" onclick="openContractManager()">Abbrechen</button><button class="primary" onclick="createTransitionDrafts()">EntwÃ¼rfe erstellen</button></div>`;
+ const rows=active.length?active.map((c,i)=>`<label class="transition-row"><input type="checkbox" id="carry-${i}" checked><span><b>${esc(c.driver)}</b><small>${esc(c.team)} · ${esc(c.division)} · gesamte Saison</small></span></label>`).join(''):'<div class="empty-race">Keine aktiven oder vorläufigen Verträge in der aktuellen Saison.</div>';
+ document.getElementById('modal-content').innerHTML=`<div class="modal-head"><div><h2>🔄 Saisonübergang vorbereiten</h2><p class="race-edit-note">Aktive Verträge werden nur als <b>vorläufige Entwürfe</b> für die nächste Saison übernommen. Es wird nichts automatisch als endgültiger Vertrag gewertet.</p></div><button onclick="openContractManager()">×</button></div><div class="new-driver-form"><label>Zielsaison<select id="transition-season">${Object.values(SEASON_META.seasons).filter(s=>s.label!==current).sort((a,b)=>b.label.localeCompare(a.label,'de')).map(s=>`<option value="${esc(s.label)}" ${s.label===next?'selected':''}>${esc(s.label)}</option>`).join('')}</select></label></div><div class="transition-list">${rows}</div><div class="modal-actions"><button class="ghost" onclick="openContractManager()">Abbrechen</button><button class="primary" onclick="createTransitionDrafts()">Entwürfe erstellen</button></div>`;
  openModal();
 }
 function createTransitionDrafts(){
  const target=document.getElementById('transition-season')?.value;
- const current=seasonState.current||'02/26'; if(!target){toast('Bitte eine Zielsaison auswÃ¤hlen.');return}
+ const current=seasonState.current||'02/26'; if(!target){toast('Bitte eine Zielsaison auswählen.');return}
  const active=contracts.filter(c=>c.season===current && c.status!=='Beendet' && !c.draft);
  let made=0;
  active.forEach((c,i)=>{const cb=document.getElementById(`carry-${i}`);if(!cb?.checked)return;const exists=contracts.some(x=>x.season===target&&normDriver(x.driver)===normDriver(c.driver)&&x.team===c.team&&x.division===c.division);if(exists)return;contracts.push({id:crypto.randomUUID?crypto.randomUUID():'contract-'+Date.now()+'-'+i,driver:normDriver(c.driver),season:target,team:c.team,division:c.division,startDate:'',endDate:'',value:c.value||'',source:'season-transition-draft',draft:true,createdAt:new Date().toISOString(),fromContractId:c.id});made++;});
- save();closeModal();toast(`${made} Vertragsentwurf${made===1?'':'e'} fÃ¼r ${target} erstellt.`);
+ save();closeModal();toast(`${made} Vertragsentwurf${made===1?'':'e'} für ${target} erstellt.`);
 }
 function openSeasonManager(selected=''){
  if(!requireEditor())return;
  const seasons=Object.values(SEASON_META.seasons).sort((a,b)=>b.label.localeCompare(a.label,'de'));
- const cards=seasons.map(se=>`<div class="season-manage-row"><div><b>${esc(se.label)}</b><small>${esc(se.type)} Â· Regeln: ${esc(se.rules)}</small></div><div class="season-manage-actions"><button class="ghost" onclick="setActiveSeason('${esc(se.label)}')">${seasonState.current===se.label?'âœ“ Aktiv':'Als aktiv setzen'}</button>${se.label!=='02/26'?`<button class="ghost" onclick="archiveSeason('${esc(se.label)}')">${se.status==='archived'?'Wieder aktivieren':'Archivieren'}</button>`:''}<button class="ghost" onclick="editSeason('${esc(se.label)}')">âœï¸</button></div></div>`).join('');
- document.getElementById('modal-content').innerHTML=`<div class="modal-head"><div><h2>ðŸ—‚ï¸ Saisonverwaltung</h2><p class="race-edit-note">Saisons bleiben vollstÃ¤ndig getrennt. Fahrer und ihre IDs bleiben erhalten; Rennen behalten ihre eigene Regelversion.</p></div><button onclick="closeModal()">Ã—</button></div><div class="season-manage-list">${cards}</div><div class="modal-actions"><button class="ghost" onclick="openContractManager()">ðŸ“‹ VertrÃ¤ge</button><button class="ghost" onclick="openNewSeason()">âž• Neue Saison</button><button class="primary" onclick="closeModal()">Fertig</button></div>`;
+ const cards=seasons.map(se=>`<div class="season-manage-row"><div><b>${esc(se.label)}</b><small>${esc(se.type)} · Regeln: ${esc(se.rules)}</small></div><div class="season-manage-actions"><button class="ghost" onclick="setActiveSeason('${esc(se.label)}')">${seasonState.current===se.label?'✓ Aktiv':'Als aktiv setzen'}</button>${se.label!=='02/26'?`<button class="ghost" onclick="archiveSeason('${esc(se.label)}')">${se.status==='archived'?'Wieder aktivieren':'Archivieren'}</button>`:''}<button class="ghost" onclick="editSeason('${esc(se.label)}')">✏️</button></div></div>`).join('');
+ document.getElementById('modal-content').innerHTML=`<div class="modal-head"><div><h2>🗂️ Saisonverwaltung</h2><p class="race-edit-note">Saisons bleiben vollständig getrennt. Fahrer und ihre IDs bleiben erhalten; Rennen behalten ihre eigene Regelversion.</p></div><button onclick="closeModal()">×</button></div><div class="season-manage-list">${cards}</div><div class="modal-actions"><button class="ghost" onclick="openContractManager()">📋 Verträge</button><button class="ghost" onclick="openNewSeason()">➕ Neue Saison</button><button class="primary" onclick="closeModal()">Fertig</button></div>`;
  openModal();
 }
 function openNewSeason(){
  if(!requireEditor())return;
- document.getElementById('modal-content').innerHTML=`<div class="modal-head"><div><h2>âž• Neue Saison</h2><p class="race-edit-note">Beispiel: 03/26. Es werden keine Fahrer oder alten Rennen kopiert.</p></div><button onclick="openSeasonManager()">Ã—</button></div><div class="new-driver-form"><label>Saison<input id="season-new-label" placeholder="03/26"></label><label>Typ<select id="season-new-type"><option>Offiziell</option><option>Test / Ãœbergang</option></select></label><label>Regelversion<input id="season-new-rules" value="DoG 03/26 Â· v1"></label></div><div class="modal-actions"><button class="ghost" onclick="openSeasonManager()">Abbrechen</button><button class="primary" onclick="createSeason()">Saison anlegen</button></div>`;
+ document.getElementById('modal-content').innerHTML=`<div class="modal-head"><div><h2>➕ Neue Saison</h2><p class="race-edit-note">Beispiel: 03/26. Es werden keine Fahrer oder alten Rennen kopiert.</p></div><button onclick="openSeasonManager()">×</button></div><div class="new-driver-form"><label>Saison<input id="season-new-label" placeholder="03/26"></label><label>Typ<select id="season-new-type"><option>Offiziell</option><option>Test / Übergang</option></select></label><label>Regelversion<input id="season-new-rules" value="DoG 03/26 · v1"></label></div><div class="modal-actions"><button class="ghost" onclick="openSeasonManager()">Abbrechen</button><button class="primary" onclick="createSeason()">Saison anlegen</button></div>`;
 }
 function createSeason(){
  const label=(document.getElementById('season-new-label')?.value||'').trim();
  const type=document.getElementById('season-new-type')?.value||'Offiziell';
- const rules=(document.getElementById('season-new-rules')?.value||'').trim()||`DoG ${label} Â· v1`;
+ const rules=(document.getElementById('season-new-rules')?.value||'').trim()||`DoG ${label} · v1`;
  if(!/^\d{2}\/\d{2}$/.test(label)){toast('Bitte Saison im Format 03/26 eingeben.');return}
  if(SEASON_META.seasons[label]){toast('Diese Saison existiert bereits.');return}
  SEASON_META.seasons[label]={label,status:'planned',type,rules,createdAt:new Date().toISOString()};
@@ -881,11 +870,11 @@ function archiveSeason(label){
 }
 function editSeason(label){
  const se=SEASON_META.seasons[label];if(!se)return;
- document.getElementById('modal-content').innerHTML=`<div class="modal-head"><div><h2>âœï¸ ${esc(label)} bearbeiten</h2><p class="race-edit-note">Die Regelversion gilt nur fÃ¼r neue Rennen dieser Saison. Bestehende Rennen behalten ihre gespeicherte Version.</p></div><button onclick="openSeasonManager('${esc(label)}')">Ã—</button></div><div class="new-driver-form"><label>Anzeigename<input id="season-edit-label" value="${esc(se.label)}"></label><label>Typ<select id="season-edit-type"><option ${se.type==='Offiziell'?'selected':''}>Offiziell</option><option ${se.type==='Test / Ãœbergang'?'selected':''}>Test / Ãœbergang</option></select></label><label>Regelversion<input id="season-edit-rules" value="${esc(se.rules||'')}"></label></div><div class="modal-actions"><button class="ghost" onclick="openSeasonManager('${esc(label)}')">Abbrechen</button><button class="primary" onclick="saveSeasonEdit('${esc(label)}')">Speichern</button></div>`;
+ document.getElementById('modal-content').innerHTML=`<div class="modal-head"><div><h2>✏️ ${esc(label)} bearbeiten</h2><p class="race-edit-note">Die Regelversion gilt nur für neue Rennen dieser Saison. Bestehende Rennen behalten ihre gespeicherte Version.</p></div><button onclick="openSeasonManager('${esc(label)}')">×</button></div><div class="new-driver-form"><label>Anzeigename<input id="season-edit-label" value="${esc(se.label)}"></label><label>Typ<select id="season-edit-type"><option ${se.type==='Offiziell'?'selected':''}>Offiziell</option><option ${se.type==='Test / Übergang'?'selected':''}>Test / Übergang</option></select></label><label>Regelversion<input id="season-edit-rules" value="${esc(se.rules||'')}"></label></div><div class="modal-actions"><button class="ghost" onclick="openSeasonManager('${esc(label)}')">Abbrechen</button><button class="primary" onclick="saveSeasonEdit('${esc(label)}')">Speichern</button></div>`;
 }
 function saveSeasonEdit(oldLabel){
  const se=SEASON_META.seasons[oldLabel];if(!se)return;
- const nl=(document.getElementById('season-edit-label')?.value||'').trim();if(!/^\d{2}\/\d{2}$/.test(nl)){toast('UngÃ¼ltiges Saisonformat.');return}
+ const nl=(document.getElementById('season-edit-label')?.value||'').trim();if(!/^\d{2}\/\d{2}$/.test(nl)){toast('Ungültiges Saisonformat.');return}
  if(nl!==oldLabel&&SEASON_META.seasons[nl]){toast('Diese Saison existiert bereits.');return}
  const copy={...se,label:nl,type:document.getElementById('season-edit-type')?.value||se.type,rules:(document.getElementById('season-edit-rules')?.value||se.rules).trim()};
  delete SEASON_META.seasons[oldLabel]; SEASON_META.seasons[nl]=copy;
@@ -906,14 +895,14 @@ function renderArchive(){
    const rs=seasonRaces(se.label), rounds=uniqueSeasonRounds(se.label), driversCount=new Set(rs.flatMap(r=>r.results.map(x=>normDriver(x.name)))).size;
    const last=rs.slice().sort((a,b)=>(b.number||0)-(a.number||0))[0];
    const status=se.status==='active'?'aktiv':se.type;
-   return `<div class="archive-card ${se.status==='active'?'active-season':'muted'}"><div><b>${esc(se.label)}</b><small>${esc(se.type)}</small></div><span>${rs.length} RennlÃ¤ufe Â· ${rounds} Rennwochenenden Â· ${driversCount} Fahrer</span><span class="archive-last">${last?`Letztes Rennen: ${esc(last.track)} Â· R${last.number}`:'Noch keine Rennen'}</span><i>${esc(status)}</i><button class="ghost archive-open" onclick="openSeasonManager('${esc(se.label)}')">Verwalten</button></div>`;
+   return `<div class="archive-card ${se.status==='active'?'active-season':'muted'}"><div><b>${esc(se.label)}</b><small>${esc(se.type)}</small></div><span>${rs.length} Rennläufe · ${rounds} Rennwochenenden · ${driversCount} Fahrer</span><span class="archive-last">${last?`Letztes Rennen: ${esc(last.track)} · R${last.number}`:'Noch keine Rennen'}</span><i>${esc(status)}</i><button class="ghost archive-open" onclick="openSeasonManager('${esc(se.label)}')">Verwalten</button></div>`;
  }).join('');
  const checks=[
-   ['Rennschema',Object.values(races).every(r=>r.schemaVersion===2),'Jedes Rennen besitzt Saison-, Regel- und Ã„nderungsdaten.'],
+   ['Rennschema',Object.values(races).every(r=>r.schemaVersion===2),'Jedes Rennen besitzt Saison-, Regel- und Änderungsdaten.'],
    ['Wert-Snapshots',Object.values(races).every(r=>r.state&&r.state.driverValues),'Historische Fahrerwerte werden pro Rennstand gespeichert.'],
    ['Fahrer-IDs',drivers.every(n=>driverMeta[normDriver(n)]?.id),'Jeder Fahrer besitzt eine stabile interne ID.']
  ];
- document.getElementById('archive').innerHTML=`<div class="section-head"><div><h3>Archiv</h3><p>02/26 ist die erste offizielle DoG-Saison. Historische RennstÃ¤nde verwenden ihre gespeicherte Regelversion.</p></div><button class="primary" onclick="openSeasonManager()">âž• Saison verwalten</button></div><div class="archive-list">${html}</div><div class="archive-integrity"><div class="panel-head"><div><h3>ðŸ—„ï¸ Datenstatus</h3><p>Technische PrÃ¼fung der historischen Datenstruktur</p></div><span class="pill">Schema v2</span></div>${checks.map(c=>`<div class="integrity-row"><span>${c[1]?'âœ“':'âš '} ${esc(c[0])}</span><small>${esc(c[2])}</small><b>${c[1]?'OK':'PrÃ¼fen'}</b></div>`).join('')}<div class="archive-meta">Letzte Berechnung: ${seasonState.lastCalculatedAt?new Date(seasonState.lastCalculatedAt).toLocaleString('de-DE'):'â€”'}</div></div>`;
+ document.getElementById('archive').innerHTML=`<div class="section-head"><div><h3>Archiv</h3><p>02/26 ist die erste offizielle DoG-Saison. Historische Rennstände verwenden ihre gespeicherte Regelversion.</p></div><button class="primary" onclick="openSeasonManager()">➕ Saison verwalten</button></div><div class="archive-list">${html}</div><div class="archive-integrity"><div class="panel-head"><div><h3>🗄️ Datenstatus</h3><p>Technische Prüfung der historischen Datenstruktur</p></div><span class="pill">Schema v2</span></div>${checks.map(c=>`<div class="integrity-row"><span>${c[1]?'✓':'⚠'} ${esc(c[0])}</span><small>${esc(c[2])}</small><b>${c[1]?'OK':'Prüfen'}</b></div>`).join('')}<div class="archive-meta">Letzte Berechnung: ${seasonState.lastCalculatedAt?new Date(seasonState.lastCalculatedAt).toLocaleString('de-DE'):'—'}</div></div>`;
 }
 function marketMovers(){
  const rows=[];
@@ -932,8 +921,8 @@ function marketMovers(){
 function renderMarketMovers(){
  const el=document.getElementById('market-movement-dashboard'); if(!el)return;
  const m=marketMovers();
- const card=(title,icon,item,positive)=>item?`<div class="panel market-mover-card"><div class="panel-head"><div><h3>${icon} ${title}</h3><p>Seit dem letzten Rennstand Â· ${esc(item.label)}</p></div><span class="market-mover-delta ${positive?'up':'down'}">${positive?'+':''}${money(item.delta)}</span></div><div class="market-mover-main"><strong>${esc(item.name)}</strong><span>${money(item.prev)} â†’ <b>${money(item.current)}</b></span></div></div>`:`<div class="panel market-mover-card"><div class="panel-head"><div><h3>${icon} ${title}</h3><p>Seit dem letzten Rennstand</p></div></div><div class="empty-race">Noch keine MarktwertverÃ¤nderung vorhanden.</div></div>`;
- el.innerHTML=card('HÃ¶chster Marktwert-Anstieg','â¬†ï¸',m.rise,true)+card('HÃ¶chster Marktwert-Abstieg','â¬‡ï¸',m.fall,false);
+ const card=(title,icon,item,positive)=>item?`<div class="panel market-mover-card"><div class="panel-head"><div><h3>${icon} ${title}</h3><p>Seit dem letzten Rennstand · ${esc(item.label)}</p></div><span class="market-mover-delta ${positive?'up':'down'}">${positive?'+':''}${money(item.delta)}</span></div><div class="market-mover-main"><strong>${esc(item.name)}</strong><span>${money(item.prev)} → <b>${money(item.current)}</b></span></div></div>`:`<div class="panel market-mover-card"><div class="panel-head"><div><h3>${icon} ${title}</h3><p>Seit dem letzten Rennstand</p></div></div><div class="empty-race">Noch keine Marktwertveränderung vorhanden.</div></div>`;
+ el.innerHTML=card('Höchster Marktwert-Anstieg','⬆️',m.rise,true)+card('Höchster Marktwert-Abstieg','⬇️',m.fall,false);
 }
 function dotdForDivision(div){
   return null;
@@ -942,35 +931,35 @@ function dotdForDivision(div){
 function renderDashboard(){
  const cards=['Div 1','Div 2'].map(div=>{
    const ds=dotdForDivision(div);
-   if(!ds)return `<div class="panel dotd-card"><div class="panel-head"><div><h3>â­ Fahrer des Tages Â· ${div}</h3><p>Noch kein erfasstes Rennen</p></div></div><div class="empty-race">FÃ¼r ${div} liegt noch kein Rennergebnis vor.</div></div>`;
+   if(!ds)return `<div class="panel dotd-card"><div class="panel-head"><div><h3>⭐ Fahrer des Tages · ${div}</h3><p>Noch kein erfasstes Rennen</p></div></div><div class="empty-race">Für ${div} liegt noch kein Rennergebnis vor.</div></div>`;
    const r=ds.race,row=r.results.find(x=>normDriver(x.name)===normDriver(ds.driver));
    const pos=row?r.results.indexOf(row)+1:0;
-   return `<div class="panel dotd-card"><div class="panel-head"><div><h3>â­ Fahrer des Tages Â· ${div}</h3><p>${esc(r.track)} Â· Rennen ${r.number}</p></div><span class="dotd-badge">FdT</span></div><div class="dotd-main"><div><strong>${esc(normDriver(ds.driver))}</strong><span>${esc(row?.team||'')}</span></div><b>${row?pointsForPosition(pos,statusOfResult(row)):0} Pkt.</b></div><div class="dotd-stats"><span>Pos. <b>${pos||'â€”'}</b></span><span>Grid <b>${row?.grid??'â€”'}</b></span><span>Delta <b>${row?formatDelta(row.grid,pos):'â€”'}</b></span><span>Zeit <b>${esc(row?.time||'â€”')}</b></span></div></div>`;
+   return `<div class="panel dotd-card"><div class="panel-head"><div><h3>⭐ Fahrer des Tages · ${div}</h3><p>${esc(r.track)} · Rennen ${r.number}</p></div><span class="dotd-badge">FdT</span></div><div class="dotd-main"><div><strong>${esc(normDriver(ds.driver))}</strong><span>${esc(row?.team||'')}</span></div><b>${row?pointsForPosition(pos,statusOfResult(row)):0} Pkt.</b></div><div class="dotd-stats"><span>Pos. <b>${pos||'—'}</b></span><span>Grid <b>${row?.grid??'—'}</b></span><span>Delta <b>${row?formatDelta(row.grid,pos):'—'}</b></span><span>Zeit <b>${esc(row?.time||'—')}</b></span></div></div>`;
  }).join('');
  document.getElementById('dotd-dashboard').innerHTML=cards;
  renderMarketMovers();
 }
 function renderTeams(){
- document.getElementById('team-list').innerHTML=teams.map(t=>`<div class="team-card"><div class="team-head"><img class="team-car-mini" src="${teamCar(t.name)}" onerror="this.style.display='none'"><div><div class="team-name">${esc(t.name)}</div><div class="team-chief">Teamchef: ${esc(t.chief||'ohne Teamchef')}</div></div><div class="team-card-actions"><button class="team-edit-btn" onclick="openTeamContracts('${esc(t.name)}')">ðŸ“‹ Teamzentrale</button><button class="team-edit-btn" onclick="openTeamEditor('${esc(t.name)}')">âœï¸</button></div></div><div class="division"><div class="division-title">DIVISION 1</div><div class="drivers-two">${slot(t.d1[0])}${slot(t.d1[1])}</div></div><div class="division"><div class="division-title">DIVISION 2</div><div class="drivers-two">${slot(t.d2[0])}${slot(t.d2[1])}</div></div></div>`).join('');
- const free=drivers.filter(n=>getStatus(n)==='Free Agent').sort((a,b)=>normDriver(a).localeCompare(normDriver(b),'de'));const ersatz=drivers.filter(n=>getStatus(n)==='Ersatzfahrer').sort((a,b)=>normDriver(a).localeCompare(normDriver(b),'de'));const unavailable=drivers.filter(n=>getStatus(n)==='Nicht verfÃ¼gbar').sort((a,b)=>normDriver(a).localeCompare(normDriver(b),'de'));
- const freeNums=DOG_DRIVER_NUMBERS.filter(n=>{const st=driverNumberState(n,'','Stammfahrer');return st.state==='free'}); const blockedNums=F1_BLOCKED_NUMBERS.slice().sort((a,b)=>a-b); document.getElementById('driver-status-list').innerHTML=`<div class="status-card"><div class="status-image-wrap"><img src="free-agent.png" alt="Free Agent"></div><div><h3>Free Agent</h3><p>${free.length?free.map(n=>`${driverNumber(n)?'#'+driverNumber(n)+' Â· ':''}${esc(normDriver(n))}`).join(' Â· '):'Keine Fahrer'}</p></div></div><div class="status-card"><div class="status-image-wrap"><img src="dog-logo.png" alt="Ersatzfahrer"></div><div><h3>Ersatzfahrer</h3><p>${ersatz.length?ersatz.map(n=>`${driverNumber(n)?'#'+driverNumber(n)+' Â· ':''}${esc(normDriver(n))}`).join(' Â· '):'Keine Fahrer'}</p></div></div><div class="status-card"><div class="status-image-wrap"><img src="not-available.jpg" alt="Not Available"></div><div><h3>Nicht verfÃ¼gbar</h3><p>${unavailable.length?unavailable.map(n=>esc(normDriver(n))).join(' Â· '):'Keine Fahrer'}</p></div></div><div class="status-card number-overview-card"><div><h3>ðŸ Fahrernummern</h3><p><b>Freie Nummern:</b> ${freeNums.map(n=>`#${n}`).join(' Â· ')||'Keine'}</p><p class="driver-number-note"><b>F1 gesperrt:</b> ${blockedNums.map(n=>`#${n}`).join(' Â· ')}</p><p class="driver-number-note">Stammfahrer haben immer Vorrang vor Ersatzfahrern bei der Vergabe.</p></div></div>`;
+ document.getElementById('team-list').innerHTML=teams.map(t=>`<div class="team-card"><div class="team-head"><img class="team-car-mini" src="${teamCar(t.name)}" onerror="this.style.display='none'"><div><div class="team-name">${esc(t.name)}</div><div class="team-chief">Teamchef: ${esc(t.chief||'ohne Teamchef')}</div></div><div class="team-card-actions"><button class="team-edit-btn" onclick="openTeamContracts('${esc(t.name)}')">📋 Teamzentrale</button><button class="team-edit-btn" onclick="openTeamEditor('${esc(t.name)}')">✏️</button></div></div><div class="division"><div class="division-title">DIVISION 1</div><div class="drivers-two">${slot(t.d1[0])}${slot(t.d1[1])}</div></div><div class="division"><div class="division-title">DIVISION 2</div><div class="drivers-two">${slot(t.d2[0])}${slot(t.d2[1])}</div></div></div>`).join('');
+ const free=drivers.filter(n=>getStatus(n)==='Free Agent').sort((a,b)=>normDriver(a).localeCompare(normDriver(b),'de'));const ersatz=drivers.filter(n=>getStatus(n)==='Ersatzfahrer').sort((a,b)=>normDriver(a).localeCompare(normDriver(b),'de'));const unavailable=drivers.filter(n=>getStatus(n)==='Nicht verfügbar').sort((a,b)=>normDriver(a).localeCompare(normDriver(b),'de'));
+ const freeNums=DOG_DRIVER_NUMBERS.filter(n=>{const st=driverNumberState(n,'','Stammfahrer');return st.state==='free'}); const blockedNums=F1_BLOCKED_NUMBERS.slice().sort((a,b)=>a-b); document.getElementById('driver-status-list').innerHTML=`<div class="status-card"><div class="status-image-wrap"><img src="free-agent.png" alt="Free Agent"></div><div><h3>Free Agent</h3><p>${free.length?free.map(n=>`${driverNumber(n)?'#'+driverNumber(n)+' · ':''}${esc(normDriver(n))}`).join(' · '):'Keine Fahrer'}</p></div></div><div class="status-card"><div class="status-image-wrap"><img src="dog-logo.png" alt="Ersatzfahrer"></div><div><h3>Ersatzfahrer</h3><p>${ersatz.length?ersatz.map(n=>`${driverNumber(n)?'#'+driverNumber(n)+' · ':''}${esc(normDriver(n))}`).join(' · '):'Keine Fahrer'}</p></div></div><div class="status-card"><div class="status-image-wrap"><img src="not-available.jpg" alt="Not Available"></div><div><h3>Nicht verfügbar</h3><p>${unavailable.length?unavailable.map(n=>esc(normDriver(n))).join(' · '):'Keine Fahrer'}</p></div></div><div class="status-card number-overview-card"><div><h3>🏁 Fahrernummern</h3><p><b>Freie Nummern:</b> ${freeNums.map(n=>`#${n}`).join(' · ')||'Keine'}</p><p class="driver-number-note"><b>F1 gesperrt:</b> ${blockedNums.map(n=>`#${n}`).join(' · ')}</p><p class="driver-number-note">Stammfahrer haben immer Vorrang vor Ersatzfahrern bei der Vergabe.</p></div></div>`;
 }
 
 function openTransferManager(){
  if(!requireEditor())return;
  const season=seasonState.current||'02/26';
- const rows=transferRecords.filter(x=>x.season===season).sort((a,b)=>String(b.createdAt).localeCompare(String(a.createdAt))).map(x=>`<div class="contract-mini-card"><div><b>${esc(x.driver)}</b><span>${esc(x.division)} Â· ${esc(x.status)}</span></div><div><span>Von â†’ Nach</span><b>${esc(x.fromTeam||'Free Agent')} â†’ ${esc(x.toTeam)}</b></div><div><span>Leih-/AblÃ¶se</span><b>${money(x.fee||0)}</b></div><div><span>Wirksam</span><b>${esc(x.effectiveDate||('Runde '+(x.effectiveRound||'â€”')))}</b></div></div>`).join('') || '<div class="empty-race">FÃ¼r diese Saison sind noch keine Transfers hinterlegt.</div>';
+ const rows=transferRecords.filter(x=>x.season===season).sort((a,b)=>String(b.createdAt).localeCompare(String(a.createdAt))).map(x=>`<div class="contract-mini-card"><div><b>${esc(x.driver)}</b><span>${esc(x.division)} · ${esc(x.status)}</span></div><div><span>Von → Nach</span><b>${esc(x.fromTeam||'Free Agent')} → ${esc(x.toTeam)}</b></div><div><span>Leih-/Ablöse</span><b>${money(x.fee||0)}</b></div><div><span>Wirksam</span><b>${esc(x.effectiveDate||('Runde '+(x.effectiveRound||'—')))}</b></div></div>`).join('') || '<div class="empty-race">Für diese Saison sind noch keine Transfers hinterlegt.</div>';
  const driverOpts=drivers.slice().sort((a,b)=>a.localeCompare(b,'de')).map(n=>`<option value="${esc(n)}">${esc(n)}</option>`).join('');
  const teamOpts=['Free Agent',...TEAM_CHOICES].map(n=>`<option value="${esc(n)}">${esc(n)}</option>`).join('');
- document.getElementById('modal-content').innerHTML=`<div class="modal-head"><div><h2>ðŸ”„ Transfers Â· ${esc(season)}</h2><p class="race-edit-note">Fahrerwechsel, Teamwechsel und mÃ¶gliche AblÃ¶se werden saisonbezogen dokumentiert.</p></div><button onclick="closeModal()">Ã—</button></div><div class="transfer-form"><div class="new-driver-form"><label>Fahrer<select id="transfer-driver">${driverOpts}</select></label><label>Division<select id="transfer-div"><option>Div 1</option><option>Div 2</option></select></label><label>Von<select id="transfer-from">${teamOpts}</select></label><label>Nach<select id="transfer-to">${TEAM_CHOICES.map(n=>`<option value="${esc(n)}">${esc(n)}</option>`).join('')}</select></label><label>Wirksam ab Runde<input id="transfer-round" type="number" min="1" value="1"></label><label>Wirksam ab Datum<input id="transfer-date" type="date"></label><label>AblÃ¶se / Transferzahlung<input id="transfer-fee" placeholder="0 â‚¬"></label><label>Status<select id="transfer-status"><option>Vorgemerkt</option><option>Vollzogen</option><option>Storniert</option></select></label></div><label class="full-field">Notiz<textarea id="transfer-note" rows="3" placeholder="Optionale Vereinbarung zum Transfer"></textarea></label></div><div class="transfer-history"><h3>TRANSFERHISTORIE</h3>${rows}</div><div class="modal-actions"><button class="ghost" onclick="closeModal()">Abbrechen</button><button class="primary" onclick="saveTransfer()">âœ“ Transfer speichern</button></div>`;openModal();
+ document.getElementById('modal-content').innerHTML=`<div class="modal-head"><div><h2>🔄 Transfers · ${esc(season)}</h2><p class="race-edit-note">Fahrerwechsel, Teamwechsel und mögliche Ablöse werden saisonbezogen dokumentiert.</p></div><button onclick="closeModal()">×</button></div><div class="transfer-form"><div class="new-driver-form"><label>Fahrer<select id="transfer-driver">${driverOpts}</select></label><label>Division<select id="transfer-div"><option>Div 1</option><option>Div 2</option></select></label><label>Von<select id="transfer-from">${teamOpts}</select></label><label>Nach<select id="transfer-to">${TEAM_CHOICES.map(n=>`<option value="${esc(n)}">${esc(n)}</option>`).join('')}</select></label><label>Wirksam ab Runde<input id="transfer-round" type="number" min="1" value="1"></label><label>Wirksam ab Datum<input id="transfer-date" type="date"></label><label>Ablöse / Transferzahlung<input id="transfer-fee" placeholder="0 €"></label><label>Status<select id="transfer-status"><option>Vorgemerkt</option><option>Vollzogen</option><option>Storniert</option></select></label></div><label class="full-field">Notiz<textarea id="transfer-note" rows="3" placeholder="Optionale Vereinbarung zum Transfer"></textarea></label></div><div class="transfer-history"><h3>TRANSFERHISTORIE</h3>${rows}</div><div class="modal-actions"><button class="ghost" onclick="closeModal()">Abbrechen</button><button class="primary" onclick="saveTransfer()">✓ Transfer speichern</button></div>`;openModal();
 }
 function saveTransfer(){
  if(!requireEditor())return;
  const driver=document.getElementById('transfer-driver').value, div=document.getElementById('transfer-div').value, from=document.getElementById('transfer-from').value, to=document.getElementById('transfer-to').value, round=Number(document.getElementById('transfer-round').value)||1, date=document.getElementById('transfer-date').value, fee=parseMoneyValue(document.getElementById('transfer-fee').value), status=document.getElementById('transfer-status').value;
- if(!driver||!to||to==='Free Agent'){toast('Bitte ein Zielteam auswÃ¤hlen.');return}
- if(from===to){toast('Start- und Zielteam dÃ¼rfen nicht identisch sein.');return}
+ if(!driver||!to||to==='Free Agent'){toast('Bitte ein Zielteam auswählen.');return}
+ if(from===to){toast('Start- und Zielteam dürfen nicht identisch sein.');return}
  const target=teams.find(t=>t.name===to);if(!target){toast('Zielteam nicht gefunden.');return}
- const arr=div==='Div 1'?target.d1:target.d2;if(arr.length>=2){toast(`âš ï¸ ${to} ist in ${div} bereits voll besetzt.`);return}
+ const arr=div==='Div 1'?target.d1:target.d2;if(arr.length>=2){toast(`⚠️ ${to} ist in ${div} bereits voll besetzt.`);return}
  if(arr.some(n=>normDriver(n)===normDriver(driver))){toast('Der Fahrer ist bereits im Zielteam.');return}
  // Remove driver from all current team slots.
  teams.forEach(t=>{t.d1=t.d1.filter(n=>normDriver(n)!==normDriver(driver));t.d2=t.d2.filter(n=>normDriver(n)!==normDriver(driver));});
@@ -982,8 +971,8 @@ function saveTransfer(){
  const rec={id:crypto.randomUUID?crypto.randomUUID():'transfer-'+Date.now(),driver:normDriver(driver),season:seasonState.current||'02/26',division,fromTeam:from==='Free Agent'?'':from,toTeam:to,effectiveRound:round,effectiveDate:date,fee,status,note:document.getElementById('transfer-note').value.trim(),createdAt:new Date().toISOString()};
  transferRecords.push(rec);
  if(fee>0&&status==='Vollzogen'){
-   financeAddTransaction({season:rec.season,team:to,driver:rec.driver,type:'transfer_fee',description:`Transfer/AblÃ¶se fÃ¼r ${rec.driver}${from&&from!=='Free Agent'?` Â· von ${from}`:''}`,amount:-fee});
-   if(from&&from!=='Free Agent') financeAddTransaction({season:rec.season,team:from,driver:rec.driver,type:'transfer_fee_income',description:`Transfer/AblÃ¶se fÃ¼r ${rec.driver} Â· zu ${to}`,amount:fee});
+   financeAddTransaction({season:rec.season,team:to,driver:rec.driver,type:'transfer_fee',description:`Transfer/Ablöse für ${rec.driver}${from&&from!=='Free Agent'?` · von ${from}`:''}`,amount:-fee});
+   if(from&&from!=='Free Agent') financeAddTransaction({season:rec.season,team:from,driver:rec.driver,type:'transfer_fee_income',description:`Transfer/Ablöse für ${rec.driver} · zu ${to}`,amount:fee});
  }
  save();closeModal();renderTeams();initDriverOverview();renderFinance();toast(`Transfer ${status==='Vollzogen'?'vollzogen':'vorgemerkt'}.`);
 }
@@ -1003,13 +992,13 @@ function teamSlotState(teamName,season){
 function openTeamContracts(teamName){
  const season=seasonState.current||'02/26', t=teams.find(x=>x.name===teamName), slots=teamSlotState(teamName,season);
  const list=contracts.filter(c=>c.team===teamName&&c.season===season).sort((a,b)=>String(a.division).localeCompare(String(b.division))||String(a.driver).localeCompare(String(b.driver),'de'));
- const cards=list.length?list.map(c=>`<div class="contract-mini-card ${contractStatusClass(c.status)}"><div><b>${esc(c.driver)}</b><span>${esc(c.division||'â€”')} Â· gesamte Saison</span></div><div><span>Gehalt</span><b>${esc(c.salary||c.value||'â€”')}</b></div><div><span>Laufzeit</span><b>Gesamte Saison ${esc(c.season)}</b></div><button class="mini-link" onclick="openContractEditor('${esc(c.driver)}','${esc(c.id)}')">Ansehen</button></div>`).join(''):'<div class="empty-race">FÃ¼r dieses Team sind in der aktuellen Saison noch keine VertrÃ¤ge hinterlegt.</div>';
- document.getElementById('modal-content').innerHTML=`<div class="modal-head"><div><h2>ðŸ“‹ ${esc(teamName)} Â· Teamzentrale</h2><p class="race-edit-note">Saison <b>${esc(season)}</b> Â· Teamchef: <b>${esc(t?.chief||'ohne Teamchef')}</b></p></div><button onclick="closeModal()">Ã—</button></div><div class="team-contract-overview"><div class="team-slot-summary"><span>DIV 1 <b>${slots.d1}/2</b></span><span>DIV 2 <b>${slots.d2}/2</b></span><span>VERTRÃ„GE <b>${slots.contracts}</b></span></div><div class="team-central-note">Ein Fahrerplatz und ein Vertrag sind getrennte Dinge: RaceHub zeigt deshalb beide ZustÃ¤nde an und verhindert keine gÃ¼ltige Historie durch bloÃŸe Slotbelegung.</div></div><div class="contract-team-list">${cards}</div><div class="modal-actions"><button class="ghost" onclick="openContractEditor('','')">âž• Vertrag hinzufÃ¼gen</button><button class="primary" onclick="closeModal()">Fertig</button></div>`;openModal();
+ const cards=list.length?list.map(c=>`<div class="contract-mini-card ${contractStatusClass(c.status)}"><div><b>${esc(c.driver)}</b><span>${esc(c.division||'—')} · gesamte Saison</span></div><div><span>Gehalt</span><b>${esc(c.salary||c.value||'—')}</b></div><div><span>Laufzeit</span><b>Gesamte Saison ${esc(c.season)}</b></div><button class="mini-link" onclick="openContractEditor('${esc(c.driver)}','${esc(c.id)}')">Ansehen</button></div>`).join(''):'<div class="empty-race">Für dieses Team sind in der aktuellen Saison noch keine Verträge hinterlegt.</div>';
+ document.getElementById('modal-content').innerHTML=`<div class="modal-head"><div><h2>📋 ${esc(teamName)} · Teamzentrale</h2><p class="race-edit-note">Saison <b>${esc(season)}</b> · Teamchef: <b>${esc(t?.chief||'ohne Teamchef')}</b></p></div><button onclick="closeModal()">×</button></div><div class="team-contract-overview"><div class="team-slot-summary"><span>DIV 1 <b>${slots.d1}/2</b></span><span>DIV 2 <b>${slots.d2}/2</b></span><span>VERTRÄGE <b>${slots.contracts}</b></span></div><div class="team-central-note">Ein Fahrerplatz und ein Vertrag sind getrennte Dinge: RaceHub zeigt deshalb beide Zustände an und verhindert keine gültige Historie durch bloße Slotbelegung.</div></div><div class="contract-team-list">${cards}</div><div class="modal-actions"><button class="ghost" onclick="openContractEditor('','')">➕ Vertrag hinzufügen</button><button class="primary" onclick="closeModal()">Fertig</button></div>`;openModal();
 }
 function openTeamEditor(teamName){
  if(!requireEditor())return; const t=teams.find(x=>x.name===teamName); if(!t)return;
- const opts=(selected)=>['',...drivers].filter((v,i,a)=>a.indexOf(v)===i).sort((a,b)=>a.localeCompare(b,'de')).map(n=>`<option value="${esc(n)}" ${n===selected?'selected':''}>${n||'â€” leer â€”'}</option>`).join('');
- document.getElementById('modal-content').innerHTML=`<div class="modal-head"><div><h2>âœï¸ ${esc(t.name)}</h2><p class="race-edit-note">Teamchef und Fahreraufstellung bearbeiten. Ã„nderungen wirken sofort auf die aktuelle Saison.</p></div><button onclick="closeModal()">Ã—</button></div><div class="team-edit-form"><label>Teamchef<select id="team-chief-edit"><option value="">â€” kein Teamchef â€”</option>${drivers.map(n=>`<option value="${esc(n)}" ${normDriver(t.chief||'')===normDriver(n)?'selected':''}>${esc(n)}</option>`).join('')}</select></label><h3>Division 1</h3><div class="slot-edit"><select id="t-d1-0">${opts(t.d1[0]||'')}</select><select id="t-d1-1">${opts(t.d1[1]||'')}</select></div><h3>Division 2</h3><div class="slot-edit"><select id="t-d2-0">${opts(t.d2[0]||'')}</select><select id="t-d2-1">${opts(t.d2[1]||'')}</select></div><p class="race-edit-note">Ein Fahrer kann nur einmal im selben Team stehen. Freie Slots bleiben leer.</p></div><div class="modal-actions"><button class="ghost" onclick="closeModal()">Abbrechen</button><button class="primary" onclick="saveTeamEditor('${esc(t.name)}')">âœ“ Team speichern</button></div>`;openModal();
+ const opts=(selected)=>['',...drivers].filter((v,i,a)=>a.indexOf(v)===i).sort((a,b)=>a.localeCompare(b,'de')).map(n=>`<option value="${esc(n)}" ${n===selected?'selected':''}>${n||'— leer —'}</option>`).join('');
+ document.getElementById('modal-content').innerHTML=`<div class="modal-head"><div><h2>✏️ ${esc(t.name)}</h2><p class="race-edit-note">Teamchef und Fahreraufstellung bearbeiten. Änderungen wirken sofort auf die aktuelle Saison.</p></div><button onclick="closeModal()">×</button></div><div class="team-edit-form"><label>Teamchef<select id="team-chief-edit"><option value="">— kein Teamchef —</option>${drivers.map(n=>`<option value="${esc(n)}" ${normDriver(t.chief||'')===normDriver(n)?'selected':''}>${esc(n)}</option>`).join('')}</select></label><h3>Division 1</h3><div class="slot-edit"><select id="t-d1-0">${opts(t.d1[0]||'')}</select><select id="t-d1-1">${opts(t.d1[1]||'')}</select></div><h3>Division 2</h3><div class="slot-edit"><select id="t-d2-0">${opts(t.d2[0]||'')}</select><select id="t-d2-1">${opts(t.d2[1]||'')}</select></div><p class="race-edit-note">Ein Fahrer kann nur einmal im selben Team stehen. Freie Slots bleiben leer.</p></div><div class="modal-actions"><button class="ghost" onclick="closeModal()">Abbrechen</button><button class="primary" onclick="saveTeamEditor('${esc(t.name)}')">✓ Team speichern</button></div>`;openModal();
 }
 function saveTeamEditor(teamName){
  if(!requireEditor())return; const t=teams.find(x=>x.name===teamName);if(!t)return;
@@ -1019,27 +1008,27 @@ function saveTeamEditor(teamName){
  // Explicitly remove previous occupants from this team; selected drivers are then assigned below.
  teams.forEach(x=>{if(x!==t){x.d1=x.d1.filter(n=>!all.some(a=>normDriver(a)===normDriver(n)));x.d2=x.d2.filter(n=>!all.some(a=>normDriver(a)===normDriver(n)));}});
  const selectedChief=document.getElementById('team-chief-edit').value.trim();if(selectedChief)teams.forEach(x=>{if(x!==t&&normDriver(x.chief||'')===normDriver(selectedChief))x.chief='';});t.chief=selectedChief||'ohne Teamchef';t.d1=d1;t.d2=d2;syncTeamChiefRoles();
- drivers.forEach(n=>{const m=driverRecord(n);if(!m)driverMeta[n]={id:(crypto.randomUUID?crypto.randomUUID():'dog-'+Date.now()+'-'+Math.random()),division:currentDivision(n)==='â€”'?'Div 2':currentDivision(n),team:'',status:getStatus(n)};});
+ drivers.forEach(n=>{const m=driverRecord(n);if(!m)driverMeta[n]={id:(crypto.randomUUID?crypto.randomUUID():'dog-'+Date.now()+'-'+Math.random()),division:currentDivision(n)==='—'?'Div 2':currentDivision(n),team:'',status:getStatus(n)};});
  const assigned=new Set([...t.d1,...t.d2].map(normDriver)); drivers.forEach(n=>{const m=driverMeta[n]||{};if(assigned.has(normDriver(n))){m.team=t.name;m.division=t.d1.some(x=>normDriver(x)===normDriver(n))?'Div 1':'Div 2';m.status='Stammfahrer';driverMeta[n]=m;}else if(m.team===t.name){m.team='';m.status='Free Agent';driverMeta[n]=m;}});
  save();closeModal();renderTeams();initDriverOverview();updateStats();toast(`${t.name} gespeichert.`);
 }
 function openDriverEditor(name){
  if(!requireEditor())return;
- const m=driverRecord(name)||{},team=driverTeam(name),div=currentDivision(name)==='â€”'?(m.division||'Div 2'):currentDivision(name);
- const opts=TEAM_CHOICES.map(t=>`<option value="${esc(t)}" ${t===team?'selected':''}>${t||'â€” kein Team / Free Agent â€”'}</option>`).join('');
+ const m=driverRecord(name)||{},team=driverTeam(name),div=currentDivision(name)==='—'?(m.division||'Div 2'):currentDivision(name);
+ const opts=TEAM_CHOICES.map(t=>`<option value="${esc(t)}" ${t===team?'selected':''}>${t||'— kein Team / Free Agent —'}</option>`).join('');
  const sponsor=m.sponsorInfo||{};
- document.getElementById('modal-content').innerHTML=`<div class="modal-head"><div><h2>âœï¸ Fahrer bearbeiten</h2><p class="race-edit-note">Die interne Fahrer-ID bleibt erhalten. Auch Ersatzfahrer kÃ¶nnen hier einen eigenen Sponsor erhalten.</p></div><button onclick="closeModal()">Ã—</button></div><div class="new-driver-form"><label>Fahrername<input id="edit-driver-name" value="${esc(normDriver(name))}"></label><label>NationalitÃ¤t<select id="edit-driver-nationality">${nationalityOptions(m.nationality||'')}</select></label><label>Division<select id="edit-driver-div"><option ${div==='Div 1'?'selected':''}>Div 1</option><option ${div==='Div 2'?'selected':''}>Div 2</option></select></label><label>Status<select id="edit-driver-status" onchange="refreshEditDriverNumberOptions('${esc(name)}')"><option ${getStatus(name)==='Stammfahrer'?'selected':''}>Stammfahrer</option><option ${getStatus(name)==='Ersatzfahrer'?'selected':''}>Ersatzfahrer</option><option ${getStatus(name)==='Free Agent'?'selected':''}>Free Agent</option><option ${getStatus(name)==='Nicht verfÃ¼gbar'?'selected':''}>Nicht verfÃ¼gbar</option></select></label><label>Fahrernummer<select id="edit-driver-number">${driverNumberOptions(name,getStatus(name),driverNumber(name))}</select></label><label>Team<select id="edit-driver-team">${opts}</select></label></div><div class="contract-form-section"><h3>ðŸ¤ FAHRERSPONSOR</h3><div class="new-driver-form"><label>Sponsor<select id="edit-driver-sponsor"><option value="">Kein Sponsor</option>${Object.keys(SPONSOR_OPTIONS).map(x=>`<option value="${esc(x)}" ${sponsor.sponsor===x?'selected':''}>${esc(x)}</option>`).join('')}</select></label><label>Sponsor-Logo (optional)<input id="edit-driver-sponsor-logo" value="${esc(sponsor.logo||'')}"></label></div><div class="race-edit-note">Gilt auch fÃ¼r Ersatzfahrer. Wenn fÃ¼r dieselbe Saison ein Fahrervertrag mit Sponsor existiert, hat der Vertrag Vorrang.</div></div><div class="driver-role-editor"><div class="role-title">Rolle im Team</div><label class="role-check"><input type="checkbox" checked disabled> Fahrer</label><label class="role-check"><input type="checkbox" id="edit-driver-role-chief" ${driverIsTeamChief(name)?'checked':''}> Teamchef</label><div class="role-hint">Ein Fahrer kann gleichzeitig Teamchef sein.</div></div><div class="modal-actions"><button class="ghost" onclick="closeModal()">Abbrechen</button><button class="danger" onclick="deleteDriverWithConfirmation('${esc(name)}')">ðŸ—‘ï¸ Fahrer lÃ¶schen</button><button class="primary" onclick="saveDriverEditor('${esc(name)}')">âœ“ Fahrer speichern</button></div>`;openModal();
+ document.getElementById('modal-content').innerHTML=`<div class="modal-head"><div><h2>✏️ Fahrer bearbeiten</h2><p class="race-edit-note">Die interne Fahrer-ID bleibt erhalten. Auch Ersatzfahrer können hier einen eigenen Sponsor erhalten.</p></div><button onclick="closeModal()">×</button></div><div class="new-driver-form"><label>Fahrername<input id="edit-driver-name" value="${esc(normDriver(name))}"></label><label>Nationalität<select id="edit-driver-nationality">${nationalityOptions(m.nationality||'')}</select></label><label>Division<select id="edit-driver-div"><option ${div==='Div 1'?'selected':''}>Div 1</option><option ${div==='Div 2'?'selected':''}>Div 2</option></select></label><label>Status<select id="edit-driver-status" onchange="refreshEditDriverNumberOptions('${esc(name)}')"><option ${getStatus(name)==='Stammfahrer'?'selected':''}>Stammfahrer</option><option ${getStatus(name)==='Ersatzfahrer'?'selected':''}>Ersatzfahrer</option><option ${getStatus(name)==='Free Agent'?'selected':''}>Free Agent</option><option ${getStatus(name)==='Nicht verfügbar'?'selected':''}>Nicht verfügbar</option></select></label><label>Fahrernummer<select id="edit-driver-number">${driverNumberOptions(name,getStatus(name),driverNumber(name))}</select></label><label>Team<select id="edit-driver-team">${opts}</select></label></div><div class="contract-form-section"><h3>🤝 FAHRERSPONSOR</h3><div class="new-driver-form"><label>Sponsor<select id="edit-driver-sponsor"><option value="">Kein Sponsor</option>${Object.keys(SPONSOR_OPTIONS).map(x=>`<option value="${esc(x)}" ${sponsor.sponsor===x?'selected':''}>${esc(x)}</option>`).join('')}</select></label><label>Sponsor-Logo (optional)<input id="edit-driver-sponsor-logo" value="${esc(sponsor.logo||'')}"></label></div><div class="race-edit-note">Gilt auch für Ersatzfahrer. Wenn für dieselbe Saison ein Fahrervertrag mit Sponsor existiert, hat der Vertrag Vorrang.</div></div><div class="driver-role-editor"><div class="role-title">Rolle im Team</div><label class="role-check"><input type="checkbox" checked disabled> Fahrer</label><label class="role-check"><input type="checkbox" id="edit-driver-role-chief" ${driverIsTeamChief(name)?'checked':''}> Teamchef</label><div class="role-hint">Ein Fahrer kann gleichzeitig Teamchef sein.</div></div><div class="modal-actions"><button class="ghost" onclick="closeModal()">Abbrechen</button><button class="danger" onclick="deleteDriverWithConfirmation('${esc(name)}')">🗑️ Fahrer löschen</button><button class="primary" onclick="saveDriverEditor('${esc(name)}')">✓ Fahrer speichern</button></div>`;openModal();
 }
 function deleteDriverWithConfirmation(name){
  if(!requireEditor())return;
  const canonical=normDriver(name);
  if(!drivers.some(n=>normDriver(n)===canonical))return;
- const first=confirm(`âš ï¸ Fahrer lÃ¶schen?\n\n${canonical} wird vollstÃ¤ndig aus der Fahrer-Datenbank entfernt. ZugehÃ¶rige VertrÃ¤ge, Finanzbuchungen, Lizenzen, Leihen/Transfers und Rennresultate dieses Fahrers werden ebenfalls gelÃ¶scht.\n\nDieser Vorgang kann nicht rÃ¼ckgÃ¤ngig gemacht werden.`);
+ const first=confirm(`⚠️ Fahrer löschen?\n\n${canonical} wird vollständig aus der Fahrer-Datenbank entfernt. Zugehörige Verträge, Finanzbuchungen, Lizenzen, Leihen/Transfers und Rennresultate dieses Fahrers werden ebenfalls gelöscht.\n\nDieser Vorgang kann nicht rückgängig gemacht werden.`);
  if(!first)return;
- const second=prompt(`ZWEITE BESTÃ„TIGUNG\n\nBitte den Fahrernamen exakt eingeben, um die LÃ¶schung zu bestÃ¤tigen:\n${canonical}`);
+ const second=prompt(`ZWEITE BESTÄTIGUNG\n\nBitte den Fahrernamen exakt eingeben, um die Löschung zu bestätigen:\n${canonical}`);
  if(second===null)return;
- if(normDriver(second)!==canonical){toast('LÃ¶schung abgebrochen: Fahrername stimmt nicht exakt Ã¼berein.');return;}
- const really=confirm(`Letzte BestÃ¤tigung: Fahrer â€ž${canonical}â€œ wirklich endgÃ¼ltig lÃ¶schen?`);
+ if(normDriver(second)!==canonical){toast('Löschung abgebrochen: Fahrername stimmt nicht exakt überein.');return;}
+ const really=confirm(`Letzte Bestätigung: Fahrer „${canonical}“ wirklich endgültig löschen?`);
  if(!really)return;
  const removedContracts=contracts.filter(c=>normDriver(c.driver)===canonical);
  const removedContractIds=new Set(removedContracts.map(c=>String(c.id)));
@@ -1064,7 +1053,7 @@ function deleteDriverWithConfirmation(name){
  Object.keys(driverFinanceOpeningDates).forEach(season=>{if(driverFinanceOpeningDates[season])delete driverFinanceOpeningDates[season][canonical]});
  Object.keys(driverLicenses).forEach(season=>{if(driverLicenses[season])delete driverLicenses[season][canonical]});
  save(); closeModal(); renderTeams(); initDriverOverview(); renderWM(); renderKWM(); renderDashboard(); renderFinance(); updateStats();
- toast(`Fahrer ${canonical} wurde vollstÃ¤ndig gelÃ¶scht.`);
+ toast(`Fahrer ${canonical} wurde vollständig gelöscht.`);
 }
 
 function cancelDriverSponsorUpfront(entity){
@@ -1091,11 +1080,11 @@ function saveDriverEditor(oldName){
  const oldSponsor=driverSponsorEntity(oldName,oldMeta.sponsorInfo?.season||seasonState.current||'02/26');
  const oldSponsorChanged=oldSponsor&&sponsorPayments[sponsorPaymentKey(oldSponsor.id,'upfront','start')]&&(!sponsorName||sponsorName!==oldMeta.sponsorInfo?.sponsor);
  if(oldSponsorChanged){
-   if(!confirm(`Der bisherige Fahrersponsor wird geÃ¤ndert/entfernt.\\n\\nDie bereits gebuchte Sponsor-Sofortzahlung wird dadurch ungÃ¼ltig.\\n\\nSofortzahlung stornieren und Fahrer speichern?`))return;
+   if(!confirm(`Der bisherige Fahrersponsor wird geändert/entfernt.\\n\\nDie bereits gebuchte Sponsor-Sofortzahlung wird dadurch ungültig.\\n\\nSofortzahlung stornieren und Fahrer speichern?`))return;
    cancelDriverSponsorUpfront(oldSponsor);
  }
  const ns=number?driverNumberState(number,newName,status):{state:'free'};
- if(number&&(ns.state==='blocked'||ns.state==='taken-stamm'||(ns.state==='taken-ersatz'&&status!=='Stammfahrer'))){toast(`Fahrernummer #${number} ist nicht verfÃ¼gbar.`);return}
+ if(number&&(ns.state==='blocked'||ns.state==='taken-stamm'||(ns.state==='taken-ersatz'&&status!=='Stammfahrer'))){toast(`Fahrernummer #${number} ist nicht verfügbar.`);return}
  drivers[idx]=newName;
  teams.forEach(t=>{if(normDriver(t.chief||'')===normDriver(oldName))t.chief=newName;});
  const meta=oldMeta.id?{...oldMeta}:{id:(crypto.randomUUID?crypto.randomUUID():'dog-'+Date.now()),createdAt:new Date().toISOString()};
@@ -1118,10 +1107,10 @@ function saveDriverEditor(oldName){
 }
 function refreshNewDriverNumberOptions(){const s=document.getElementById('new-driver-status'),el=document.getElementById('new-driver-number');if(s&&el){const current=Number(el.value)||0;el.innerHTML=driverNumberOptions('',s.value,current);if([...el.options].some(o=>Number(o.value)===current&&!o.disabled))el.value=current;else el.value='0';}}
 function refreshEditDriverNumberOptions(name){const s=document.getElementById('edit-driver-status'),el=document.getElementById('edit-driver-number');if(s&&el){const current=Number(el.value)||0;el.innerHTML=driverNumberOptions(name,s.value,current);if([...el.options].some(o=>Number(o.value)===current&&!o.disabled))el.value=current;else el.value='0';}}
-function slot(n){if(!n)return `<div class="driver-slot">â€”</div>`;const st=getStatus(n);const cls=st==='Free Agent'?' free':st==='Nicht verfÃ¼gbar'?' unavailable':'';return `<div class="driver-slot${cls}"><span>${esc(n)}</span></div>`}
+function slot(n){if(!n)return `<div class="driver-slot">—</div>`;const st=getStatus(n);const cls=st==='Free Agent'?' free':st==='Nicht verfügbar'?' unavailable':'';return `<div class="driver-slot${cls}"><span>${esc(n)}</span></div>`}
 function raceList(){return Object.values(races).sort((a,b)=>b.number-a.number||a.division.localeCompare(b.division,'de'))}
 function seasonRaceList(season=seasonState.current||'02/26'){return raceList().filter(r=>seasonOfRace(r)===season)}
-function seasonOptions(id,selected){const el=document.getElementById(id);if(!el)return;const seasons=Object.values(SEASON_META.seasons).sort((a,b)=>String(b.label).localeCompare(String(a.label),'de'));el.innerHTML=seasons.map(x=>`<option value="${esc(x.label)}" ${x.label===selected?'selected':''}>${esc(x.label)}${x.status==='test'?' Â· Test':''}</option>`).join('');}
+function seasonOptions(id,selected){const el=document.getElementById(id);if(!el)return;const seasons=Object.values(SEASON_META.seasons).sort((a,b)=>String(b.label).localeCompare(String(a.label),'de'));el.innerHTML=seasons.map(x=>`<option value="${esc(x.label)}" ${x.label===selected?'selected':''}>${esc(x.label)}${x.status==='test'?' · Test':''}</option>`).join('');}
 function initSeasonSelectors(){seasonOptions('wm-season',seasonState.current||'02/26');seasonOptions('kwm-season',seasonState.current||'02/26');}
 function initRaceSelectors(){
  const seasonEl=document.getElementById('race-season');
@@ -1131,14 +1120,14 @@ function initRaceSelectors(){
  const currentSeason=seasonState.current||'02/26';
  const seasons=Object.values(SEASON_META.seasons).sort((a,b)=>String(b.label).localeCompare(String(a.label),'de'));
  const previous=seasonEl.value||currentSeason;
- seasonEl.innerHTML=seasons.map(x=>`<option value="${esc(x.label)}" ${x.label===previous?'selected':''}>${esc(x.label)}${x.status==='test'?' Â· Test':''}</option>`).join('');
+ seasonEl.innerHTML=seasons.map(x=>`<option value="${esc(x.label)}" ${x.label===previous?'selected':''}>${esc(x.label)}${x.status==='test'?' · Test':''}</option>`).join('');
  if(!seasons.some(x=>x.label===previous))seasonEl.value=currentSeason;
  const season=seasonEl.value||currentSeason;
  const div=divEl.value;
  const tracks=[...new Set([...ACTIVE_TRACKS,...Object.values(races).map(r=>r.track).filter(Boolean)])]
    .filter(t=>Object.values(races).some(r=>seasonOfRace(r)===season&&r.division===div&&r.track===t) || Object.values(races).some(r=>seasonOfRace(r)===season&&r.track===t))
    .sort((a,b)=>(TRACK_NUMBERS[b]||0)-(TRACK_NUMBERS[a]||0)||a.localeCompare(b,'de'));
- sel.innerHTML=tracks.map(x=>`<option value="${esc(x)}">Rennen ${TRACK_NUMBERS[x]||'â€”'} Â· ${esc(x)}</option>`).join('');
+ sel.innerHTML=tracks.map(x=>`<option value="${esc(x)}">Rennen ${TRACK_NUMBERS[x]||'—'} · ${esc(x)}</option>`).join('');
  const existing=raceList().find(r=>seasonOfRace(r)===season&&r.division===div);
  sel.value=existing?.track||tracks[0]||'';
  renderSelectedRace();
@@ -1149,54 +1138,54 @@ function renderSelectedRace(){
  const r=Object.values(races).find(x=>seasonOfRace(x)===season&&x.division===div&&x.track===track);
  if(r){document.getElementById('race-editor').innerHTML=raceCard(r);return;}
  const other=Object.values(races).find(x=>seasonOfRace(x)===season&&x.track===track);
- document.getElementById('race-editor').innerHTML=`<div class="empty-race"><h3>ðŸ ${esc(track||'Strecke')}</h3><p>FÃ¼r <b>${esc(season)}</b> Â· <b>${esc(div)}</b> gibt es dieses Rennen noch nicht.</p>${isEditor()?`<button class="primary" onclick="createMissingDivisionRace('${esc(track)}','${esc(div)}','${esc(season)}',${Number(other?.number||TRACK_NUMBERS[track]||1)})">âž• Rennen fÃ¼r ${esc(div)} anlegen</button>`:''}</div>`;
+ document.getElementById('race-editor').innerHTML=`<div class="empty-race"><h3>🏁 ${esc(track||'Strecke')}</h3><p>Für <b>${esc(season)}</b> · <b>${esc(div)}</b> gibt es dieses Rennen noch nicht.</p>${isEditor()?`<button class="primary" onclick="createMissingDivisionRace('${esc(track)}','${esc(div)}','${esc(season)}',${Number(other?.number||TRACK_NUMBERS[track]||1)})">➕ Rennen für ${esc(div)} anlegen</button>`:''}</div>`;
 }
-function openAddRace(){if(!requireEditor())return;const seasons=Object.keys(SEASON_META.seasons).sort().reverse();const defaultSeason=seasonState.current||'02/26';const maxNo=Math.max(0,...Object.values(races).filter(r=>(r.season||'02/26')===defaultSeason).map(r=>Number(r.number)||0))+1;document.getElementById('modal-content').innerHTML=`<div class="modal-head"><div><h2>ðŸ Rennen hinzufÃ¼gen</h2><p class="race-edit-note">Neues Rennen anlegen. Die Ergebnisse kÃ¶nnen danach direkt per OCR aus deinen Rennbildern erfasst werden.</p></div><button onclick="closeModal()">Ã—</button></div><div class="new-driver-form"><label>Saison<select id="new-race-season">${seasons.map(x=>`<option value="${esc(x)}" ${x===defaultSeason?'selected':''}>${esc(x)}</option>`).join('')}</select></label><label>Division<select id="new-race-div"><option>Div 1</option><option>Div 2</option></select></label><label>Rennnummer<input id="new-race-number" type="number" min="1" max="99" value="${maxNo}"></label><label>Renn-Datum<input id="new-race-date" type="date"></label><label>Strecke<input id="new-race-track" value="" placeholder="z. B. Imola" autofocus></label></div><div class="modal-actions"><button class="ghost" onclick="closeModal()">Abbrechen</button><button class="primary" onclick="saveNewRace()">âœ“ Rennen anlegen</button></div>`;openModal()}
+function openAddRace(){if(!requireEditor())return;const seasons=Object.keys(SEASON_META.seasons).sort().reverse();const defaultSeason=seasonState.current||'02/26';const maxNo=Math.max(0,...Object.values(races).filter(r=>(r.season||'02/26')===defaultSeason).map(r=>Number(r.number)||0))+1;document.getElementById('modal-content').innerHTML=`<div class="modal-head"><div><h2>🏁 Rennen hinzufügen</h2><p class="race-edit-note">Neues Rennen anlegen. Die Ergebnisse können danach direkt per OCR aus deinen Rennbildern erfasst werden.</p></div><button onclick="closeModal()">×</button></div><div class="new-driver-form"><label>Saison<select id="new-race-season">${seasons.map(x=>`<option value="${esc(x)}" ${x===defaultSeason?'selected':''}>${esc(x)}</option>`).join('')}</select></label><label>Division<select id="new-race-div"><option>Div 1</option><option>Div 2</option></select></label><label>Rennnummer<input id="new-race-number" type="number" min="1" max="99" value="${maxNo}"></label><label>Renn-Datum<input id="new-race-date" type="date"></label><label>Strecke<input id="new-race-track" value="" placeholder="z. B. Imola" autofocus></label></div><div class="modal-actions"><button class="ghost" onclick="closeModal()">Abbrechen</button><button class="primary" onclick="saveNewRace()">✓ Rennen anlegen</button></div>`;openModal()}
 function openRaceMetaEditor(id){
  if(!requireEditor())return; const r=races[id]; if(!r)return;
  const seasons=Object.values(SEASON_META.seasons).sort((a,b)=>String(b.label).localeCompare(String(a.label),'de'));
- document.getElementById('modal-content').innerHTML=`<div class="modal-head"><div><h2>âš™ï¸ Rennen bearbeiten</h2><p class="race-edit-note">Saison, Division, Rennnummer und Strecke kÃ¶nnen geÃ¤ndert werden. Historische Ergebnisdaten bleiben erhalten.</p></div><button onclick="closeModal()">Ã—</button></div><div class="new-driver-form"><label>Saison<select id="edit-race-season">${seasons.map(x=>`<option value="${esc(x.label)}" ${x.label===seasonOfRace(r)?'selected':''}>${esc(x.label)}${x.status==='test'?' Â· Test':''}</option>`).join('')}</select></label><label>Division<select id="edit-race-div"><option ${r.division==='Div 1'?'selected':''}>Div 1</option><option ${r.division==='Div 2'?'selected':''}>Div 2</option></select></label><label>Rennnummer<input id="edit-race-number" type="number" min=1 max=99 value="${Number(r.number)||1}"></label><label>Strecke<input id="edit-race-track" value="${esc(r.track)}"></label><label>Renn-Datum<input id="edit-race-date" type="date" value="${esc(r.raceDate||'')}"></label></div><div class="modal-actions"><button class="ghost" onclick="closeModal()">Abbrechen</button><button class="primary" onclick="saveRaceMeta('${r.id}')">âœ“ Rennen speichern</button></div>`;openModal();
+ document.getElementById('modal-content').innerHTML=`<div class="modal-head"><div><h2>⚙️ Rennen bearbeiten</h2><p class="race-edit-note">Saison, Division, Rennnummer und Strecke können geändert werden. Historische Ergebnisdaten bleiben erhalten.</p></div><button onclick="closeModal()">×</button></div><div class="new-driver-form"><label>Saison<select id="edit-race-season">${seasons.map(x=>`<option value="${esc(x.label)}" ${x.label===seasonOfRace(r)?'selected':''}>${esc(x.label)}${x.status==='test'?' · Test':''}</option>`).join('')}</select></label><label>Division<select id="edit-race-div"><option ${r.division==='Div 1'?'selected':''}>Div 1</option><option ${r.division==='Div 2'?'selected':''}>Div 2</option></select></label><label>Rennnummer<input id="edit-race-number" type="number" min=1 max=99 value="${Number(r.number)||1}"></label><label>Strecke<input id="edit-race-track" value="${esc(r.track)}"></label><label>Renn-Datum<input id="edit-race-date" type="date" value="${esc(r.raceDate||'')}"></label></div><div class="modal-actions"><button class="ghost" onclick="closeModal()">Abbrechen</button><button class="primary" onclick="saveRaceMeta('${r.id}')">✓ Rennen speichern</button></div>`;openModal();
 }
 function saveRaceMeta(id){
  if(!requireEditor())return; const r=races[id];if(!r)return;
  const season=document.getElementById('edit-race-season').value,division=document.getElementById('edit-race-div').value,number=Number(document.getElementById('edit-race-number').value)||0,track=document.getElementById('edit-race-track').value.trim(),raceDate=document.getElementById('edit-race-date')?.value||'';
  if(!track||!number){toast('Bitte Strecke und Rennnummer angeben.');return}
  const duplicate=Object.values(races).some(x=>x.id!==id&&seasonOfRace(x)===season&&x.division===division&&x.track.toLowerCase()===track.toLowerCase());
- if(duplicate){toast('Dieses Rennen existiert fÃ¼r Saison, Division und Strecke bereits.');return}
- const old=`${r.division} Â· Rennen ${r.number} Â· ${r.track}`;r.season=season;r.division=division;r.number=number;r.track=track;r.raceDate=raceDate;r.ruleVersion=r.ruleVersion||SEASON_META.seasons[season]?.rules||'DoG RaceHub';TRACK_NUMBERS[track]=number;if(!ACTIVE_TRACKS.includes(track))ACTIVE_TRACKS.push(track);saveRaceAndRecalculate(id,'Rennen bearbeitet',`${old} â†’ ${division} Â· Rennen ${number} Â· ${track}`);closeModal();document.getElementById('race-season').value=season;document.getElementById('race-div').value=division;initRaceSelectors();document.getElementById('race-track').value=track;renderSelectedRace();toast('Rennstammdaten gespeichert.');
+ if(duplicate){toast('Dieses Rennen existiert für Saison, Division und Strecke bereits.');return}
+ const old=`${r.division} · Rennen ${r.number} · ${r.track}`;r.season=season;r.division=division;r.number=number;r.track=track;r.raceDate=raceDate;r.ruleVersion=r.ruleVersion||SEASON_META.seasons[season]?.rules||'DoG RaceHub';TRACK_NUMBERS[track]=number;if(!ACTIVE_TRACKS.includes(track))ACTIVE_TRACKS.push(track);saveRaceAndRecalculate(id,'Rennen bearbeitet',`${old} → ${division} · Rennen ${number} · ${track}`);closeModal();document.getElementById('race-season').value=season;document.getElementById('race-div').value=division;initRaceSelectors();document.getElementById('race-track').value=track;renderSelectedRace();toast('Rennstammdaten gespeichert.');
 }
 function createMissingDivisionRace(track,division,season,number){
- if(!requireEditor())return;if(!track){toast('Keine Strecke ausgewÃ¤hlt.');return}
+ if(!requireEditor())return;if(!track){toast('Keine Strecke ausgewählt.');return}
  const exists=Object.values(races).find(x=>seasonOfRace(x)===season&&x.division===division&&String(x.track).toLowerCase()===String(track).toLowerCase());
  if(exists){document.getElementById('race-div').value=division;initRaceSelectors();document.getElementById('race-track').value=exists.track;renderSelectedRace();return}
  const other=Object.values(races).find(x=>seasonOfRace(x)===season&&String(x.track).toLowerCase()===String(track).toLowerCase());
  const id='race_'+Date.now();
  races[id]={id,season,division,track,number:Number(number)||1,raceDate:other?.raceDate||'',ruleVersion:SEASON_META.seasons[season]?.rules||'DoG RaceHub',highlights:{},screens:[],results:[],createdAt:new Date().toISOString(),changeLog:[],ocr:null,state:null};
  TRACK_NUMBERS[track]=Number(number)||1;if(!ACTIVE_TRACKS.includes(track))ACTIVE_TRACKS.push(track);
- saveRaceAndRecalculate(id,'Rennen angelegt',`Rennen ${number} Â· ${track} Â· ${division}`);document.getElementById('race-div').value=division;initRaceSelectors();document.getElementById('race-track').value=track;renderSelectedRace();toast(`${track} Â· ${division} angelegt. Jetzt kannst du die Ergebnisse per OCR hinzufÃ¼gen.`);
+ saveRaceAndRecalculate(id,'Rennen angelegt',`Rennen ${number} · ${track} · ${division}`);document.getElementById('race-div').value=division;initRaceSelectors();document.getElementById('race-track').value=track;renderSelectedRace();toast(`${track} · ${division} angelegt. Jetzt kannst du die Ergebnisse per OCR hinzufügen.`);
 }
 
-function saveNewRace(){if(!requireEditor())return;const season=document.getElementById('new-race-season').value,division=document.getElementById('new-race-div').value,number=Number(document.getElementById('new-race-number').value)||0,track=document.getElementById('new-race-track').value.trim(),raceDate=document.getElementById('new-race-date')?.value||'';if(!track){toast('Bitte eine Strecke eingeben.');return}if(!number){toast('Bitte eine Rennnummer eingeben.');return}const duplicate=Object.values(races).some(r=>(r.season||'02/26')===season&&r.division===division&&r.track.toLowerCase()===track.toLowerCase());if(duplicate){toast('Dieses Rennen existiert fÃ¼r Saison und Division bereits.');return}const id='race_'+Date.now();races[id]={id,season,division,track,number,ruleVersion:SEASON_META.seasons[season]?.rules||'DoG RaceHub',highlights:{},screens:[],results:[],createdAt:new Date().toISOString(),changeLog:[],ocr:null,state:null};TRACK_NUMBERS[track]=number;if(!ACTIVE_TRACKS.includes(track))ACTIVE_TRACKS.push(track);saveRaceAndRecalculate(id,'Rennen angelegt',`Neues Rennen ${number} Â· ${track} Â· ${division}`);closeModal();document.getElementById('race-div').value=division;initRaceSelectors();document.getElementById('race-track').value=track;renderSelectedRace();updateStats();toast(`Rennen ${number} Â· ${track} angelegt.`)}
+function saveNewRace(){if(!requireEditor())return;const season=document.getElementById('new-race-season').value,division=document.getElementById('new-race-div').value,number=Number(document.getElementById('new-race-number').value)||0,track=document.getElementById('new-race-track').value.trim(),raceDate=document.getElementById('new-race-date')?.value||'';if(!track){toast('Bitte eine Strecke eingeben.');return}if(!number){toast('Bitte eine Rennnummer eingeben.');return}const duplicate=Object.values(races).some(r=>(r.season||'02/26')===season&&r.division===division&&r.track.toLowerCase()===track.toLowerCase());if(duplicate){toast('Dieses Rennen existiert für Saison und Division bereits.');return}const id='race_'+Date.now();races[id]={id,season,division,track,number,ruleVersion:SEASON_META.seasons[season]?.rules||'DoG RaceHub',highlights:{},screens:[],results:[],createdAt:new Date().toISOString(),changeLog:[],ocr:null,state:null};TRACK_NUMBERS[track]=number;if(!ACTIVE_TRACKS.includes(track))ACTIVE_TRACKS.push(track);saveRaceAndRecalculate(id,'Rennen angelegt',`Neues Rennen ${number} · ${track} · ${division}`);closeModal();document.getElementById('race-div').value=division;initRaceSelectors();document.getElementById('race-track').value=track;renderSelectedRace();updateStats();toast(`Rennen ${number} · ${track} angelegt.`)}
 
 function penaltyCell(x){
-  if(!x.penaltyNote && !x.penaltyImage) return 'â€”';
+  if(!x.penaltyNote && !x.penaltyImage) return '—';
   const text=x.penaltyNote?esc(x.penaltyNote):'';
-  const img=x.penaltyImage?`<button class="mini-link" onclick="viewImage('${x.penaltyImage}')">ðŸ“· Bild</button>`:'';
-  return `${text}${text&&img?' Â· ':''}${img}`;
+  const img=x.penaltyImage?`<button class="mini-link" onclick="viewImage('${x.penaltyImage}')">📷 Bild</button>`:'';
+  return `${text}${text&&img?' · ':''}${img}`;
 }
-function raceCard(r){const editable=isEditor();const h=r.highlights||{};return `<div class="race-card"><div class="race-title"><div><div class="eyebrow">${esc(r.division)} Â· RENNEN ${r.number}${r.raceDate?` Â· ${esc(new Date(r.raceDate+'T12:00:00').toLocaleDateString('de-DE'))}`:''}</div><h3>${esc(r.track)}</h3><div class="race-edit-note">Regelstand: ${esc(r.ruleVersion)} Â· DoG-Punkte 25 / 21 / 18 / 15 / 13 / 11 / 9 / 8 / 7 / 6 / 5 / 4 / 3 / 2 / 1</div>${r.state?`<div class="race-dataflow">âœ“ Gespeichert Â· ${r.state.resultCount||r.results.length} Ergebnisse Â· WM/KWM/Fahrerwerte synchronisiert Â· Regelstand fixiert</div>`:''}</div><div class="race-tools">${editable?`<button class="ghost" onclick="openRaceMetaEditor('${r.id}')">âš™ï¸ Rennen bearbeiten</button><button class="primary" onclick="openRaceEdit('${r.id}')">âœï¸ Ergebnis bearbeiten</button>`:'<span class="race-edit-note">ðŸ”’ Bearbeitung gesperrt</span>'}</div></div><div class="race-table"><div class="race-row head"><span>POS.</span><span>FAHRER</span><span>TEAM</span><span>START</span><span>PUNKTE</span><span>ZEIT</span><span>ZEITSTRAFE</span><span>NACHTRÃ„GLICHE STRAFE</span></div>${r.results.map((x,i)=>{const st=statusOfResult(x);return `<div class="race-row ${st!=='RESULT'?'special':''}"><span class="pos">${i+1}</span><span>${esc(normDriver(x.name))}</span><span>${esc(x.team)}</span><span>G${x.grid}</span><span><b>${pointsForPosition(i+1,st)}</b></span><span class="${st==='DNF'||st==='DSQ'?'dnf':''}">${esc(x.time)}</span><span class="${x.penSec?'pen':''}">${x.penSec?`+${x.penSec} Sek. Â· ${x.tl||0} TL`:'â€”'}</span><span class="${x.penaltyNote||x.penaltyImage?'pen':''}">${penaltyCell(x)}</span></div>`}).join('')}</div><div class="upload"><b>ðŸ“· Renn-Screenshots</b><div class="muted">Die Bilder bleiben am Rennen gespeichert und kÃ¶nnen spÃ¤ter als Beleg geÃ¶ffnet werden.</div>${editable?`<input type="file" accept="image/*" multiple onchange="attachScreens(this,'${r.id}')"><button class="ghost ocr-btn" onclick="document.getElementById('ocr-input-${r.id}').click()">ðŸ”Ž Rennergebnis per OCR</button><input id="ocr-input-${r.id}" data-race-id="${r.id}" type="file" accept="image/*" multiple hidden onchange="startRaceOCR(this)">`:''}<div class="screens">${(r.screens||[]).map(s=>`<img src="${String(s).startsWith('data:')?s:RACE_DIR+s}" onclick="viewImage(this.src)">`).join('')}</div></div><div class="race-highlights"><span>ðŸ† Sieger <b>${esc(normDriver(h.winner||''))||'â€”'}</b></span><span>âš¡ Schnellste Runde <b>${esc(normDriver(h.fastest||''))||'â€”'}</b></span><span>â­ FdT <b>${esc(normDriver(h.dotd||''))||'â€”'}</b></span><span>ðŸ”„ ÃœberholmanÃ¶ver <b>${esc(normDriver(h.overtakes||''))||'â€”'}</b></span><span>ðŸ§¼ Sauberster <b>${esc(normDriver(h.cleanest||''))||'â€”'}</b></span></div>${editable?`<div class="highlight-tools"><button class="ghost" onclick="openHighlightEditor('${r.id}')">â­ Highlights bearbeiten</button><button class="ghost" onclick="document.getElementById('highlight-input-${r.id}').click()">ðŸ“· Highlight-Screenshot OCR</button><input id="highlight-input-${r.id}" type="file" accept="image/*" multiple hidden onchange="startHighlightOCR(this,'${r.id}')"></div>`:''}</div>`}
-function highlightDriverOptions(selected=''){return [''].concat(drivers.slice().sort((a,b)=>normDriver(a).localeCompare(normDriver(b),'de'))).map(n=>`<option value="${esc(n)}" ${normDriver(n)===normDriver(selected)?'selected':''}>${n?esc(normDriver(n)):'â€” nicht gesetzt â€”'}</option>`).join('')}
-function openHighlightEditor(id,prefill={}){if(!requireEditor())return;const r=races[id];if(!r)return;const h={...(r.highlights||{}),...prefill};document.getElementById('modal-content').innerHTML=`<div class="modal-head"><div><h2>â­ Renn-Highlights</h2><p class="race-edit-note">Die fÃ¼nf Highlight-Werte werden direkt am Rennen gespeichert. Die Auswahl kann jederzeit korrigiert werden.</p></div><button onclick="closeModal()">Ã—</button></div><div class="highlight-edit-grid"><label>ðŸ† Sieger<select id="hl-winner">${highlightDriverOptions(h.winner)}</select></label><label>âš¡ Schnellste Runde<select id="hl-fastest">${highlightDriverOptions(h.fastest)}</select></label><label>â­ Fahrer des Tages<select id="hl-dotd">${highlightDriverOptions(h.dotd)}</select></label><label>ðŸ”„ Meiste ÃœberholmanÃ¶ver<select id="hl-overtakes">${highlightDriverOptions(h.overtakes)}</select></label><label>ðŸ§¼ Sauberster Fahrer<select id="hl-cleanest">${highlightDriverOptions(h.cleanest)}</select></label></div><div class="modal-actions"><button class="ghost" onclick="closeModal()">Abbrechen</button><button class="primary" onclick="saveHighlights('${id}')">âœ“ Highlights speichern</button></div>`;openModal()}
-function saveHighlights(id){if(!requireEditor())return;const r=races[id];if(!r)return;r.highlights={winner:document.getElementById('hl-winner').value,fastest:document.getElementById('hl-fastest').value,dotd:document.getElementById('hl-dotd').value,overtakes:document.getElementById('hl-overtakes').value,cleanest:document.getElementById('hl-cleanest').value};saveRaceAndRecalculate(id,'Highlights geÃ¤ndert','Renn-Highlights aktualisiert');closeModal();renderSelectedRace();renderDashboard();initDriverOverview();toast('Highlights gespeichert.');}
+function raceCard(r){const editable=isEditor();const h=r.highlights||{};return `<div class="race-card"><div class="race-title"><div><div class="eyebrow">${esc(r.division)} · RENNEN ${r.number}${r.raceDate?` · ${esc(new Date(r.raceDate+'T12:00:00').toLocaleDateString('de-DE'))}`:''}</div><h3>${esc(r.track)}</h3><div class="race-edit-note">Regelstand: ${esc(r.ruleVersion)} · DoG-Punkte 25 / 21 / 18 / 15 / 13 / 11 / 9 / 8 / 7 / 6 / 5 / 4 / 3 / 2 / 1</div>${r.state?`<div class="race-dataflow">✓ Gespeichert · ${r.state.resultCount||r.results.length} Ergebnisse · WM/KWM/Fahrerwerte synchronisiert · Regelstand fixiert</div>`:''}</div><div class="race-tools">${editable?`<button class="ghost" onclick="openRaceMetaEditor('${r.id}')">⚙️ Rennen bearbeiten</button><button class="primary" onclick="openRaceEdit('${r.id}')">✏️ Ergebnis bearbeiten</button>`:'<span class="race-edit-note">🔒 Bearbeitung gesperrt</span>'}</div></div><div class="race-table"><div class="race-row head"><span>POS.</span><span>FAHRER</span><span>TEAM</span><span>START</span><span>PUNKTE</span><span>ZEIT</span><span>ZEITSTRAFE</span><span>NACHTRÄGLICHE STRAFE</span></div>${r.results.map((x,i)=>{const st=statusOfResult(x);return `<div class="race-row ${st!=='RESULT'?'special':''}"><span class="pos">${i+1}</span><span>${esc(normDriver(x.name))}</span><span>${esc(x.team)}</span><span>G${x.grid}</span><span><b>${pointsForPosition(i+1,st)}</b></span><span class="${st==='DNF'||st==='DSQ'?'dnf':''}">${esc(x.time)}</span><span class="${x.penSec?'pen':''}">${x.penSec?`+${x.penSec} Sek. · ${x.tl||0} TL`:'—'}</span><span class="${x.penaltyNote||x.penaltyImage?'pen':''}">${penaltyCell(x)}</span></div>`}).join('')}</div><div class="upload"><b>📷 Renn-Screenshots</b><div class="muted">Die Bilder bleiben am Rennen gespeichert und können später als Beleg geöffnet werden.</div>${editable?`<input type="file" accept="image/*" multiple onchange="attachScreens(this,'${r.id}')"><button class="ghost ocr-btn" onclick="document.getElementById('ocr-input-${r.id}').click()">🔎 Rennergebnis per OCR</button><input id="ocr-input-${r.id}" data-race-id="${r.id}" type="file" accept="image/*" multiple hidden onchange="startRaceOCR(this)">`:''}<div class="screens">${(r.screens||[]).map(s=>`<img src="${String(s).startsWith('data:')?s:RACE_DIR+s}" onclick="viewImage(this.src)">`).join('')}</div></div><div class="race-highlights"><span>🏆 Sieger <b>${esc(normDriver(h.winner||''))||'—'}</b></span><span>⚡ Schnellste Runde <b>${esc(normDriver(h.fastest||''))||'—'}</b></span><span>⭐ FdT <b>${esc(normDriver(h.dotd||''))||'—'}</b></span><span>🔄 Überholmanöver <b>${esc(normDriver(h.overtakes||''))||'—'}</b></span><span>🧼 Sauberster <b>${esc(normDriver(h.cleanest||''))||'—'}</b></span></div>${editable?`<div class="highlight-tools"><button class="ghost" onclick="openHighlightEditor('${r.id}')">⭐ Highlights bearbeiten</button><button class="ghost" onclick="document.getElementById('highlight-input-${r.id}').click()">📷 Highlight-Screenshot OCR</button><input id="highlight-input-${r.id}" type="file" accept="image/*" multiple hidden onchange="startHighlightOCR(this,'${r.id}')"></div>`:''}</div>`}
+function highlightDriverOptions(selected=''){return [''].concat(drivers.slice().sort((a,b)=>normDriver(a).localeCompare(normDriver(b),'de'))).map(n=>`<option value="${esc(n)}" ${normDriver(n)===normDriver(selected)?'selected':''}>${n?esc(normDriver(n)):'— nicht gesetzt —'}</option>`).join('')}
+function openHighlightEditor(id,prefill={}){if(!requireEditor())return;const r=races[id];if(!r)return;const h={...(r.highlights||{}),...prefill};document.getElementById('modal-content').innerHTML=`<div class="modal-head"><div><h2>⭐ Renn-Highlights</h2><p class="race-edit-note">Die fünf Highlight-Werte werden direkt am Rennen gespeichert. Die Auswahl kann jederzeit korrigiert werden.</p></div><button onclick="closeModal()">×</button></div><div class="highlight-edit-grid"><label>🏆 Sieger<select id="hl-winner">${highlightDriverOptions(h.winner)}</select></label><label>⚡ Schnellste Runde<select id="hl-fastest">${highlightDriverOptions(h.fastest)}</select></label><label>⭐ Fahrer des Tages<select id="hl-dotd">${highlightDriverOptions(h.dotd)}</select></label><label>🔄 Meiste Überholmanöver<select id="hl-overtakes">${highlightDriverOptions(h.overtakes)}</select></label><label>🧼 Sauberster Fahrer<select id="hl-cleanest">${highlightDriverOptions(h.cleanest)}</select></label></div><div class="modal-actions"><button class="ghost" onclick="closeModal()">Abbrechen</button><button class="primary" onclick="saveHighlights('${id}')">✓ Highlights speichern</button></div>`;openModal()}
+function saveHighlights(id){if(!requireEditor())return;const r=races[id];if(!r)return;r.highlights={winner:document.getElementById('hl-winner').value,fastest:document.getElementById('hl-fastest').value,dotd:document.getElementById('hl-dotd').value,overtakes:document.getElementById('hl-overtakes').value,cleanest:document.getElementById('hl-cleanest').value};saveRaceAndRecalculate(id,'Highlights geändert','Renn-Highlights aktualisiert');closeModal();renderSelectedRace();renderDashboard();initDriverOverview();toast('Highlights gespeichert.');}
 function highlightCandidateFromText(text){const t=String(text||'');const names=drivers.map(n=>({name:n,score:fuzzySimilarity(t,normDriver(n))})).sort((a,b)=>b.score-a.score);const lines=t.split(/\\n+/).map(x=>x.trim()).filter(Boolean);let best=null;for(const line of lines){for(const n of drivers){const score=fuzzySimilarity(line,normDriver(n));if(!best||score>best.score)best={name:n,score,line}}}return best&&best.score>=.55?best:null}
-async function startHighlightOCR(input,id){if(!requireEditor()){input.value='';return}const files=[...input.files||[]];if(!files.length)return;if(typeof Tesseract==='undefined'){toast('OCR-Bibliothek konnte nicht geladen werden.');input.value='';return}const r=races[id];if(!r){input.value='';return}document.getElementById('modal-content').innerHTML=`<div class="modal-head"><div><h2>ðŸ”Ž Highlight-Screenshot analysieren</h2><p class="race-edit-note">Der Screenshot wird nach bekannten Fahrern durchsucht. VorschlÃ¤ge werden vor dem Speichern geprÃ¼ft.</p></div><button onclick="closeModal()">Ã—</button></div><div id="hl-ocr-progress" class="ocr-progress">OCR wird vorbereitet â€¦</div><div id="hl-ocr-result"></div>`;openModal();try{const worker=await Tesseract.createWorker('eng');await worker.setParameters({tessedit_pageseg_mode:'6',preserve_interword_spaces:'1'});let raw='';for(let i=0;i<files.length;i++){document.getElementById('hl-ocr-progress').textContent=`Bild ${i+1}/${files.length}: Highlights werden gelesen â€¦`;const canvas=await ocrPreprocess(files[i],'full');const res=await worker.recognize(canvas);raw+='\\n'+(res.data?.text||'')}await worker.terminate();const cand=highlightCandidateFromText(raw);const guess=cand?.name||'';document.getElementById('hl-ocr-result').innerHTML=`<div class="highlight-ocr-card"><b>${guess?'ðŸŸ¡ Fahrer erkannt':'âš  Keine eindeutige Fahrerzuordnung'}</b><p>${guess?`Bester Treffer: <strong>${esc(normDriver(guess))}</strong> (${Math.round(cand.score*100)}%). Bitte ordne ihn unten der richtigen Highlight-Kategorie zu.`:'Bitte ordne die Highlights manuell zu. Der Rohtext kann zur Kontrolle geÃ¶ffnet werden.'}</p></div><details class="ocr-raw"><summary>OCR-Rohtext anzeigen</summary><pre>${esc(raw)}</pre></details><div class="modal-actions"><button class="ghost" onclick="closeModal()">Abbrechen</button><button class="primary" onclick="closeModal();openHighlightEditor('${id}',${JSON.stringify({}).replace(/</g,'\\u003c')})">Highlights auswÃ¤hlen</button></div>`}catch(e){document.getElementById('hl-ocr-result').innerHTML=`<div class="ocr-error">${esc(e?.message||e)}</div>`}input.value=''}
-function attachScreens(input,id){if(!isEditor()){input.value='';return}const files=[...input.files];if(!files.length)return;races[id].screens=races[id].screens||[];files.forEach(f=>{const rd=new FileReader();rd.onload=()=>{races[id].screens.push(rd.result);save();renderSelectedRace()};rd.readAsDataURL(f)});toast('Screenshot hinzugefÃ¼gt.')}
-function viewImage(src){document.getElementById('modal-content').innerHTML=`<div class="modal-head"><h2>Rennbild</h2><button onclick="closeModal()">Ã—</button></div><img class="full-image" src="${src}">`;openModal()}
-function openRaceEdit(id){if(!requireEditor())return;const r=races[id];document.getElementById('modal-content').innerHTML=`<div class="modal-head"><div><h2>${esc(r.track)} Â· Rennen ${r.number}</h2><p class="race-edit-note">Ergebnisdaten und normale Zeitstrafen kÃ¶nnen korrigiert werden. NachtrÃ¤gliche Steward-Strafen werden direkt beim jeweiligen Fahrer im Rennergebnis hinterlegt â€“ entweder als Text oder als Bild. Sie sind keine zusÃ¤tzlichen Rennpunkte.</p></div><button onclick="closeModal()">Ã—</button></div><div id="edit-rows">${r.results.map((x,i)=>editRow(x,i,r.id)).join('')}</div><div class="modal-actions"><button class="ghost" onclick="closeModal()">Abbrechen</button><button class="primary" onclick="saveRaceEdit('${r.id}')">Ã„nderungen speichern</button></div>`;openModal()}
-function editRow(x,i,raceId){return `<div class="edit-grid" data-i="${i}"><label>Pos.<input class="e-pos" type="number" min="1" max="99" value="${i+1}"></label><label>Fahrer<select class="e-name">${contractDriverOptions(normDriver(x.name))}</select></label><label>Team<select class="e-team"><option value="">â€” Team â€”</option>${TEAM_CHOICES.filter(Boolean).map(t=>`<option value="${esc(t)}" ${canonicalTeamName(t)===canonicalTeamName(x.team||'')?'selected':''}>${esc(t)}</option>`).join('')}</select></label><label>Startposition<input class="e-grid" type="number" min="1" max="99" value="${x.grid}"></label><label>Zeit<input class="e-time" value="${esc(x.time)}"></label><label>Zeitstrafe (Sek.)<input class="e-pen" type="number" min="0" value="${x.penSec||0}"></label><label>TL<input class="e-tl" type="number" min="0" value="${x.tl||0}"></label><label>NachtrÃ¤gliche Strafe<input class="e-penalty-note" value="${esc(x.penaltyNote||'')}" placeholder="z. B. 5 Sek. Zeitstrafe / Verwarnung"></label><label>Strafenbild<input class="e-penalty-image" type="file" accept="image/*" onchange="attachPenaltyImage(this,'${raceId}',${i})"></label><label>Status<select class="e-status"><option value="RESULT" ${x.status==='RESULT'?'selected':''}>Ergebnis</option><option value="DNF" ${x.status==='DNF'?'selected':''}>DNF</option><option value="DSQ" ${x.status==='DSQ'?'selected':''}>DSQ</option></select></label></div>`}
-function saveRaceEdit(id){if(!requireEditor())return;const rows=[...document.querySelectorAll('#edit-rows .edit-grid')];const old=races[id].results;const oldImages={};old.forEach(x=>{if(x.penaltyImage)oldImages[normDriver(x.name)]=x.penaltyImage});const data=rows.map((row,idx)=>{const name=row.querySelector('.e-name').value.trim();return{pos:Number(row.querySelector('.e-pos').value)||99,name,team:row.querySelector('.e-team').value.trim(),grid:Number(row.querySelector('.e-grid').value)||0,time:row.querySelector('.e-time').value.trim(),penSec:Number(row.querySelector('.e-pen').value)||0,tl:Number(row.querySelector('.e-tl').value)||0,penaltyNote:row.querySelector('.e-penalty-note').value.trim(),penaltyImage:oldImages[normDriver(name)]||'',status:row.querySelector('.e-status').value}}).sort((a,b)=>a.pos-b.pos);races[id].results=data;saveRaceAndRecalculate(id,'Ergebnis geÃ¤ndert',`Rennresultat in ${races[id].track} bearbeitet`);closeModal();renderSelectedRace();renderWM();renderKWM();renderDashboard();initDriverOverview();toast('Rennen aktualisiert Â· WM/KWM/Fahrerwerte neu berechnet.') }
+async function startHighlightOCR(input,id){if(!requireEditor()){input.value='';return}const files=[...input.files||[]];if(!files.length)return;if(typeof Tesseract==='undefined'){toast('OCR-Bibliothek konnte nicht geladen werden.');input.value='';return}const r=races[id];if(!r){input.value='';return}document.getElementById('modal-content').innerHTML=`<div class="modal-head"><div><h2>🔎 Highlight-Screenshot analysieren</h2><p class="race-edit-note">Der Screenshot wird nach bekannten Fahrern durchsucht. Vorschläge werden vor dem Speichern geprüft.</p></div><button onclick="closeModal()">×</button></div><div id="hl-ocr-progress" class="ocr-progress">OCR wird vorbereitet …</div><div id="hl-ocr-result"></div>`;openModal();try{const worker=await Tesseract.createWorker('eng');await worker.setParameters({tessedit_pageseg_mode:'6',preserve_interword_spaces:'1'});let raw='';for(let i=0;i<files.length;i++){document.getElementById('hl-ocr-progress').textContent=`Bild ${i+1}/${files.length}: Highlights werden gelesen …`;const canvas=await ocrPreprocess(files[i],'full');const res=await worker.recognize(canvas);raw+='\\n'+(res.data?.text||'')}await worker.terminate();const cand=highlightCandidateFromText(raw);const guess=cand?.name||'';document.getElementById('hl-ocr-result').innerHTML=`<div class="highlight-ocr-card"><b>${guess?'🟡 Fahrer erkannt':'⚠ Keine eindeutige Fahrerzuordnung'}</b><p>${guess?`Bester Treffer: <strong>${esc(normDriver(guess))}</strong> (${Math.round(cand.score*100)}%). Bitte ordne ihn unten der richtigen Highlight-Kategorie zu.`:'Bitte ordne die Highlights manuell zu. Der Rohtext kann zur Kontrolle geöffnet werden.'}</p></div><details class="ocr-raw"><summary>OCR-Rohtext anzeigen</summary><pre>${esc(raw)}</pre></details><div class="modal-actions"><button class="ghost" onclick="closeModal()">Abbrechen</button><button class="primary" onclick="closeModal();openHighlightEditor('${id}',${JSON.stringify({}).replace(/</g,'\\u003c')})">Highlights auswählen</button></div>`}catch(e){document.getElementById('hl-ocr-result').innerHTML=`<div class="ocr-error">${esc(e?.message||e)}</div>`}input.value=''}
+function attachScreens(input,id){if(!isEditor()){input.value='';return}const files=[...input.files];if(!files.length)return;races[id].screens=races[id].screens||[];files.forEach(f=>{const rd=new FileReader();rd.onload=()=>{races[id].screens.push(rd.result);save();renderSelectedRace()};rd.readAsDataURL(f)});toast('Screenshot hinzugefügt.')}
+function viewImage(src){document.getElementById('modal-content').innerHTML=`<div class="modal-head"><h2>Rennbild</h2><button onclick="closeModal()">×</button></div><img class="full-image" src="${src}">`;openModal()}
+function openRaceEdit(id){if(!requireEditor())return;const r=races[id];document.getElementById('modal-content').innerHTML=`<div class="modal-head"><div><h2>${esc(r.track)} · Rennen ${r.number}</h2><p class="race-edit-note">Ergebnisdaten und normale Zeitstrafen können korrigiert werden. Nachträgliche Steward-Strafen werden direkt beim jeweiligen Fahrer im Rennergebnis hinterlegt – entweder als Text oder als Bild. Sie sind keine zusätzlichen Rennpunkte.</p></div><button onclick="closeModal()">×</button></div><div id="edit-rows">${r.results.map((x,i)=>editRow(x,i,r.id)).join('')}</div><div class="modal-actions"><button class="ghost" onclick="closeModal()">Abbrechen</button><button class="primary" onclick="saveRaceEdit('${r.id}')">Änderungen speichern</button></div>`;openModal()}
+function editRow(x,i,raceId){return `<div class="edit-grid" data-i="${i}"><label>Pos.<input class="e-pos" type="number" min="1" max="99" value="${i+1}"></label><label>Fahrer<select class="e-name">${contractDriverOptions(normDriver(x.name))}</select></label><label>Team<select class="e-team"><option value="">— Team —</option>${TEAM_CHOICES.filter(Boolean).map(t=>`<option value="${esc(t)}" ${canonicalTeamName(t)===canonicalTeamName(x.team||'')?'selected':''}>${esc(t)}</option>`).join('')}</select></label><label>Startposition<input class="e-grid" type="number" min="1" max="99" value="${x.grid}"></label><label>Zeit<input class="e-time" value="${esc(x.time)}"></label><label>Zeitstrafe (Sek.)<input class="e-pen" type="number" min="0" value="${x.penSec||0}"></label><label>TL<input class="e-tl" type="number" min="0" value="${x.tl||0}"></label><label>Nachträgliche Strafe<input class="e-penalty-note" value="${esc(x.penaltyNote||'')}" placeholder="z. B. 5 Sek. Zeitstrafe / Verwarnung"></label><label>Strafenbild<input class="e-penalty-image" type="file" accept="image/*" onchange="attachPenaltyImage(this,'${raceId}',${i})"></label><label>Status<select class="e-status"><option value="RESULT" ${x.status==='RESULT'?'selected':''}>Ergebnis</option><option value="DNF" ${x.status==='DNF'?'selected':''}>DNF</option><option value="DSQ" ${x.status==='DSQ'?'selected':''}>DSQ</option></select></label></div>`}
+function saveRaceEdit(id){if(!requireEditor())return;const rows=[...document.querySelectorAll('#edit-rows .edit-grid')];const old=races[id].results;const oldImages={};old.forEach(x=>{if(x.penaltyImage)oldImages[normDriver(x.name)]=x.penaltyImage});const data=rows.map((row,idx)=>{const name=row.querySelector('.e-name').value.trim();return{pos:Number(row.querySelector('.e-pos').value)||99,name,team:row.querySelector('.e-team').value.trim(),grid:Number(row.querySelector('.e-grid').value)||0,time:row.querySelector('.e-time').value.trim(),penSec:Number(row.querySelector('.e-pen').value)||0,tl:Number(row.querySelector('.e-tl').value)||0,penaltyNote:row.querySelector('.e-penalty-note').value.trim(),penaltyImage:oldImages[normDriver(name)]||'',status:row.querySelector('.e-status').value}}).sort((a,b)=>a.pos-b.pos);races[id].results=data;saveRaceAndRecalculate(id,'Ergebnis geändert',`Rennresultat in ${races[id].track} bearbeitet`);closeModal();renderSelectedRace();renderWM();renderKWM();renderDashboard();initDriverOverview();toast('Rennen aktualisiert · WM/KWM/Fahrerwerte neu berechnet.') }
 function attachPenaltyImage(input,id,index){if(!isEditor()){input.value='';return}const file=input.files?.[0];if(!file)return;const r=races[id];const driver=r.results[index]?.name;if(!driver)return;const rd=new FileReader();rd.onload=()=>{const target=r.results.find(x=>normDriver(x.name)===normDriver(driver));if(target){target.penaltyImage=rd.result;save();renderSelectedRace();toast('Strafenbild gespeichert.')}};rd.readAsDataURL(file)}
-function currentDivision(name){const roster=currentRosterEntry(name);if(roster?.division)return roster.division;const m=driverRecord(name);if(m?.division)return m.division;return'â€”'}
+function currentDivision(name){const roster=currentRosterEntry(name);if(roster?.division)return roster.division;const m=driverRecord(name);if(m?.division)return m.division;return'—'}
 function averageTeamFactor(name){const team=driverTeam(name);return team?teamFactors[teamKey(team)]||0:0}
 function calcDriverFromRaces(name, raceSubset){
  const rs=raceSubset.flatMap(r=>r.results.map((x,i)=>({x,i,r})).filter(o=>normDriver(o.x.name)===normDriver(name)));
@@ -1265,29 +1254,29 @@ function openFinanceTxEditor(txId,returnType,returnName,season){
  if(!requireEditor())return;
  const tx=financeTransactions.find(x=>String(x.id)===String(txId)); if(!tx){toast('Buchung nicht gefunden.');return;}
  const back=returnType==='driver'?`openDriverFinance('${esc(returnName)}','${esc(season)}')`:`openFinanceLedger('${esc(returnName)}','${esc(season)}')`;
- document.getElementById('modal-content').innerHTML=`<div class="modal-head"><div><h2>âœï¸ Zahlungsbuchung bearbeiten</h2><p class="race-edit-note">Admin-Bereich Â· Jede gespeicherte Buchung kann korrigiert oder gelÃ¶scht werden.</p></div><button onclick="${back}">Ã—</button></div><div class="new-driver-form"><label>Beschreibung<input id="edit-finance-desc" value="${esc(tx.description||'')}"></label><label>Betrag<input id="edit-finance-amount" inputmode="numeric" value="${Number(tx.amount)||0}"></label><label>Datum<input id="edit-finance-date" type="date" value="${tx.date?new Date(tx.date).toISOString().slice(0,10):''}"></label><label>Typ<input id="edit-finance-type" value="${esc(tx.type||'manual')}"></label><label>Fahrer<input id="edit-finance-driver" value="${esc(tx.driver||'')}"></label><label>Team<input id="edit-finance-team" value="${esc(tx.team||'')}"></label></div><div class="finance-note">Automatisch erzeugte Buchungen werden bei einer spÃ¤teren Finanzaktualisierung grundsÃ¤tzlich neu aus Rennen, VertrÃ¤gen oder Leihen berechnet. Deine Admin-Korrektur bleibt dabei gespeichert.</div><div class="modal-actions"><button class="ghost" onclick="${back}">Abbrechen</button><button class="danger" onclick="deleteFinanceTransaction('${esc(tx.id)}','${esc(returnType)}','${esc(returnName)}','${esc(season)}')">ðŸ—‘ï¸ Buchung lÃ¶schen</button><button class="primary" onclick="saveFinanceTransactionEdit('${esc(tx.id)}','${esc(returnType)}','${esc(returnName)}','${esc(season)}')">âœ“ Ã„nderungen speichern</button></div>`;openModal();
+ document.getElementById('modal-content').innerHTML=`<div class="modal-head"><div><h2>✏️ Zahlungsbuchung bearbeiten</h2><p class="race-edit-note">Admin-Bereich · Jede gespeicherte Buchung kann korrigiert oder gelöscht werden.</p></div><button onclick="${back}">×</button></div><div class="new-driver-form"><label>Beschreibung<input id="edit-finance-desc" value="${esc(tx.description||'')}"></label><label>Betrag<input id="edit-finance-amount" inputmode="numeric" value="${Number(tx.amount)||0}"></label><label>Datum<input id="edit-finance-date" type="date" value="${tx.date?new Date(tx.date).toISOString().slice(0,10):''}"></label><label>Typ<input id="edit-finance-type" value="${esc(tx.type||'manual')}"></label><label>Fahrer<input id="edit-finance-driver" value="${esc(tx.driver||'')}"></label><label>Team<input id="edit-finance-team" value="${esc(tx.team||'')}"></label></div><div class="finance-note">Automatisch erzeugte Buchungen werden bei einer späteren Finanzaktualisierung grundsätzlich neu aus Rennen, Verträgen oder Leihen berechnet. Deine Admin-Korrektur bleibt dabei gespeichert.</div><div class="modal-actions"><button class="ghost" onclick="${back}">Abbrechen</button><button class="danger" onclick="deleteFinanceTransaction('${esc(tx.id)}','${esc(returnType)}','${esc(returnName)}','${esc(season)}')">🗑️ Buchung löschen</button><button class="primary" onclick="saveFinanceTransactionEdit('${esc(tx.id)}','${esc(returnType)}','${esc(returnName)}','${esc(season)}')">✓ Änderungen speichern</button></div>`;openModal();
 }
 function saveFinanceTransactionEdit(txId,returnType,returnName,season){
  if(!requireEditor())return; const tx=financeTransactions.find(x=>String(x.id)===String(txId)); if(!tx)return;
  const desc=document.getElementById('edit-finance-desc')?.value.trim(); const amount=parseMoneyValue(document.getElementById('edit-finance-amount')?.value||0); const date=document.getElementById('edit-finance-date')?.value||''; const type=document.getElementById('edit-finance-type')?.value.trim()||'manual'; const driver=document.getElementById('edit-finance-driver')?.value.trim()||''; const team=document.getElementById('edit-finance-team')?.value.trim()||'';
  if(!desc||!amount){toast('Beschreibung und Betrag erforderlich.');return}
  const patch={description:desc,amount,type,driver,team,date:date?new Date(date+'T12:00:00').toISOString():tx.date};
- financeTxStoreOverride(tx,patch); Object.assign(tx,patch); save(); toast('Zahlungsbuchung geÃ¤ndert.'); returnType==='driver'?openDriverFinance(returnName,season):openFinanceLedger(returnName,season);
+ financeTxStoreOverride(tx,patch); Object.assign(tx,patch); save(); toast('Zahlungsbuchung geändert.'); returnType==='driver'?openDriverFinance(returnName,season):openFinanceLedger(returnName,season);
 }
 function deleteFinanceTransaction(txId,returnType,returnName,season){
  if(!requireEditor())return; const tx=financeTransactions.find(x=>String(x.id)===String(txId)); if(!tx)return;
- if(!confirm(`Zahlungsbuchung wirklich lÃ¶schen?\n\n${tx.description||tx.type} Â· ${money(tx.amount)}`))return;
- financeTxStoreOverride(tx,{deleted:true}); financeTransactions=financeTransactions.filter(x=>String(x.id)!==String(txId)); save(); toast('Zahlungsbuchung gelÃ¶scht.'); returnType==='driver'?openDriverFinance(returnName,season):openFinanceLedger(returnName,season);
+ if(!confirm(`Zahlungsbuchung wirklich löschen?\n\n${tx.description||tx.type} · ${money(tx.amount)}`))return;
+ financeTxStoreOverride(tx,{deleted:true}); financeTransactions=financeTransactions.filter(x=>String(x.id)!==String(txId)); save(); toast('Zahlungsbuchung gelöscht.'); returnType==='driver'?openDriverFinance(returnName,season):openFinanceLedger(returnName,season);
 }
 
 function syncPointCostTransactions(){
- // Fahrer-Punktkosten werden fÃ¼r ALLE gespeicherten Rennen berechnet.
-  // die Finanzlogik vollstÃ¤ndig testen kÃ¶nnen. In 02/26 lÃ¤uft exakt dieselbe
- // Berechnung weiter â€“ es gibt keinen separaten Test-Sonderweg.
- // Div 1 = 200.000 â‚¬ pro Punkt; Div 2 = 100.000 â‚¬ pro Punkt.
- // Wichtig: Die tatsÃ¤chlich gespeicherte Rennposition wird verwendet (x.pos),
+ // Fahrer-Punktkosten werden für ALLE gespeicherten Rennen berechnet.
+  // die Finanzlogik vollständig testen können. In 02/26 läuft exakt dieselbe
+ // Berechnung weiter – es gibt keinen separaten Test-Sonderweg.
+ // Div 1 = 200.000 € pro Punkt; Div 2 = 100.000 € pro Punkt.
+ // Wichtig: Die tatsächlich gespeicherte Rennposition wird verwendet (x.pos),
  // nicht nur die aktuelle Array-Reihenfolge. Dadurch funktioniert die Buchung
- // auch nach manuellen Ã„nderungen/OCR-Korrekturen zuverlÃ¤ssig.
+ // auch nach manuellen Änderungen/OCR-Korrekturen zuverlässig.
  const calculationRaces=Object.values(races);
  const keep=financeTransactions.filter(t=>t.type!=='driver_points_cost');
  const generated=[];
@@ -1303,7 +1292,7 @@ function syncPointCostTransactions(){
      generated.push({
        id:`ptc_${r.id}_${driver}_${pos}`,
        season, team:'', driver,
-       description:`Fahrerpunktkosten Â· ${r.track||'Rennen'} R${r.number||r.round||''} Â· P${pos} Â· ${pts} Punkte Ã— ${money(rate)}`,
+       description:`Fahrerpunktkosten · ${r.track||'Rennen'} R${r.number||r.round||''} · P${pos} · ${pts} Punkte × ${money(rate)}`,
        type:'driver_points_cost', amount:-(pts*rate),
        date:r.raceDate?new Date(r.raceDate+'T12:00:00').toISOString():(r.createdAt||new Date().toISOString()),
        raceId:r.id, position:pos, points:pts, rate
@@ -1315,26 +1304,26 @@ function syncPointCostTransactions(){
 function openLoanEditor(existingId=''){
  if(!requireEditor())return;
  const ex=loanAgreements.find(x=>x.id===existingId); const season=seasonState.current||'02/26';
- const driverOpts=drivers.filter(n=>getStatus(n)!=='Nicht verfÃ¼gbar').sort((a,b)=>a.localeCompare(b,'de')).map(n=>`<option value="${esc(n)}" ${ex&&normDriver(ex.driver)===normDriver(n)?'selected':''}>${esc(n)}</option>`).join('');
+ const driverOpts=drivers.filter(n=>getStatus(n)!=='Nicht verfügbar').sort((a,b)=>a.localeCompare(b,'de')).map(n=>`<option value="${esc(n)}" ${ex&&normDriver(ex.driver)===normDriver(n)?'selected':''}>${esc(n)}</option>`).join('');
  const teamOpts=TEAM_CHOICES.filter(Boolean).map(t=>`<option value="${esc(t)}" ${ex?.borrowerTeam===t?'selected':''}>${esc(t)}</option>`).join('');
- const sourceOpts=`<option value="">â€” Free Agent / keine LeihgebÃ¼hr an Team â€”</option>`+TEAM_CHOICES.filter(Boolean).map(t=>`<option value="${esc(t)}" ${ex?.sourceTeam===t?'selected':''}>${esc(t)}</option>`).join('');
- document.getElementById('modal-content').innerHTML=`<div class="modal-head"><div><h2>ðŸ¤ Ersatzfahrer ${ex?'bearbeiten':'leihen'}</h2><p class="race-edit-note">Eine Leihvereinbarung ist eine eigene Finanzbuchung und ersetzt keinen Fahrervertrag.</p></div><button onclick="closeModal()">Ã—</button></div><div class="new-driver-form"><label>Ersatzfahrer<select id="loan-driver">${driverOpts}</select></label><label>Leihendes Team (optional)<select id="loan-source">${sourceOpts}</select></label><label>Ausleihendes Team<select id="loan-borrower">${teamOpts}</select></label><label>Division<select id="loan-div"><option ${ex?.division==='Div 1'?'selected':''}>Div 1</option><option ${ex?.division==='Div 2'||!ex?'selected':''}>Div 2</option></select></label><label>Saison<select id="loan-season">${Object.keys(SEASON_META.seasons).map(x=>`<option ${x===season?'selected':''}>${x}</option>`).join('')}</select></label><label>LeihgebÃ¼hr<input id="loan-fee" value="${esc(ex?.fee||'')}" placeholder="z. B. 500.000 â‚¬"></label><label>Rennrunde Beginn<input id="loan-start" type="number" min="1" value="${ex?.startRound||1}"></label><label>Rennrunde Ende<input id="loan-end" type="number" min="1" value="${ex?.endRound||''}" placeholder="optional"></label><label>Status<select id="loan-status"><option ${ex?.status==='Aktiv'||!ex?'selected':''}>Aktiv</option><option ${ex?.status==='Beendet'?'selected':''}>Beendet</option><option ${ex?.status==='VorlÃ¤ufig'?'selected':''}>VorlÃ¤ufig</option></select></label></div><div class="modal-actions"><button class="ghost" onclick="closeModal()">Abbrechen</button><button class="primary" onclick="saveLoanAgreement('${esc(existingId)}')">âœ“ Leihvereinbarung speichern</button></div>`;openModal();
+ const sourceOpts=`<option value="">— Free Agent / keine Leihgebühr an Team —</option>`+TEAM_CHOICES.filter(Boolean).map(t=>`<option value="${esc(t)}" ${ex?.sourceTeam===t?'selected':''}>${esc(t)}</option>`).join('');
+ document.getElementById('modal-content').innerHTML=`<div class="modal-head"><div><h2>🤝 Ersatzfahrer ${ex?'bearbeiten':'leihen'}</h2><p class="race-edit-note">Eine Leihvereinbarung ist eine eigene Finanzbuchung und ersetzt keinen Fahrervertrag.</p></div><button onclick="closeModal()">×</button></div><div class="new-driver-form"><label>Ersatzfahrer<select id="loan-driver">${driverOpts}</select></label><label>Leihendes Team (optional)<select id="loan-source">${sourceOpts}</select></label><label>Ausleihendes Team<select id="loan-borrower">${teamOpts}</select></label><label>Division<select id="loan-div"><option ${ex?.division==='Div 1'?'selected':''}>Div 1</option><option ${ex?.division==='Div 2'||!ex?'selected':''}>Div 2</option></select></label><label>Saison<select id="loan-season">${Object.keys(SEASON_META.seasons).map(x=>`<option ${x===season?'selected':''}>${x}</option>`).join('')}</select></label><label>Leihgebühr<input id="loan-fee" value="${esc(ex?.fee||'')}" placeholder="z. B. 500.000 €"></label><label>Rennrunde Beginn<input id="loan-start" type="number" min="1" value="${ex?.startRound||1}"></label><label>Rennrunde Ende<input id="loan-end" type="number" min="1" value="${ex?.endRound||''}" placeholder="optional"></label><label>Status<select id="loan-status"><option ${ex?.status==='Aktiv'||!ex?'selected':''}>Aktiv</option><option ${ex?.status==='Beendet'?'selected':''}>Beendet</option><option ${ex?.status==='Vorläufig'?'selected':''}>Vorläufig</option></select></label></div><div class="modal-actions"><button class="ghost" onclick="closeModal()">Abbrechen</button><button class="primary" onclick="saveLoanAgreement('${esc(existingId)}')">✓ Leihvereinbarung speichern</button></div>`;openModal();
 }
 function saveLoanAgreement(existingId=''){
  if(!requireEditor())return;
  const driver=normDriver(document.getElementById('loan-driver')?.value||'');const borrower=document.getElementById('loan-borrower')?.value||'';const source=document.getElementById('loan-source')?.value||'';const season=document.getElementById('loan-season')?.value||seasonState.current;const division=document.getElementById('loan-div')?.value||'Div 2';const fee=parseMoneyValue(document.getElementById('loan-fee')?.value||0);const start=Number(document.getElementById('loan-start')?.value)||1;const end=Number(document.getElementById('loan-end')?.value)||0;const status=document.getElementById('loan-status')?.value||'Aktiv';
- if(!driver||!borrower||fee<=0){toast('Ersatzfahrer, ausleihendes Team und LeihgebÃ¼hr erforderlich.');return}
+ if(!driver||!borrower||fee<=0){toast('Ersatzfahrer, ausleihendes Team und Leihgebühr erforderlich.');return}
  const payload={driver,sourceTeam:source,borrowerTeam:borrower,division,season,fee,startRound:start,endRound:end,status,updatedAt:new Date().toISOString()};
  if(existingId){const i=loanAgreements.findIndex(x=>x.id===existingId);if(i>=0)loanAgreements[i]={...loanAgreements[i],...payload};}
  else loanAgreements.push({id:crypto.randomUUID?crypto.randomUUID():'loan-'+Date.now(),...payload,createdAt:new Date().toISOString()});
- syncLoanTransactions();save();closeModal();renderFinance();renderTeams();toast(existingId?'Leihvereinbarung aktualisiert.':'Ersatzfahrer geliehen Â· LeihgebÃ¼hr verbucht.');
+ syncLoanTransactions();save();closeModal();renderFinance();renderTeams();toast(existingId?'Leihvereinbarung aktualisiert.':'Ersatzfahrer geliehen · Leihgebühr verbucht.');
 }
 function syncLoanTransactions(){
  financeTransactions=financeTransactions.filter(t=>t.type!=='replacement_loan'&&t.type!=='replacement_loan_income');
- loanAgreements.filter(l=>l.status!=='VorlÃ¤ufig'&&Number(l.fee)>0).forEach(l=>{
+ loanAgreements.filter(l=>l.status!=='Vorläufig'&&Number(l.fee)>0).forEach(l=>{
    const fee=Math.abs(Number(l.fee));
-   {const tx=financeTxApplyOverride({id:`loan_${l.id}`,season:l.season,team:l.borrowerTeam,driver:l.driver,description:`Ersatzfahrer-Leihe Â· ${l.driver}${l.sourceTeam?' von '+l.sourceTeam:''}`,type:'replacement_loan',amount:-fee,date:l.createdAt||new Date().toISOString(),loanId:l.id});if(tx)financeTransactions.push(tx);}
-   {const tx=financeTxApplyOverride({id:`loan_income_${l.id}`,season:l.season,team:'',driver:l.driver,description:`Ersatzfahrer-Leihe erhalten Â· ${l.borrowerTeam}`,type:'replacement_loan_income',amount:fee,date:l.createdAt||new Date().toISOString(),loanId:l.id});if(tx)financeTransactions.push(tx);}
+   {const tx=financeTxApplyOverride({id:`loan_${l.id}`,season:l.season,team:l.borrowerTeam,driver:l.driver,description:`Ersatzfahrer-Leihe · ${l.driver}${l.sourceTeam?' von '+l.sourceTeam:''}`,type:'replacement_loan',amount:-fee,date:l.createdAt||new Date().toISOString(),loanId:l.id});if(tx)financeTransactions.push(tx);}
+   {const tx=financeTxApplyOverride({id:`loan_income_${l.id}`,season:l.season,team:'',driver:l.driver,description:`Ersatzfahrer-Leihe erhalten · ${l.borrowerTeam}`,type:'replacement_loan_income',amount:fee,date:l.createdAt||new Date().toISOString(),loanId:l.id});if(tx)financeTransactions.push(tx);}
  });
 }
 function syncDriverContractFinance(c){
@@ -1349,7 +1338,7 @@ function syncDriverContractFinance(c){
  specs.forEach(spec=>{
   const idx=financeTransactions.findIndex(t=>t.contractId===c.id&&t.driver&&normDriver(t.driver)===driver&&t.season===season&&t.type===spec.type);
   if(spec.amount>0){
-   let tx={season,team:'',driver,contractId:c.id,type:spec.type,description:`${spec.label} Â· ${c.team||''}`.trim(),amount:spec.amount,date:c.startDate?new Date(c.startDate+'T12:00:00').toISOString():new Date().toISOString()};
+   let tx={season,team:'',driver,contractId:c.id,type:spec.type,description:`${spec.label} · ${c.team||''}`.trim(),amount:spec.amount,date:c.startDate?new Date(c.startDate+'T12:00:00').toISOString():new Date().toISOString()};
    if(idx>=0){tx=financeTxApplyOverride({...financeTransactions[idx],...tx})||null;if(tx)financeTransactions[idx]=tx;else financeTransactions.splice(idx,1);} else {tx=financeTxApplyOverride({...tx,id:financeTxId()});if(tx)financeTransactions.push(tx);}
   }else if(idx>=0){financeTransactions.splice(idx,1);}
  });
@@ -1399,8 +1388,8 @@ function contractSpecialPaymentDue(c){
  return !!specialPaymentTrigger(c);
 }
 function syncContractSpecialPayments(){
- // Sonderzahlungen mit Bedingung werden nur bei erfÃ¼llter Bedingung automatisch gebucht.
- // Ohne Haken passiert automatisch nichts. Bereits gelÃ¶schte Buchungen bleiben gelÃ¶scht.
+ // Sonderzahlungen mit Bedingung werden nur bei erfüllter Bedingung automatisch gebucht.
+ // Ohne Haken passiert automatisch nichts. Bereits gelöschte Buchungen bleiben gelöscht.
  contracts.filter(c=>c&&!c.draft).forEach(c=>{
    const amount=parseMoneyValue(c.specialPayment);
    if(amount<=0||!c.specialCondition?.enabled)return;
@@ -1415,7 +1404,7 @@ function syncContractSpecialPayments(){
      driver:normDriver(c.driver),
      contractId:c.id,
      type:'contract_special_income',
-     description:`Sonderzahlung Vertrag Â· ${c.team||''} Â· ${trigger.reason}`.trim(),
+     description:`Sonderzahlung Vertrag · ${c.team||''} · ${trigger.reason}`.trim(),
      amount,
      date:new Date(trigger.date+'T12:00:00').toISOString()
    };
@@ -1424,8 +1413,8 @@ function syncContractSpecialPayments(){
  });
 }
 function syncAllDriverContractFinance(){
- // Vertragsbuchungen sind vollstÃ¤ndig aus den aktuell gespeicherten VertrÃ¤gen ableitbar.
- // Dadurch werden auch bereits vorhandene VertrÃ¤ge nach App-Neustart korrekt in die Fahrerfinanzen Ã¼bernommen.
+ // Vertragsbuchungen sind vollständig aus den aktuell gespeicherten Verträgen ableitbar.
+ // Dadurch werden auch bereits vorhandene Verträge nach App-Neustart korrekt in die Fahrerfinanzen übernommen.
  financeTransactions=financeTransactions.filter(t=>t.type!=='contract_salary_income');
  contracts.filter(c=>c&&!c.draft).forEach(syncDriverContractFinance);
  syncContractSpecialPayments();
@@ -1470,7 +1459,7 @@ function nextSeasonLabel(season=seasonState.current||'02/26'){
 }
 function driverLicenseState(driverName,season=seasonState.current||'02/26'){
  const key=normDriver(driverName); const rec=driverLicenses[season]?.[key]||{};
- const division=currentDivision(driverName)==='â€”'?(driverRecord(driverName)?.division||'Div 2'):currentDivision(driverName);
+ const division=currentDivision(driverName)==='—'?(driverRecord(driverName)?.division||'Div 2'):currentDivision(driverName);
  const next=nextSeasonLabel(season); const nrec=driverLicenses[next]?.[key]||{};
  const priority=nrec.nextDivision||nrec.priority||division||'Div 2';
  const bal=financeDriverBalance(driverName,season).balance;
@@ -1481,28 +1470,28 @@ function saveDriverLicensePriority(driverName,season,division){
  if(!requireEditor())return; const next=nextSeasonLabel(season); if(!next)return;
  if(!driverLicenses[next])driverLicenses[next]={}; const key=normDriver(driverName);
  driverLicenses[next][key]={...(driverLicenses[next][key]||{}),nextDivision:division,updatedAt:new Date().toISOString()};
- save(); openDriver(driverName); toast(`PrioritÃ¤t nÃ¤chste Saison: ${division} Â· Lizenzbedarf ${money(licenseCost(division))}.`);
+ save(); openDriver(driverName); toast(`Priorität nächste Saison: ${division} · Lizenzbedarf ${money(licenseCost(division))}.`);
 }
 function bookDriverLicense(driverName,season){
  if(!requireEditor())return; const st=driverLicenseState(driverName,season); const key=normDriver(driverName);
- if(st.rec.paid){toast('Die Lizenz ist fÃ¼r diese Saison bereits gebucht.');return}
- if(st.balance<licenseCost(st.division)){toast(`Nicht genÃ¼gend Budget fÃ¼r die ${st.division}-Lizenz (${money(licenseCost(st.division))}).`);return}
+ if(st.rec.paid){toast('Die Lizenz ist für diese Saison bereits gebucht.');return}
+ if(st.balance<licenseCost(st.division)){toast(`Nicht genügend Budget für die ${st.division}-Lizenz (${money(licenseCost(st.division))}).`);return}
  if(!driverLicenses[season])driverLicenses[season]={}; driverLicenses[season][key]={...(driverLicenses[season][key]||{}),paid:true,division:st.division,paidAt:new Date().toISOString()};
- financeAddTransaction({season,team:'',driver:driverName,type:'driver_license',description:`Fahrer-Lizenz Â· ${st.division}`,amount:-licenseCost(st.division)});
- save(); openDriver(driverName); renderLicenses(); toast(`Lizenz ${st.division} fÃ¼r ${season} gebucht und ${money(licenseCost(st.division))} abgezogen.`);
+ financeAddTransaction({season,team:'',driver:driverName,type:'driver_license',description:`Fahrer-Lizenz · ${st.division}`,amount:-licenseCost(st.division)});
+ save(); openDriver(driverName); renderLicenses(); toast(`Lizenz ${st.division} für ${season} gebucht und ${money(licenseCost(st.division))} abgezogen.`);
 }
 function openDriverPenalty(driverName,season=seasonState.current||'02/26'){
  if(!requireEditor())return;
- document.getElementById('modal-content').innerHTML=`<div class="modal-head"><div><h2>âš ï¸ Strafzahlung Â· ${esc(driverName)}</h2><p class="race-edit-note">Die Strafzahlung wird direkt vom Fahrerbudget abgezogen. Eine BegrÃ¼ndung ist Pflicht.</p></div><button onclick="openDriverFinance('${esc(driverName)}','${esc(season)}')">Ã—</button></div><div class="new-driver-form"><label>Betrag<input id="driver-penalty-amount" inputmode="numeric" placeholder="z. B. 500.000 â‚¬"></label><label>BegrÃ¼ndung<textarea id="driver-penalty-reason" rows="4" placeholder="Warum wurde die Strafzahlung verhÃ¤ngt?"></textarea></label><label>Datum<input id="driver-penalty-date" type="date" value="${new Date().toISOString().slice(0,10)}"></label></div><div class="modal-actions"><button class="ghost" onclick="openDriverFinance('${esc(driverName)}','${esc(season)}')">Abbrechen</button><button class="primary" onclick="saveDriverPenalty('${esc(driverName)}','${esc(season)}')">âœ“ Strafzahlung buchen</button></div>`;openModal();
+ document.getElementById('modal-content').innerHTML=`<div class="modal-head"><div><h2>⚠️ Strafzahlung · ${esc(driverName)}</h2><p class="race-edit-note">Die Strafzahlung wird direkt vom Fahrerbudget abgezogen. Eine Begründung ist Pflicht.</p></div><button onclick="openDriverFinance('${esc(driverName)}','${esc(season)}')">×</button></div><div class="new-driver-form"><label>Betrag<input id="driver-penalty-amount" inputmode="numeric" placeholder="z. B. 500.000 €"></label><label>Begründung<textarea id="driver-penalty-reason" rows="4" placeholder="Warum wurde die Strafzahlung verhängt?"></textarea></label><label>Datum<input id="driver-penalty-date" type="date" value="${new Date().toISOString().slice(0,10)}"></label></div><div class="modal-actions"><button class="ghost" onclick="openDriverFinance('${esc(driverName)}','${esc(season)}')">Abbrechen</button><button class="primary" onclick="saveDriverPenalty('${esc(driverName)}','${esc(season)}')">✓ Strafzahlung buchen</button></div>`;openModal();
 }
 function saveDriverPenalty(driverName,season){
  if(!requireEditor())return; const amount=Math.abs(parseMoneyValue(document.getElementById('driver-penalty-amount')?.value||0)); const reason=document.getElementById('driver-penalty-reason')?.value.trim(); const date=document.getElementById('driver-penalty-date')?.value||new Date().toISOString().slice(0,10);
- if(!amount||!reason){toast('Betrag und BegrÃ¼ndung sind erforderlich.');return}
- financeAddTransaction({season,team:'',driver:driverName,type:'driver_penalty',description:`Strafzahlung Â· ${reason}`,amount:-amount,date:new Date(date+'T12:00:00').toISOString()}); save(); toast(`Strafzahlung ${money(amount)} gebucht.`); openDriverFinance(driverName,season);
+ if(!amount||!reason){toast('Betrag und Begründung sind erforderlich.');return}
+ financeAddTransaction({season,team:'',driver:driverName,type:'driver_penalty',description:`Strafzahlung · ${reason}`,amount:-amount,date:new Date(date+'T12:00:00').toISOString()}); save(); toast(`Strafzahlung ${money(amount)} gebucht.`); openDriverFinance(driverName,season);
 }
 function renderDriverLicenseCard(driverName,season=seasonState.current||'02/26'){
  const st=driverLicenseState(driverName,season); const cur=st.rec.paid; const d1ok=st.balance>=5000000,d2ok=st.balance>=2500000;
- return `<div class="profile-section license-section"><div class="section-inline"><h3>ðŸªª Fahrer-Lizenz</h3>${isEditor()?`<button class="ghost mini-edit" onclick="bookDriverLicense('${esc(driverName)}','${esc(season)}')">${cur?'âœ“ Lizenz gebucht':'ðŸ’³ Lizenz am Saisonende buchen'}</button>`:''}</div><div class="license-grid"><div class="license-current"><span>Aktuelle Saison Â· ${esc(season)}</span><strong>${cur?'âœ…':'âŒ'}</strong><small>${cur?`${esc(st.rec.division||st.division)}-Lizenz vorhanden`:'Lizenz noch nicht gebucht'}</small></div><div class="license-next"><div class="license-next-head"><span>Neue Saison Â· ${esc(st.next)}</span><b>PrioritÃ¤t: ${esc(st.priority)}</b></div><div class="license-choice"><button class="license-div ${st.priority==='Div 1'?'selected':''}" onclick="saveDriverLicensePriority('${esc(driverName)}','${esc(season)}','Div 1')">Div 1 Â· 5,0 Mio.</button><button class="license-div ${st.priority==='Div 2'?'selected':''}" onclick="saveDriverLicensePriority('${esc(driverName)}','${esc(season)}','Div 2')">Div 2 Â· 2,5 Mio.</button></div><div class="license-status"><span>BenÃ¶tigtes Budget</span><b>${money(st.cost)}</b><span>Aktueller Kontostand</span><b>${money(st.balance)}</b><strong>${st.nextOk?'âœ… Lizenz finanzierbar':'âŒ Budget nicht ausreichend'}</strong></div><small>Div 1 verfÃ¼gbar: ${d1ok?'âœ…':'âŒ'} Â· Div 2 verfÃ¼gbar: ${d2ok?'âœ…':'âŒ'}</small></div></div></div>`;
+ return `<div class="profile-section license-section"><div class="section-inline"><h3>🪪 Fahrer-Lizenz</h3>${isEditor()?`<button class="ghost mini-edit" onclick="bookDriverLicense('${esc(driverName)}','${esc(season)}')">${cur?'✓ Lizenz gebucht':'💳 Lizenz am Saisonende buchen'}</button>`:''}</div><div class="license-grid"><div class="license-current"><span>Aktuelle Saison · ${esc(season)}</span><strong>${cur?'✅':'❌'}</strong><small>${cur?`${esc(st.rec.division||st.division)}-Lizenz vorhanden`:'Lizenz noch nicht gebucht'}</small></div><div class="license-next"><div class="license-next-head"><span>Neue Saison · ${esc(st.next)}</span><b>Priorität: ${esc(st.priority)}</b></div><div class="license-choice"><button class="license-div ${st.priority==='Div 1'?'selected':''}" onclick="saveDriverLicensePriority('${esc(driverName)}','${esc(season)}','Div 1')">Div 1 · 5,0 Mio.</button><button class="license-div ${st.priority==='Div 2'?'selected':''}" onclick="saveDriverLicensePriority('${esc(driverName)}','${esc(season)}','Div 2')">Div 2 · 2,5 Mio.</button></div><div class="license-status"><span>Benötigtes Budget</span><b>${money(st.cost)}</b><span>Aktueller Kontostand</span><b>${money(st.balance)}</b><strong>${st.nextOk?'✅ Lizenz finanzierbar':'❌ Budget nicht ausreichend'}</strong></div><small>Div 1 verfügbar: ${d1ok?'✅':'❌'} · Div 2 verfügbar: ${d2ok?'✅':'❌'}</small></div></div></div>`;
 }
 function openDriverFinance(driverName,season=seasonState.current||'02/26'){
  syncFinancialRules();
@@ -1511,17 +1500,17 @@ function openDriverFinance(driverName,season=seasonState.current||'02/26'){
  const openingDate=driverFinanceOpeningDates[season]?.[normDriver(driverName)]||contract?.startDate||'';
  const openingTx=b.opening?{date:openingDate||'',description:'Startkapital',type:'opening',amount:b.opening}:null;
  const allTx=(openingTx?[openingTx]:[]).concat(b.transactions).sort((a,z)=>String(a.date||'9999-12-31').localeCompare(String(z.date||'9999-12-31')));
- const rows=allTx.map(t=>`<div class="finance-tx-row${t.type==='opening'?' finance-opening-row':''}"><span>${t.date?esc(new Date(t.date).toLocaleDateString('de-DE')):'â€”'}</span><span><b>${esc(t.description)}</b><small>${t.type==='opening'?'Startkapital Â· '+esc(season):t.type==='driver_points_cost'?'Punktkosten Â· '+esc(season):t.type==='replacement_loan_income'?'Ersatzfahrer-Leihe Â· '+esc(season):t.type==='contract_salary_income'?'Vertragsgehalt Â· '+esc(season):t.type==='driver_license'?'Lizenz Â· '+esc(season):t.type==='driver_penalty'?'Strafzahlung Â· '+esc(season):'Sonderzahlung Vertrag Â· '+esc(season)}</small></span><span class="${t.amount>=0?'tx-in':'tx-out'}">${t.amount>=0?'+':''}${money(t.amount)}</span>${isEditor()&&t.type!=='opening'?`<span class="finance-row-actions"><button class="mini-link" onclick="openFinanceTxEditor('${esc(t.id)}','driver','${esc(driverName)}','${esc(season)}')">âœï¸</button><button class="mini-link" onclick="deleteFinanceTransaction('${esc(t.id)}','driver','${esc(driverName)}','${esc(season)}')">ðŸ—‘ï¸</button></span>`:''}</div>`).join('')||'<div class="empty-race">Noch keine Fahrer-Finanzbuchungen.</div>';
- const seasonOptions=Object.values(SEASON_META.seasons).sort((a,b)=>String(b.label).localeCompare(String(a.label),'de')).map(x=>`<option value="${esc(x.label)}" ${x.label===season?'selected':''}>${esc(x.label)}${x.status==='test'?' Â· Test':''}</option>`).join('');
- document.getElementById('modal-content').innerHTML=`<div class="modal-head"><div><h2>ðŸ’° Fahrer-Finanzkonto Â· ${esc(driverName)}</h2><p class="race-edit-note">Chronologisches Konto: Startkapital, Vertragszahlungen, Rennen/Punktkosten und Ersatzfahrer-Leihen.</p></div><button onclick="closeModal()">Ã—</button></div><div class="new-driver-form single"><label>Saison<select id="driver-finance-season" onchange="openDriverFinance('${esc(driverName)}',this.value)">${seasonOptions}</select></label></div><div class="ledger-summary"><div><span>Startkapital</span><b>${money(b.opening)}</b></div><div><span>Einnahmen</span><b>${money(b.income)}</b></div><div><span>Ausgaben</span><b>${money(b.expense)}</b></div><div><span>Kontostand</span><b>${money(b.balance)}</b></div></div><div class="modal-actions">${isEditor()?`<button class="ghost" onclick="openDriverFinanceOpening('${esc(driverName)}','${esc(season)}')">ðŸ’° Startkapital / Datum</button><button class="ghost" onclick="openDriverPenalty('${esc(driverName)}','${esc(season)}')">âš ï¸ Strafzahlung</button><button class="ghost" onclick="refreshDriverFinance('${esc(driverName)}','${esc(season)}')">ðŸ”„ Finanzen aktualisieren</button>`:''}${contract?`<button class="ghost" onclick="${isEditor()?`openContractEditor('${esc(contract.driver)}','${esc(contract.id)}')`:`openContractViewer('${esc(contract.id)}')` }">ðŸ“„ Vertrag ${isEditor()?'bearbeiten':'ansehen'}</button>`:''}<button class="primary" onclick="closeModal()">Fertig</button></div><div class="finance-ledger"><div class="finance-tx-row finance-tx-head"><span>DATUM</span><span>BUCHUNG / GRUND</span><span>BETRAG</span></div>${rows}</div></div>`;openModal();
+ const rows=allTx.map(t=>`<div class="finance-tx-row${t.type==='opening'?' finance-opening-row':''}"><span>${t.date?esc(new Date(t.date).toLocaleDateString('de-DE')):'—'}</span><span><b>${esc(t.description)}</b><small>${t.type==='opening'?'Startkapital · '+esc(season):t.type==='driver_points_cost'?'Punktkosten · '+esc(season):t.type==='replacement_loan_income'?'Ersatzfahrer-Leihe · '+esc(season):t.type==='contract_salary_income'?'Vertragsgehalt · '+esc(season):t.type==='driver_license'?'Lizenz · '+esc(season):t.type==='driver_penalty'?'Strafzahlung · '+esc(season):'Sonderzahlung Vertrag · '+esc(season)}</small></span><span class="${t.amount>=0?'tx-in':'tx-out'}">${t.amount>=0?'+':''}${money(t.amount)}</span>${isEditor()&&t.type!=='opening'?`<span class="finance-row-actions"><button class="mini-link" onclick="openFinanceTxEditor('${esc(t.id)}','driver','${esc(driverName)}','${esc(season)}')">✏️</button><button class="mini-link" onclick="deleteFinanceTransaction('${esc(t.id)}','driver','${esc(driverName)}','${esc(season)}')">🗑️</button></span>`:''}</div>`).join('')||'<div class="empty-race">Noch keine Fahrer-Finanzbuchungen.</div>';
+ const seasonOptions=Object.values(SEASON_META.seasons).sort((a,b)=>String(b.label).localeCompare(String(a.label),'de')).map(x=>`<option value="${esc(x.label)}" ${x.label===season?'selected':''}>${esc(x.label)}${x.status==='test'?' · Test':''}</option>`).join('');
+ document.getElementById('modal-content').innerHTML=`<div class="modal-head"><div><h2>💰 Fahrer-Finanzkonto · ${esc(driverName)}</h2><p class="race-edit-note">Chronologisches Konto: Startkapital, Vertragszahlungen, Rennen/Punktkosten und Ersatzfahrer-Leihen.</p></div><button onclick="closeModal()">×</button></div><div class="new-driver-form single"><label>Saison<select id="driver-finance-season" onchange="openDriverFinance('${esc(driverName)}',this.value)">${seasonOptions}</select></label></div><div class="ledger-summary"><div><span>Startkapital</span><b>${money(b.opening)}</b></div><div><span>Einnahmen</span><b>${money(b.income)}</b></div><div><span>Ausgaben</span><b>${money(b.expense)}</b></div><div><span>Kontostand</span><b>${money(b.balance)}</b></div></div><div class="modal-actions">${isEditor()?`<button class="ghost" onclick="openDriverFinanceOpening('${esc(driverName)}','${esc(season)}')">💰 Startkapital / Datum</button><button class="ghost" onclick="openDriverPenalty('${esc(driverName)}','${esc(season)}')">⚠️ Strafzahlung</button><button class="ghost" onclick="refreshDriverFinance('${esc(driverName)}','${esc(season)}')">🔄 Finanzen aktualisieren</button>`:''}${contract?`<button class="ghost" onclick="${isEditor()?`openContractEditor('${esc(contract.driver)}','${esc(contract.id)}')`:`openContractViewer('${esc(contract.id)}')` }">📄 Vertrag ${isEditor()?'bearbeiten':'ansehen'}</button>`:''}<button class="primary" onclick="closeModal()">Fertig</button></div><div class="finance-ledger"><div class="finance-tx-row finance-tx-head"><span>DATUM</span><span>BUCHUNG / GRUND</span><span>BETRAG</span></div>${rows}</div></div>`;openModal();
 }
-function refreshDriverFinance(driverName,season){if(!requireEditor())return;syncFinancialRules();save();openDriverFinance(driverName,season);toast('Fahrerfinanzen neu aus VertrÃ¤gen, Leihen und Rennen berechnet.');}
-function openDriverFinanceOpening(driverName,season){if(!requireEditor())return;const key=normDriver(driverName),current=Number(driverFinanceOpeningBalances[season]?.[key]||0),date=driverFinanceOpeningDates[season]?.[key]||'';document.getElementById('modal-content').innerHTML=`<div class="modal-head"><div><h2>ðŸ’° Fahrer-Startkapital</h2><p class="race-edit-note">PersÃ¶nlicher Anfangsbestand von ${esc(driverName)} fÃ¼r ${esc(season)}. Das Datum erscheint als erste Buchung im Finanzkonto.</p></div><button onclick="openDriverFinance('${esc(driverName)}','${esc(season)}')">Ã—</button></div><div class="new-driver-form"><label>Startkapital<input id="driver-finance-opening-value" value="${current||0}" inputmode="numeric" placeholder="0"></label><label>Datum<input id="driver-finance-opening-date" type="date" value="${esc(date)}"></label></div><div class="modal-actions"><button class="ghost" onclick="openDriverFinance('${esc(driverName)}','${esc(season)}')">Abbrechen</button><button class="primary" onclick="saveDriverFinanceOpening('${esc(driverName)}','${esc(season)}')">âœ“ Speichern</button></div>`;openModal();}
+function refreshDriverFinance(driverName,season){if(!requireEditor())return;syncFinancialRules();save();openDriverFinance(driverName,season);toast('Fahrerfinanzen neu aus Verträgen, Leihen und Rennen berechnet.');}
+function openDriverFinanceOpening(driverName,season){if(!requireEditor())return;const key=normDriver(driverName),current=Number(driverFinanceOpeningBalances[season]?.[key]||0),date=driverFinanceOpeningDates[season]?.[key]||'';document.getElementById('modal-content').innerHTML=`<div class="modal-head"><div><h2>💰 Fahrer-Startkapital</h2><p class="race-edit-note">Persönlicher Anfangsbestand von ${esc(driverName)} für ${esc(season)}. Das Datum erscheint als erste Buchung im Finanzkonto.</p></div><button onclick="openDriverFinance('${esc(driverName)}','${esc(season)}')">×</button></div><div class="new-driver-form"><label>Startkapital<input id="driver-finance-opening-value" value="${current||0}" inputmode="numeric" placeholder="0"></label><label>Datum<input id="driver-finance-opening-date" type="date" value="${esc(date)}"></label></div><div class="modal-actions"><button class="ghost" onclick="openDriverFinance('${esc(driverName)}','${esc(season)}')">Abbrechen</button><button class="primary" onclick="saveDriverFinanceOpening('${esc(driverName)}','${esc(season)}')">✓ Speichern</button></div>`;openModal();}
 function saveDriverFinanceOpening(driverName,season){if(!requireEditor())return;const key=normDriver(driverName),n=parseMoneyValue(document.getElementById('driver-finance-opening-value')?.value||0),date=document.getElementById('driver-finance-opening-date')?.value||'';if(!driverFinanceOpeningBalances[season])driverFinanceOpeningBalances[season]={};if(!driverFinanceOpeningDates[season])driverFinanceOpeningDates[season]={};driverFinanceOpeningBalances[season][key]=n;driverFinanceOpeningDates[season][key]=date;save();toast('Fahrer-Startkapital gespeichert.');openDriverFinance(driverName,season);}
 function openLoanList(teamName=''){
  const season=seasonState.current||'02/26'; const list=loanAgreements.filter(l=>l.season===season&&(!teamName||l.borrowerTeam===teamName||l.sourceTeam===teamName));
- const rows=list.map(l=>`<div class="finance-tx-row"><span>${esc(l.division)}</span><span><b>${esc(l.driver)}</b><small>${esc(l.sourceTeam||'Free Agent')} â†’ ${esc(l.borrowerTeam)} Â· ${esc(l.status)}</small></span><span>${money(l.fee)}</span>${isEditor()?`<button class="mini-link" onclick="openLoanEditor('${esc(l.id)}')">Bearbeiten</button>`:''}</div>`).join('')||'<div class="empty-race">Keine Ersatzfahrer-Leihen in dieser Saison.</div>';
- document.getElementById('modal-content').innerHTML=`<div class="modal-head"><div><h2>ðŸ¤ Ersatzfahrer-Leihen Â· ${esc(teamName||'Alle Teams')}</h2><p class="race-edit-note">LeihgebÃ¼hren werden als Ausgabe beim ausleihenden Team verbucht.</p></div><button onclick="closeModal()">Ã—</button></div><div class="modal-actions">${isEditor()?'<button class="primary" onclick="openLoanEditor()">âž• Ersatzfahrer leihen</button>':''}</div><div class="finance-ledger">${rows}</div>`;openModal();
+ const rows=list.map(l=>`<div class="finance-tx-row"><span>${esc(l.division)}</span><span><b>${esc(l.driver)}</b><small>${esc(l.sourceTeam||'Free Agent')} → ${esc(l.borrowerTeam)} · ${esc(l.status)}</small></span><span>${money(l.fee)}</span>${isEditor()?`<button class="mini-link" onclick="openLoanEditor('${esc(l.id)}')">Bearbeiten</button>`:''}</div>`).join('')||'<div class="empty-race">Keine Ersatzfahrer-Leihen in dieser Saison.</div>';
+ document.getElementById('modal-content').innerHTML=`<div class="modal-head"><div><h2>🤝 Ersatzfahrer-Leihen · ${esc(teamName||'Alle Teams')}</h2><p class="race-edit-note">Leihgebühren werden als Ausgabe beim ausleihenden Team verbucht.</p></div><button onclick="closeModal()">×</button></div><div class="modal-actions">${isEditor()?'<button class="primary" onclick="openLoanEditor()">➕ Ersatzfahrer leihen</button>':''}</div><div class="finance-ledger">${rows}</div>`;openModal();
 }
 function syncFinancialRules(){
   // Rebuild all automatically derived financial entries from authoritative sources.
@@ -1559,7 +1548,7 @@ function calculateLeagueState(){
    g.races.forEach(r=>{
      r.schemaVersion=3;
      r.season=seasonOfRace(r);
-     r.ruleVersion=r.ruleVersion||SEASON_META.seasons[r.season]?.rules||'DoG 02/26 Â· v1';
+     r.ruleVersion=r.ruleVersion||SEASON_META.seasons[r.season]?.rules||'DoG 02/26 · v1';
      r.createdAt=r.createdAt||r.ocr?.capturedAt||new Date().toISOString();
      r.updatedAt=new Date().toISOString();
      r.results.forEach((x,i)=>x.points=pointsForPosition(i+1,statusOfResult(x)));
@@ -1584,10 +1573,10 @@ function recalculateDatabase(){
  save();
  const after=JSON.stringify({races,drivers,driverMeta,teams});
  const changed=before!==after;
- Object.values(races).forEach(r=>{r.changeLog=r.changeLog||[];r.changeLog.push({at:new Date().toISOString(),kind:'Datenbank neu berechnet',details:`${r.results.length} Ergebniszeilen Â· Regelversion ${r.ruleVersion}`});if(r.changeLog.length>50)r.changeLog=r.changeLog.slice(-50);});
+ Object.values(races).forEach(r=>{r.changeLog=r.changeLog||[];r.changeLog.push({at:new Date().toISOString(),kind:'Datenbank neu berechnet',details:`${r.results.length} Ergebniszeilen · Regelversion ${r.ruleVersion}`});if(r.changeLog.length>50)r.changeLog=r.changeLog.slice(-50);});
  save();
  renderDashboard();renderWM();renderKWM();renderArchive();initDriverOverview();renderTeams();
- toast(changed?'Datenbank neu berechnet Â· WM/KWM/Fahrerwerte aktualisiert.':'Datenbank geprÃ¼ft Â· keine Ã„nderungen erforderlich.');
+ toast(changed?'Datenbank neu berechnet · WM/KWM/Fahrerwerte aktualisiert.':'Datenbank geprüft · keine Änderungen erforderlich.');
 }
 function databaseIntegrity(){
  const rs=raceList(); const names=new Set(drivers.map(normDriver));
@@ -1599,7 +1588,7 @@ function databaseIntegrity(){
 function seasonOfRace(r){return r.season||'02/26'}
 function seasonRaces(season='02/26'){return Object.values(races).filter(r=>seasonOfRace(r)===season)}
 function uniqueSeasonRounds(season='02/26'){return new Set(seasonRaces(season).map(r=>`${r.number||r.round||0}|${r.track||''}`)).size}
-function ensureRaceMetadata(){Object.values(races).forEach(r=>{r.schemaVersion=2;r.season=seasonOfRace(r);r.ruleVersion=r.ruleVersion||SEASON_META.seasons[r.season]?.rules||'DoG 02/26 Â· v1';r.createdAt=r.createdAt||new Date().toISOString();r.changeLog=r.changeLog||[];r.ocr=r.ocr||null;r.state=r.state||null;});}
+function ensureRaceMetadata(){Object.values(races).forEach(r=>{r.schemaVersion=2;r.season=seasonOfRace(r);r.ruleVersion=r.ruleVersion||SEASON_META.seasons[r.season]?.rules||'DoG 02/26 · v1';r.createdAt=r.createdAt||new Date().toISOString();r.changeLog=r.changeLog||[];r.ocr=r.ocr||null;r.state=r.state||null;});}
 
 function recordRaceChange(id,kind,details){
  const r=races[id];if(!r)return;
@@ -1629,13 +1618,13 @@ function contractHistory(name){
 function openContractViewer(id){
  if(!id)return; const c=contracts.find(x=>x.id===id); if(!c){toast('Vertrag nicht gefunden.');return;}
  const imgs=(c.contractImages||[]).map((x,i)=>`<img class="contract-view-thumb" src="${esc(x)}" onclick="viewImage(this.src)" alt="Vertragsbild ${i+1}">`).join('');
- document.getElementById('modal-content').innerHTML=`<div class="modal-head"><div><h2>ðŸ“„ Vertrag Â· ${esc(c.driver)}</h2><p class="race-edit-note">${esc(c.season||'â€”')} Â· ${esc(c.team||'â€”')} Â· ${esc(c.division||'â€”')}</p></div><button onclick="closeModal()">Ã—</button></div><div class="contract-view-grid"><div><b>Teamchef</b><span>${esc(c.teamChief||'â€”')}</span></div><div><b>Beginn</b><span>${esc(c.startDate||'â€”')}</span></div><div><b>Ende</b><span>${esc(c.endDate||'â€”')}</span></div><div><b>Fahrersponsor</b><span>${esc(c.sponsor||'â€”')}</span></div><div><b>Gehalt</b><span>${esc(c.salary||c.value||'â€”')}</span></div><div><b>Sonderzahlung</b><span>${esc(c.specialPayment||'â€”')}</span></div><div><b>Abfindung</b><span>${esc(c.severance||'â€”')}</span></div><div><b>Ausstiegsklausel</b><span>${esc(c.releaseClause||'â€”')}</span></div></div><div class="contract-view-agreement"><b>Sondervereinbarungen</b><p>${esc(c.specialAgreement||'â€”')}</p></div><div class="contract-view-signatures"><div><b>Unterschrift Fahrer</b><span>${esc(c.signatureDriver||'â€”')}</span></div><div><b>Unterschrift Teamchef</b><span>${esc(c.signatureChief||'â€”')}</span></div></div>${imgs?`<div class="contract-view-images"><b>Vertragsbilder</b><div>${imgs}</div></div>`:''}<div class="modal-actions"><button class="ghost" onclick="openContractEditor('${esc(c.driver)}','${esc(c.id)}')">âœï¸ Bearbeiten</button><button class="primary" onclick="closeModal()">Fertig</button></div>`; openModal();
+ document.getElementById('modal-content').innerHTML=`<div class="modal-head"><div><h2>📄 Vertrag · ${esc(c.driver)}</h2><p class="race-edit-note">${esc(c.season||'—')} · ${esc(c.team||'—')} · ${esc(c.division||'—')}</p></div><button onclick="closeModal()">×</button></div><div class="contract-view-grid"><div><b>Teamchef</b><span>${esc(c.teamChief||'—')}</span></div><div><b>Beginn</b><span>${esc(c.startDate||'—')}</span></div><div><b>Ende</b><span>${esc(c.endDate||'—')}</span></div><div><b>Fahrersponsor</b><span>${esc(c.sponsor||'—')}</span></div><div><b>Gehalt</b><span>${esc(c.salary||c.value||'—')}</span></div><div><b>Sonderzahlung</b><span>${esc(c.specialPayment||'—')}</span></div><div><b>Abfindung</b><span>${esc(c.severance||'—')}</span></div><div><b>Ausstiegsklausel</b><span>${esc(c.releaseClause||'—')}</span></div></div><div class="contract-view-agreement"><b>Sondervereinbarungen</b><p>${esc(c.specialAgreement||'—')}</p></div><div class="contract-view-signatures"><div><b>Unterschrift Fahrer</b><span>${esc(c.signatureDriver||'—')}</span></div><div><b>Unterschrift Teamchef</b><span>${esc(c.signatureChief||'—')}</span></div></div>${imgs?`<div class="contract-view-images"><b>Vertragsbilder</b><div>${imgs}</div></div>`:''}<div class="modal-actions"><button class="ghost" onclick="openContractEditor('${esc(c.driver)}','${esc(c.id)}')">✏️ Bearbeiten</button><button class="primary" onclick="closeModal()">Fertig</button></div>`; openModal();
 }
 function contractDriverOptions(selected=''){
- return `<option value="">â€” Fahrer auswÃ¤hlen â€”</option>${drivers.slice().sort((a,b)=>normDriver(a).localeCompare(normDriver(b),'de')).map(x=>`<option value="${esc(x)}" ${normDriver(x)===normDriver(selected)?'selected':''}>${esc(x)}${driverNumber(x)?` Â· #${driverNumber(x)}`:''}</option>`).join('')}`;
+ return `<option value="">— Fahrer auswählen —</option>${drivers.slice().sort((a,b)=>normDriver(a).localeCompare(normDriver(b),'de')).map(x=>`<option value="${esc(x)}" ${normDriver(x)===normDriver(selected)?'selected':''}>${esc(x)}${driverNumber(x)?` · #${driverNumber(x)}`:''}</option>`).join('')}`;
 }
 function contractTeamOptions(selected=''){
- return `<option value="">â€” Team auswÃ¤hlen â€”</option>${TEAM_CHOICES.filter(Boolean).map(x=>`<option value="${esc(x)}" ${x===selected?'selected':''}>${esc(x)}</option>`).join('')}`;
+ return `<option value="">— Team auswählen —</option>${TEAM_CHOICES.filter(Boolean).map(x=>`<option value="${esc(x)}" ${x===selected?'selected':''}>${esc(x)}</option>`).join('')}`;
 }
 function syncContractPartyFields(){
  const d=document.getElementById('contract-driver')?.value||'', t=document.getElementById('contract-team')?.value||'';
@@ -1658,21 +1647,21 @@ function openContractEditor(name,id){
  const chief=existing?.teamChief||teams.find(t=>t.name===selectedTeam)?.chief||'';
  const seasonOpts=Object.keys(SEASON_META.seasons).sort().map(x=>`<option ${x===currentSeason?'selected':''}>${esc(x)}</option>`).join('');
  const duration=existing?.durationSeasons||1, ext=existing?.extension||{};
- document.getElementById('modal-content').innerHTML=`<div class="modal-head"><div><h2>ðŸ“„ ${existing?'Vertrag bearbeiten':'Fahrervertrag anlegen'}</h2><p class="race-edit-note">Fahrer und Team werden ausschlieÃŸlich Ã¼ber Auswahllisten zugeordnet. Dadurch bleiben VertrÃ¤ge eindeutig mit der Fahrer-ID verknÃ¼pft.</p></div><button onclick="closeModal()">Ã—</button></div><div class="contract-form">
- <div class="contract-form-section"><h3>VERTRAGSPARTEIEN</h3><div class="new-driver-form"><label>Fahrer<select id="contract-driver" onchange="syncContractPartyFields()">${contractDriverOptions(selectedDriver)}</select></label><label>Saison<select id="contract-season">${seasonOpts}</select></label><label>Team<select id="contract-team" onchange="syncContractChief()">${contractTeamOptions(selectedTeam)}</select></label><label>Division<select id="contract-div"><option ${existing?.division==='Div 1'||(!existing&&currentDivision(selectedDriver)==='Div 1')?'selected':''}>Div 1</option><option ${existing?.division==='Div 2'||(!existing&&currentDivision(selectedDriver)!=='Div 1')?'selected':''}>Div 2</option></select></label><label>Teamchef<select id="contract-chief"><option value="">â€” kein Teamchef â€”</option>${drivers.filter(d=>driverIsTeamChief(d)||normDriver(d)===normDriver(chief)).sort((a,b)=>a.localeCompare(b,'de')).map(d=>'<option value="'+esc(d)+'" '+(normDriver(d)===normDriver(chief)?'selected':'')+'>'+esc(d)+'</option>').join('')}</select></label></div></div>
- <div class="contract-form-section"><h3>VERTRAGSLAUFZEIT</h3><div class="new-driver-form"><label>Laufzeit<select id="contract-duration"><option value="1" ${duration===1?'selected':''}>1 Saison</option><option value="2" ${duration===2?'selected':''}>2 Saisons</option></select></label><label>Beginn<input id="contract-start-date" type="date" value="${esc(existing?.startDate||'')}"></label><label>Ende<input id="contract-end-date" type="date" value="${esc(existing?.endDate||'')}"></label></div><div class="contract-season-lock"><b>${duration===2?'Vertrag Ã¼ber 2 Saisons':'Vertrag Ã¼ber 1 Saison'}</b><span>Bei 2 Saisons wird die Folgesaison automatisch als Vertragsbindung vorgemerkt.</span></div></div>
- <div class="contract-form-section"><h3>ðŸ”„ AUTOMATISCHE VERLÃ„NGERUNG</h3><div class="new-driver-form"><label class="role-check"><input type="checkbox" id="contract-ext-enabled" ${ext.enabled?'checked':''}> VerlÃ¤ngerung aktiv</label><label>Zusatzlaufzeit<select id="contract-ext-duration"><option value="1" ${Number(ext.duration||1)===1?'selected':''}>+ 1 Saison</option><option value="2" ${Number(ext.duration||1)===2?'selected':''}>+ 2 Saisons</option></select></label></div><div class="new-driver-form"><label class="role-check"><input type="checkbox" id="contract-ext-position" ${ext.positionEnabled?'checked':''}> WM â‰¤</label><label><input id="contract-ext-position-value" type="number" min="1" max="250" value="${Number(ext.position||1)}"></label><label class="role-check"><input type="checkbox" id="contract-ext-points" ${ext.pointsEnabled?'checked':''}> Punkte â‰¥</label><label><input id="contract-ext-points-value" type="number" min="1" max="250" value="${Number(ext.points||1)}"></label><label class="role-check"><input type="checkbox" id="contract-ext-races" ${ext.racesEnabled?'checked':''}> Rennen â‰¥</label><label><input id="contract-ext-races-value" type="number" min="1" max="250" value="${Number(ext.races||1)}"></label></div><div class="race-edit-note">Nur aktivierte Bedingungen werden geprÃ¼ft. Bei mehreren Haken mÃ¼ssen alle erfÃ¼llt sein; PrÃ¼fung am Saisonende.</div></div>
+ document.getElementById('modal-content').innerHTML=`<div class="modal-head"><div><h2>📄 ${existing?'Vertrag bearbeiten':'Fahrervertrag anlegen'}</h2><p class="race-edit-note">Fahrer und Team werden ausschließlich über Auswahllisten zugeordnet. Dadurch bleiben Verträge eindeutig mit der Fahrer-ID verknüpft.</p></div><button onclick="closeModal()">×</button></div><div class="contract-form">
+ <div class="contract-form-section"><h3>VERTRAGSPARTEIEN</h3><div class="new-driver-form"><label>Fahrer<select id="contract-driver" onchange="syncContractPartyFields()">${contractDriverOptions(selectedDriver)}</select></label><label>Saison<select id="contract-season">${seasonOpts}</select></label><label>Team<select id="contract-team" onchange="syncContractChief()">${contractTeamOptions(selectedTeam)}</select></label><label>Division<select id="contract-div"><option ${existing?.division==='Div 1'||(!existing&&currentDivision(selectedDriver)==='Div 1')?'selected':''}>Div 1</option><option ${existing?.division==='Div 2'||(!existing&&currentDivision(selectedDriver)!=='Div 1')?'selected':''}>Div 2</option></select></label><label>Teamchef<select id="contract-chief"><option value="">— kein Teamchef —</option>${drivers.filter(d=>driverIsTeamChief(d)||normDriver(d)===normDriver(chief)).sort((a,b)=>a.localeCompare(b,'de')).map(d=>'<option value="'+esc(d)+'" '+(normDriver(d)===normDriver(chief)?'selected':'')+'>'+esc(d)+'</option>').join('')}</select></label></div></div>
+ <div class="contract-form-section"><h3>VERTRAGSLAUFZEIT</h3><div class="new-driver-form"><label>Laufzeit<select id="contract-duration"><option value="1" ${duration===1?'selected':''}>1 Saison</option><option value="2" ${duration===2?'selected':''}>2 Saisons</option></select></label><label>Beginn<input id="contract-start-date" type="date" value="${esc(existing?.startDate||'')}"></label><label>Ende<input id="contract-end-date" type="date" value="${esc(existing?.endDate||'')}"></label></div><div class="contract-season-lock"><b>${duration===2?'Vertrag über 2 Saisons':'Vertrag über 1 Saison'}</b><span>Bei 2 Saisons wird die Folgesaison automatisch als Vertragsbindung vorgemerkt.</span></div></div>
+ <div class="contract-form-section"><h3>🔄 AUTOMATISCHE VERLÄNGERUNG</h3><div class="new-driver-form"><label class="role-check"><input type="checkbox" id="contract-ext-enabled" ${ext.enabled?'checked':''}> Verlängerung aktiv</label><label>Zusatzlaufzeit<select id="contract-ext-duration"><option value="1" ${Number(ext.duration||1)===1?'selected':''}>+ 1 Saison</option><option value="2" ${Number(ext.duration||1)===2?'selected':''}>+ 2 Saisons</option></select></label></div><div class="new-driver-form"><label class="role-check"><input type="checkbox" id="contract-ext-position" ${ext.positionEnabled?'checked':''}> WM ≤</label><label><input id="contract-ext-position-value" type="number" min="1" max="250" value="${Number(ext.position||1)}"></label><label class="role-check"><input type="checkbox" id="contract-ext-points" ${ext.pointsEnabled?'checked':''}> Punkte ≥</label><label><input id="contract-ext-points-value" type="number" min="1" max="250" value="${Number(ext.points||1)}"></label><label class="role-check"><input type="checkbox" id="contract-ext-races" ${ext.racesEnabled?'checked':''}> Rennen ≥</label><label><input id="contract-ext-races-value" type="number" min="1" max="250" value="${Number(ext.races||1)}"></label></div><div class="race-edit-note">Nur aktivierte Bedingungen werden geprüft. Bei mehreren Haken müssen alle erfüllt sein; Prüfung am Saisonende.</div></div>
 <div class="contract-form-section"><h3>FAHRERSPONSOR</h3><div class="new-driver-form"><label>Sponsor<select id="contract-sponsor" onchange="syncSponsorFields()"><option value="">Kein Sponsor</option>${Object.keys(SPONSOR_OPTIONS).map(x=>'<option value="'+esc(x)+'" '+(existing?.sponsor===x?'selected':'')+'>'+esc(x)+'</option>').join('')}</select></label><label>Sponsor-Logo (optional)<input id="contract-sponsor-logo" value="${esc(existing?.sponsorLogo||'')}"></label></div><div id="sponsor-preview" class="sponsor-preview"></div></div>
- <div class="contract-form-section"><h3>ZAHLUNGSVEREINBARUNGEN</h3><div class="new-driver-form"><label>Gehalt<input id="contract-salary" value="${esc(existing?.salary||existing?.value||'')}" placeholder="4.000.000 â‚¬"></label><label>Sonderzahlung<input id="contract-special" value="${esc(existing?.specialPayment||'')}" placeholder="6.000.000 â‚¬"></label><label>Abfindung<input id="contract-severance" value="${esc(existing?.severance||'')}" placeholder="8.000.000 â‚¬"></label><label>Ausstiegsklausel<input id="contract-release" value="${esc(existing?.releaseClause||'')}" placeholder="120.000.000 â‚¬"></label></div><div class="new-driver-form"><label class="role-check"><input type="checkbox" id="contract-special-enabled" ${existing?.specialCondition?.enabled?'checked':''}> Sonderzahlung automatisch nach Bedingung</label></div><div class="new-driver-form"><label class="role-check"><input type="checkbox" id="contract-special-points-enabled" ${existing?.specialCondition?.pointsEnabled||(!existing?.specialCondition&&existing?.specialCondition?.enabled)?'checked':''}> Punkte ab</label><label><input id="contract-special-points" type="number" min="1" max="250" value="${Number(existing?.specialCondition?.points||1)}"></label><label class="role-check"><input type="checkbox" id="contract-special-kwm-enabled" ${existing?.specialCondition?.kwmEnabled?'checked':''}> KWM Platz bis</label><label><select id="contract-special-kwm-position">${[1,2,3,4].map(n=>`<option value="${n}" ${Number(existing?.specialCondition?.kwmPosition||1)===n?'selected':''}>P${n}</option>`).join('')}</select></label><label class="role-check"><input type="checkbox" id="contract-special-end-enabled" ${existing?.specialCondition?.endPositionEnabled?'checked':''}> Endplatzierung bis</label><label><input id="contract-special-end-position" type="number" min="1" max="250" value="${Number(existing?.specialCondition?.endPosition||1)}"></label></div><div class="race-edit-note">Mit Haken wird die Sonderzahlung automatisch fÃ¤llig, sobald eine der aktivierten Bedingungen erfÃ¼llt ist. KWM und Endplatzierung werden erst nach 12 Rennen der Division geprÃ¼ft. Ohne Haken wird die Sonderzahlung niemals automatisch gebucht und kann nur manuell Ã¼ber die Finanzen erfolgen.</div></div>
+ <div class="contract-form-section"><h3>ZAHLUNGSVEREINBARUNGEN</h3><div class="new-driver-form"><label>Gehalt<input id="contract-salary" value="${esc(existing?.salary||existing?.value||'')}" placeholder="4.000.000 €"></label><label>Sonderzahlung<input id="contract-special" value="${esc(existing?.specialPayment||'')}" placeholder="6.000.000 €"></label><label>Abfindung<input id="contract-severance" value="${esc(existing?.severance||'')}" placeholder="8.000.000 €"></label><label>Ausstiegsklausel<input id="contract-release" value="${esc(existing?.releaseClause||'')}" placeholder="120.000.000 €"></label></div><div class="new-driver-form"><label class="role-check"><input type="checkbox" id="contract-special-enabled" ${existing?.specialCondition?.enabled?'checked':''}> Sonderzahlung automatisch nach Bedingung</label></div><div class="new-driver-form"><label class="role-check"><input type="checkbox" id="contract-special-points-enabled" ${existing?.specialCondition?.pointsEnabled||(!existing?.specialCondition&&existing?.specialCondition?.enabled)?'checked':''}> Punkte ab</label><label><input id="contract-special-points" type="number" min="1" max="250" value="${Number(existing?.specialCondition?.points||1)}"></label><label class="role-check"><input type="checkbox" id="contract-special-kwm-enabled" ${existing?.specialCondition?.kwmEnabled?'checked':''}> KWM Platz bis</label><label><select id="contract-special-kwm-position">${[1,2,3,4].map(n=>`<option value="${n}" ${Number(existing?.specialCondition?.kwmPosition||1)===n?'selected':''}>P${n}</option>`).join('')}</select></label><label class="role-check"><input type="checkbox" id="contract-special-end-enabled" ${existing?.specialCondition?.endPositionEnabled?'checked':''}> Endplatzierung bis</label><label><input id="contract-special-end-position" type="number" min="1" max="250" value="${Number(existing?.specialCondition?.endPosition||1)}"></label></div><div class="race-edit-note">Mit Haken wird die Sonderzahlung automatisch fällig, sobald eine der aktivierten Bedingungen erfüllt ist. KWM und Endplatzierung werden erst nach 12 Rennen der Division geprüft. Ohne Haken wird die Sonderzahlung niemals automatisch gebucht und kann nur manuell über die Finanzen erfolgen.</div></div>
 <div class="contract-form-section"><h3>SONDERVEREINBARUNGEN</h3><label class="full-field">Vereinbarung<textarea id="contract-special-agreement" rows="4">${esc(existing?.specialAgreement||'')}</textarea></label></div>
- <div class="contract-form-section"><h3>ðŸ“· VERTRAGSBILD / OCR</h3><p class="race-edit-note">Vertragsbild hochladen und optional per OCR auswerten.</p><input id="contract-image-input" type="file" accept="image/*" multiple onchange="attachContractImages(this)"/><div id="contract-image-preview" class="contract-image-preview">${(existing?.contractImages||[]).map(x=>'<img src="'+esc(x)+'" onclick="viewImage(this.src)">').join('')}</div><button class="ghost" type="button" onclick="document.getElementById('contract-ocr-input').click()">ðŸ”Ž Vertrag per OCR auswerten</button><input id="contract-ocr-input" type="file" accept="image/*" multiple hidden onchange="startContractOCR(this)"/></div>
- <div class="contract-form-section"><h3>UNTERSCHRIFTEN</h3><div class="new-driver-form"><label>Unterschrift Fahrer<input id="contract-sign-driver" value="${esc(existing?.signatureDriver||selectedDriver)}" placeholder="Name / Signatur"></label><label>Unterschrift Teamchef<input id="contract-sign-chief" value="${esc(existing?.signatureChief||chief)}" placeholder="Name / Signatur"></label></div><div class="race-edit-note">Die Namen aus den Vertragsparteien werden automatisch als Unterschriften vorbelegt.</div></div></div><div class="modal-actions"><button class="ghost" onclick="closeModal()">Abbrechen</button><button id="contract-save-btn" class="primary" type="button">âœ“ Vertrag speichern</button></div>`;
+ <div class="contract-form-section"><h3>📷 VERTRAGSBILD / OCR</h3><p class="race-edit-note">Vertragsbild hochladen und optional per OCR auswerten.</p><input id="contract-image-input" type="file" accept="image/*" multiple onchange="attachContractImages(this)"/><div id="contract-image-preview" class="contract-image-preview">${(existing?.contractImages||[]).map(x=>'<img src="'+esc(x)+'" onclick="viewImage(this.src)">').join('')}</div><button class="ghost" type="button" onclick="document.getElementById('contract-ocr-input').click()">🔎 Vertrag per OCR auswerten</button><input id="contract-ocr-input" type="file" accept="image/*" multiple hidden onchange="startContractOCR(this)"/></div>
+ <div class="contract-form-section"><h3>UNTERSCHRIFTEN</h3><div class="new-driver-form"><label>Unterschrift Fahrer<input id="contract-sign-driver" value="${esc(existing?.signatureDriver||selectedDriver)}" placeholder="Name / Signatur"></label><label>Unterschrift Teamchef<input id="contract-sign-chief" value="${esc(existing?.signatureChief||chief)}" placeholder="Name / Signatur"></label></div><div class="race-edit-note">Die Namen aus den Vertragsparteien werden automatisch als Unterschriften vorbelegt.</div></div></div><div class="modal-actions"><button class="ghost" onclick="closeModal()">Abbrechen</button><button id="contract-save-btn" class="primary" type="button">✓ Vertrag speichern</button></div>`;
  openModal(); syncSponsorFields(); syncContractPartyFields();
  const saveBtn=document.getElementById('contract-save-btn');
  if(saveBtn)saveBtn.addEventListener('click',()=>saveContract(window.__editingContractId||''));
 }
 function attachContractImages(input){if(!isEditor()){input.value='';return}const files=[...input.files||[]];if(!files.length)return;const id=document.getElementById('contract-driver')?.value||'';const existingId=window.__editingContractId||'';let c=existingId?contracts.find(x=>x.id===existingId):null;if(!c){c={id:existingId||('draftimg-'+Date.now()),driver:id,season:document.getElementById('contract-season')?.value||seasonState.current};if(!existingId){contracts.push(c);window.__editingContractId=c.id}}c.contractImages=c.contractImages||[];let left=files.length;files.forEach(f=>{const rd=new FileReader();rd.onload=()=>{c.contractImages.push(rd.result);left--;if(!left){save();const p=document.getElementById('contract-image-preview');if(p)p.innerHTML=c.contractImages.map(x=>`<img src="${esc(x)}" onclick="viewImage(this.src)">`).join('');toast(`${files.length} Vertragsbild${files.length===1?'':'er'} gespeichert.`)}};rd.readAsDataURL(f)})}
-function normalizeOCRContractText(text){return String(text||'').replace(/\r/g,'').replace(/[â€œâ€â€ž]/g,'"').replace(/[â€“â€”]/g,'-').replace(/\u00a0/g,' ').replace(/[ \t]+/g,' ').split('\n').map(x=>x.trim()).filter(Boolean)}
+function normalizeOCRContractText(text){return String(text||'').replace(/\r/g,'').replace(/[“”„]/g,'"').replace(/[–—]/g,'-').replace(/\u00a0/g,' ').replace(/[ \t]+/g,' ').split('\n').map(x=>x.trim()).filter(Boolean)}
 function ocrContractValue(lines, labels){
  const pats=labels.map(x=>x.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')).join('|');
  for(const line of lines){
@@ -1687,7 +1676,7 @@ function ocrContractDate(text,label){
 }
 function ocrContractMoney(text,label){
  const v=ocrContractValue(normalizeOCRContractText(text),[label]);
- const m=String(v||'').match(/[0-9][0-9.\\s,]*\\s*â‚¬/);
+ const m=String(v||'').match(/[0-9][0-9.\\s,]*\\s*€/);
  return m?m[0].trim():(v||'');
 }
 function ocrBestKnownDriver(value){
@@ -1721,16 +1710,16 @@ function extractContractOCRFields(text){
  for(const line of lines){
    if(/SONDERVEREINBARUNGEN/i.test(line)){inSpecial=true;continue}
    if(inSpecial && /^(UNTERSCHRIFT|ZAHLUNGSVEREINBARUNGEN|FAHRERSPONSOR|VERTRAGSLAUFZEIT|VERTRAGSPARTEIEN)/i.test(line)) inSpecial=false;
-   if(inSpecial) specialAgreementLines.push(line.replace(/^[-â€¢Â·*]\s*/,'').trim());
+   if(inSpecial) specialAgreementLines.push(line.replace(/^[-•·*]\s*/,'').trim());
  }
  const agreement=specialAgreementLines.join(' ');
- const driver=ocrBestKnownDriver(driverRaw)||driverRaw.replace(/^[-â€¢Â·*]\s*/,'').trim();
- const team=ocrBestKnownTeam(teamRaw)||teamRaw.replace(/^[-â€¢Â·*]\s*/,'').trim();
- let sponsor=ocrBestSponsor(sponsorRaw); if(!sponsor){ const nr=ocrNormName(raw); sponsor=Object.keys(SPONSOR_OPTIONS).find(x=>nr.includes(ocrNormName(x)))||''; } if(!sponsor) sponsor=sponsorRaw.replace(/^[-â€¢Â·*]\s*/,'').trim();
+ const driver=ocrBestKnownDriver(driverRaw)||driverRaw.replace(/^[-•·*]\s*/,'').trim();
+ const team=ocrBestKnownTeam(teamRaw)||teamRaw.replace(/^[-•·*]\s*/,'').trim();
+ let sponsor=ocrBestSponsor(sponsorRaw); if(!sponsor){ const nr=ocrNormName(raw); sponsor=Object.keys(SPONSOR_OPTIONS).find(x=>nr.includes(ocrNormName(x)))||''; } if(!sponsor) sponsor=sponsorRaw.replace(/^[-•·*]\s*/,'').trim();
  let season=(seasonRaw.match(/\b\d{2}\/\d{2}\b/)||[])[0]||'';
  if(!season) season=(raw.match(/\b\d{2}\/\d{2}\b/)||[])[0]||'';
  return{
-  driver, team, teamChief:chiefRaw.replace(/^[-â€¢Â·*]\s*/,'').trim(),
+  driver, team, teamChief:chiefRaw.replace(/^[-•·*]\s*/,'').trim(),
   startDate:ocrContractDate(raw,'BEGINN'), endDate:ocrContractDate(raw,'ENDE'), season,
   sponsor, salary:ocrContractMoney(raw,'GEHALT')||ocrContractMoney(raw,'SALARY'),
   specialPayment:ocrContractMoney(raw,'SONDERZAHLUNG')||ocrContractMoney(raw,'BONUS'),
@@ -1745,14 +1734,14 @@ async function startContractOCR(input){
  const files=[...input.files||[]];if(!files.length)return;
  const ocrContext={id:window.__editingContractId||'',driver:document.getElementById('contract-driver')?.value||'',season:document.getElementById('contract-season')?.value||seasonState.current||'02/26'}; window.__contractOCRContext=ocrContext;
  if(typeof Tesseract==='undefined'){toast('OCR-Bibliothek konnte nicht geladen werden.');input.value='';return}
- document.getElementById('modal-content').innerHTML=`<div class="modal-head"><div><h2>ðŸ”Ž Vertrag per OCR auswerten</h2><p class="race-edit-note">Der Vertrag wird mehrfach und bereichsorientiert gelesen. Erkannte Werte sind nur VorschlÃ¤ge und kÃ¶nnen vor dem Speichern vollstÃ¤ndig geÃ¤ndert werden.</p></div><button onclick="closeModal()">Ã—</button></div><div id="contract-ocr-progress" class="ocr-progress">OCR wird vorbereitet â€¦</div><div id="contract-ocr-result"></div>`;
+ document.getElementById('modal-content').innerHTML=`<div class="modal-head"><div><h2>🔎 Vertrag per OCR auswerten</h2><p class="race-edit-note">Der Vertrag wird mehrfach und bereichsorientiert gelesen. Erkannte Werte sind nur Vorschläge und können vor dem Speichern vollständig geändert werden.</p></div><button onclick="closeModal()">×</button></div><div id="contract-ocr-progress" class="ocr-progress">OCR wird vorbereitet …</div><div id="contract-ocr-result"></div>`;
  openModal();
  try{
    const worker=await Tesseract.createWorker('deu+eng');
    await worker.setParameters({tessedit_pageseg_mode:'6',preserve_interword_spaces:'1'});
    let raw='';
    for(let i=0;i<files.length;i++){
-     document.getElementById('contract-ocr-progress').textContent=`Bild ${i+1}/${files.length}: Vertrag wird mehrfach gelesen â€¦`;
+     document.getElementById('contract-ocr-progress').textContent=`Bild ${i+1}/${files.length}: Vertrag wird mehrfach gelesen …`;
      for(const mode of ['full','enhanced']){
        const canvas=await ocrPreprocess(files[i],mode);
        const res=await worker.recognize(canvas);
@@ -1763,7 +1752,7 @@ async function startContractOCR(input){
    const f=extractContractOCRFields(raw);
    const opts=(label,value,id)=>`<label>${label}<input id="${id}" value="${esc(value||'')}"></label>`;
    document.getElementById('contract-ocr-result').innerHTML=`
-    <div class="ocr-hint">Die Felder werden automatisch aus den Beschriftungen des Vertrags gesucht. Du kannst <b>jedes einzelne Feld Ã¤ndern</b>, bevor du die VorschlÃ¤ge Ã¼bernimmst.</div>
+    <div class="ocr-hint">Die Felder werden automatisch aus den Beschriftungen des Vertrags gesucht. Du kannst <b>jedes einzelne Feld ändern</b>, bevor du die Vorschläge übernimmst.</div>
     <div class="new-driver-form">
       ${opts('Fahrer',f.driver,'ocr-contract-driver')}${opts('Team',f.team,'ocr-contract-team')}${opts('Teamchef',f.teamChief,'ocr-contract-chief')}
       ${opts('Beginn',f.startDate,'ocr-contract-start')}${opts('Ende',f.endDate,'ocr-contract-end')}${opts('Saison',f.season,'ocr-contract-season')}
@@ -1773,7 +1762,7 @@ async function startContractOCR(input){
     <label class="full-field">Sondervereinbarungen<textarea id="ocr-contract-agreement" rows="5">${esc(f.specialAgreement||'')}</textarea></label>
     <div class="new-driver-form"><label>Unterschrift Fahrer (optional)<input id="ocr-contract-sign-driver" value=""></label><label>Unterschrift Teamchef (optional)<input id="ocr-contract-sign-chief" value=""></label></div>
     <details class="ocr-raw"><summary>OCR-Rohtext anzeigen</summary><pre>${esc(raw)}</pre></details>
-    <div class="modal-actions"><button class="ghost" onclick="closeModal()">Abbrechen</button><button class="primary" onclick="applyContractOCR()">âœ“ VorschlÃ¤ge in Vertrag Ã¼bernehmen</button></div>`;
+    <div class="modal-actions"><button class="ghost" onclick="closeModal()">Abbrechen</button><button class="primary" onclick="applyContractOCR()">✓ Vorschläge in Vertrag übernehmen</button></div>`;
  }catch(e){document.getElementById('contract-ocr-result').innerHTML=`<div class="ocr-error">${esc(e?.message||e)}</div>`}
  input.value='';
 }
@@ -1788,11 +1777,11 @@ function applyContractOCR(){
  setTimeout(()=>{
    const set=(el,v)=>{const e=document.getElementById(el);if(e&&v!==undefined)e.value=v};
    set('contract-driver',values.driver);set('contract-team',values.team);set('contract-chief',values.chief);set('contract-start-date',values.startDate);set('contract-end-date',values.endDate);set('contract-season',values.season);set('contract-sponsor',values.sponsor);set('contract-salary',values.salary);set('contract-special',values.specialPayment);set('contract-severance',values.severance);set('contract-release',values.releaseClause);set('contract-special-agreement',values.specialAgreement);set('contract-sign-driver',values.signatureDriver);set('contract-sign-chief',values.signatureChief);syncSponsorFields();
-   toast('OCR-VorschlÃ¤ge Ã¼bernommen. Bitte Vertrag prÃ¼fen, Unterschriften ergÃ¤nzen und speichern.');
+   toast('OCR-Vorschläge übernommen. Bitte Vertrag prüfen, Unterschriften ergänzen und speichern.');
  },60);
 }
 
-function syncSponsorFields(){const n=document.getElementById('contract-sponsor')?.value||'';const s=SPONSOR_OPTIONS[n];const el=document.getElementById('sponsor-preview');if(!el)return;if(!s){el.innerHTML='';return}el.innerHTML=`<b>${esc(n)}</b><span>Sofortzahlung ${money(s.upfront)} Â· Saisonziel ${money(s.season)} Â· Rennziel ${money(s.race)}</span><small>Saisonziel: ${esc(s.seasonGoal)} Â· Rennziele: ${s.raceGoals.map(esc).join(' Â· ')}</small>`;}
+function syncSponsorFields(){const n=document.getElementById('contract-sponsor')?.value||'';const s=SPONSOR_OPTIONS[n];const el=document.getElementById('sponsor-preview');if(!el)return;if(!s){el.innerHTML='';return}el.innerHTML=`<b>${esc(n)}</b><span>Sofortzahlung ${money(s.upfront)} · Saisonziel ${money(s.season)} · Rennziel ${money(s.race)}</span><small>Saisonziel: ${esc(s.seasonGoal)} · Rennziele: ${s.raceGoals.map(esc).join(' · ')}</small>`;}
 function syncContractChief(){const t=document.getElementById('contract-team')?.value;const c=teams.find(x=>x.name===t)?.chief||'';const el=document.getElementById('contract-chief');if(el&&!el.value)el.value=c;}
 function contractSeasonOffset(season,offset){const m=String(season||'').match(/^(\d{2})\/(\d{2})$/);if(!m)return season;return `${String(Number(m[1])+offset).padStart(2,'0')}/${m[2]}`}
 function contractSeasonStats(driver,season,division){
@@ -1841,11 +1830,11 @@ function saveContract(existingId){
  };
  const payload={driver:normDriver(linkedDriver||driver),season,team,division,teamChief:document.getElementById('contract-chief').value.trim(),startDate,endDate,durationSeasons,extension:ext,specialCondition,sponsor:document.getElementById('contract-sponsor').value.trim(),sponsorLogo:document.getElementById('contract-sponsor-logo').value.trim(),salary:document.getElementById('contract-salary').value.trim(),specialPayment:document.getElementById('contract-special').value.trim(),severance:document.getElementById('contract-severance').value.trim(),releaseClause:document.getElementById('contract-release').value.trim(),specialAgreement:document.getElementById('contract-special-agreement').value.trim(),signatureDriver:document.getElementById('contract-sign-driver').value.trim()||normDriver(linkedDriver||driver),contractImages:existing?.contractImages||[],signatureChief:document.getElementById('contract-sign-chief').value.trim()||document.getElementById('contract-chief').value.trim(),value:document.getElementById('contract-salary').value.trim(),updatedAt:new Date().toISOString(),status:existing?.status||'Aktiv'};
  payload.id=existingId||'';
- const conflicts=contracts.filter(c=>c.id!==existingId&&c.status!=='Beendet'&&!c.draft&&contractOverlap(payload,c));if(conflicts.length){const c=conflicts[0];toast(`âš ï¸ VertragsÃ¼berschneidung: ${c.team} Â· ${c.season} Â· ${c.division}`);return}
+ const conflicts=contracts.filter(c=>c.id!==existingId&&c.status!=='Beendet'&&!c.draft&&contractOverlap(payload,c));if(conflicts.length){const c=conflicts[0];toast(`⚠️ Vertragsüberschneidung: ${c.team} · ${c.season} · ${c.division}`);return}
 // Wenn ein bestehender Vertrag eine bereits gebuchte Sponsor-Sofortzahlung hat,
- // muss die alte Zahlung beim Vertragswechsel zuerst bestÃ¤tigt und storniert werden.
+ // muss die alte Zahlung beim Vertragswechsel zuerst bestätigt und storniert werden.
  if(existing&&sponsorPayments[sponsorPaymentKey(existing.id,'upfront','start')]){
-   const ok=confirm(`Der Vertrag wird geÃ¤ndert.\\n\\nDie bereits gebuchte Sponsor-Sofortzahlung fÃ¼r ${existing.driver} wird dadurch ungÃ¼ltig.\\n\\nSofortzahlung des alten Vertrags stornieren und den geÃ¤nderten Vertrag speichern?`);
+   const ok=confirm(`Der Vertrag wird geändert.\\n\\nDie bereits gebuchte Sponsor-Sofortzahlung für ${existing.driver} wird dadurch ungültig.\\n\\nSofortzahlung des alten Vertrags stornieren und den geänderten Vertrag speichern?`);
    if(!ok)return;
    cancelSponsorUpfront(existing);
  }
@@ -1870,17 +1859,17 @@ function deleteContract(id){
  const c=contracts.find(x=>x.id===id);if(!c)return;
  const hasUpfront=!!sponsorPayments[sponsorPaymentKey(c.id,'upfront','start')];
  const question=hasUpfront
-   ? `Diesen Vertrag wirklich lÃ¶schen?\\n\\nDie gebuchte Sponsor-Sofortzahlung fÃ¼r ${c.driver} wird dabei ebenfalls storniert.`
-   : `Diesen Vertrag wirklich lÃ¶schen?`;
+   ? `Diesen Vertrag wirklich löschen?\\n\\nDie gebuchte Sponsor-Sofortzahlung für ${c.driver} wird dabei ebenfalls storniert.`
+   : `Diesen Vertrag wirklich löschen?`;
  if(!confirm(question))return;
  if(hasUpfront)cancelSponsorUpfront(c);
  removeDriverContractFinance(id);
  contracts=contracts.filter(c=>c.id!==id);
- save();toast(hasUpfront?'Vertrag und Sponsor-Sofortzahlung storniert.':'Vertrag gelÃ¶scht und verknÃ¼pfte Fahrer-Finanzbuchungen entfernt.');
+ save();toast(hasUpfront?'Vertrag und Sponsor-Sofortzahlung storniert.':'Vertrag gelöscht und verknüpfte Fahrer-Finanzbuchungen entfernt.');
 }
 function parseMoneyValue(v){
  const raw=String(v??'').trim(); if(!raw)return 0;
- const cleaned=raw.replace(/â‚¬/g,'').replace(/\s/g,'').replace(/\./g,'').replace(/,/g,'.').replace(/[^0-9.\-]/g,'');
+ const cleaned=raw.replace(/€/g,'').replace(/\s/g,'').replace(/\./g,'').replace(/,/g,'.').replace(/[^0-9.\-]/g,'');
  const n=Number(cleaned); return Number.isFinite(n)?n:0;
 }
 function sponsorPaymentKey(contractId,type,ref=''){return `${contractId}|${type}|${ref}`}
@@ -1974,7 +1963,7 @@ function ensureSponsorPayment(entity,type,ref,amount,date){
  const existingTx=financeTransactions.find(t=>t.type===txType&&String(t.contractId||'')===String(entity.id)&&String(t.sponsorRef||ref)===String(ref));
  if(existingTx){sponsorPayments[key]={contractId:entity.id,type,ref,amount:Number(existingTx.amount)||Number(amount)||0,at:existingTx.date||date,season:entity.season,driver:entity.driver,team:entity.team,sponsor:entity.sponsor};return false;}
  if(!recordSponsorPayment(entity,type,ref,amount,date))return false;
- financeAddTransaction({season:entity.season,team:entity.team,driver:entity.driver,contractId:entity.id,type:txType,sponsorRef:ref,description:`Sponsor ${entity.sponsor} Â· ${type==='upfront'?'Sofortzahlung':type==='season'?'Saisonziel':'Rennziel '+ref}`,amount,date});
+ financeAddTransaction({season:entity.season,team:entity.team,driver:entity.driver,contractId:entity.id,type:txType,sponsorRef:ref,description:`Sponsor ${entity.sponsor} · ${type==='upfront'?'Sofortzahlung':type==='season'?'Saisonziel':'Rennziel '+ref}`,amount,date});
  return true;
 }
 function syncSponsorPaymentsRetroactive(){
@@ -2014,8 +2003,8 @@ function promptSponsorRacePayments(raceId){
  if(!isEditor())return;
  const candidates=sponsorRacePaymentCandidates(raceId);if(!candidates.length)return;
  const r=races[raceId];
- const rows=candidates.map((x,i)=>`<div class="sponsor-pay-row"><span><b>${esc(x.entity.driver)}</b> Â· ${esc(x.entity.sponsor)}</span><span>R${esc(x.ref)} Â· ${x.goals.map(g=>`${g.met?'âœ“':'âœ•'} ${esc(g.goal)}`).join(' Â· ')}</span><b>${money(x.amount)}</b></div>`).join('');
- document.getElementById('modal-content').innerHTML=`<div class="modal-head"><div><h2>ðŸ’° Sponsorzahlungen nach ${esc(r.track)}</h2><p class="race-edit-note">ErfÃ¼llte Rennziele wurden erkannt.</p></div><button onclick="closeModal()">Ã—</button></div><div class="sponsor-pay-list">${rows}</div><div class="modal-actions"><button class="ghost" onclick="closeModal()">SpÃ¤ter</button><button class="primary" onclick="confirmSponsorRacePayments('${esc(raceId)}')">âœ“ Jetzt auszahlen</button></div>`;
+ const rows=candidates.map((x,i)=>`<div class="sponsor-pay-row"><span><b>${esc(x.entity.driver)}</b> · ${esc(x.entity.sponsor)}</span><span>R${esc(x.ref)} · ${x.goals.map(g=>`${g.met?'✓':'✕'} ${esc(g.goal)}`).join(' · ')}</span><b>${money(x.amount)}</b></div>`).join('');
+ document.getElementById('modal-content').innerHTML=`<div class="modal-head"><div><h2>💰 Sponsorzahlungen nach ${esc(r.track)}</h2><p class="race-edit-note">Erfüllte Rennziele wurden erkannt.</p></div><button onclick="closeModal()">×</button></div><div class="sponsor-pay-list">${rows}</div><div class="modal-actions"><button class="ghost" onclick="closeModal()">Später</button><button class="primary" onclick="confirmSponsorRacePayments('${esc(raceId)}')">✓ Jetzt auszahlen</button></div>`;
  openModal();
 }
 function confirmSponsorRacePayments(raceId){
@@ -2027,12 +2016,12 @@ function confirmSponsorRacePayments(raceId){
 function openSponsorFinance(){
  if(!requireEditor())return;
  const season=seasonState.current||'02/26'; const list=sponsorEntitiesForSeason(season);
- const rows=list.map(c=>{const sp=SPONSOR_OPTIONS[c.sponsor],e=sponsorEvaluation(c);const upfront=!e.upfrontPaid,seasonReady=e.seasonMet&&!e.seasonPaid;const raceReady=e.raceStates.filter((x)=>x.met&&!sponsorPayments[sponsorPaymentKey(c.id,'race',String(x.r.number||x.r.round||x.r.id||''))]);return `<div class="sponsor-fin-row"><div><b>${esc(c.driver)}</b><small>${esc(c.team||'Free Agent')} Â· ${esc(c.division)} Â· ${esc(c.sponsor)}</small></div><span>${upfront?'ðŸ’¶ Sofortzahlung offen':'âœ“ Sofortzahlung'}</span><span>${seasonReady?'ðŸ† Saisonziel erreicht':e.seasonPaid?'âœ“ Saisonbonus ausgezahlt':`Saisonziel ${esc(sp.seasonGoal)} Â· ${e.seasonMet?'âœ“':'offen'}`}</span><span>${raceReady.length} Rennzahlungen offen</span><button class="mini-link" onclick="openSponsorContractFinance('${esc(c.id)}')">Details</button></div>`}).join('')||'<div class="empty-race">Keine Fahrersponsoren fÃ¼r diese Saison.</div>';
- document.getElementById('modal-content').innerHTML=`<div class="modal-head"><div><h2>ðŸ¤ Sponsoren-Auswertung Â· ${esc(season)}</h2><p class="race-edit-note">Grid-Position wird gemÃ¤ÃŸ DoG-Regel als Start-/Qualifying-Position verwendet.</p></div><button onclick="closeModal()">Ã—</button></div><div class="sponsor-finance-list">${rows}</div><div class="modal-actions"><button class="ghost" onclick="closeModal()">Fertig</button></div>`;openModal();
+ const rows=list.map(c=>{const sp=SPONSOR_OPTIONS[c.sponsor],e=sponsorEvaluation(c);const upfront=!e.upfrontPaid,seasonReady=e.seasonMet&&!e.seasonPaid;const raceReady=e.raceStates.filter((x)=>x.met&&!sponsorPayments[sponsorPaymentKey(c.id,'race',String(x.r.number||x.r.round||x.r.id||''))]);return `<div class="sponsor-fin-row"><div><b>${esc(c.driver)}</b><small>${esc(c.team||'Free Agent')} · ${esc(c.division)} · ${esc(c.sponsor)}</small></div><span>${upfront?'💶 Sofortzahlung offen':'✓ Sofortzahlung'}</span><span>${seasonReady?'🏆 Saisonziel erreicht':e.seasonPaid?'✓ Saisonbonus ausgezahlt':`Saisonziel ${esc(sp.seasonGoal)} · ${e.seasonMet?'✓':'offen'}`}</span><span>${raceReady.length} Rennzahlungen offen</span><button class="mini-link" onclick="openSponsorContractFinance('${esc(c.id)}')">Details</button></div>`}).join('')||'<div class="empty-race">Keine Fahrersponsoren für diese Saison.</div>';
+ document.getElementById('modal-content').innerHTML=`<div class="modal-head"><div><h2>🤝 Sponsoren-Auswertung · ${esc(season)}</h2><p class="race-edit-note">Grid-Position wird gemäß DoG-Regel als Start-/Qualifying-Position verwendet.</p></div><button onclick="closeModal()">×</button></div><div class="sponsor-finance-list">${rows}</div><div class="modal-actions"><button class="ghost" onclick="closeModal()">Fertig</button></div>`;openModal();
 }
 function openSponsorContractFinance(id){
- const c=sponsorEntityById(id);if(!c)return;const sp=SPONSOR_OPTIONS[c.sponsor],e=sponsorEvaluation(c);const seasonReady=e.seasonMet&&!e.seasonPaid;const raceRows=e.raceStates.map((x,i)=>{const ref=String(x.r.number||x.r.round||x.r.id||i+1),paid=!!sponsorPayments[sponsorPaymentKey(c.id,'race',ref)];return `<div class="sponsor-pay-row"><span><b>R${esc(ref)}</b> Â· ${esc(x.r.track)}</span><span>${x.goals.map(g=>`${g.met?'âœ“':'âœ•'} ${esc(g.goal)}`).join(' Â· ')}</span><b>${x.met?'Bereit':'Nicht erfÃ¼llt'}</b>${x.met&&!paid&&isEditor()?`<button class="mini-link" onclick="paySponsor('${esc(c.id)}','race','${esc(ref)}')">Auszahlen ${money(sp.race)}</button>`:paid?'<span>âœ“ ausgezahlt</span>':''}</div>`}).join('');
- document.getElementById('modal-content').innerHTML=`<div class="modal-head"><div><h2>ðŸ¤ ${esc(c.sponsor)} Â· ${esc(c.driver)}</h2><p class="race-edit-note">${esc(c.team||'Free Agent')} Â· ${esc(c.division)} Â· ${esc(c.season)}</p></div><button onclick="openSponsorFinance()">Ã—</button></div><div class="sponsor-detail"><div class="sponsor-detail-card"><b>Sofortzahlung</b><span>${e.upfrontPaid?'âœ“ bereits verbucht':isEditor()?`<button class="mini-link" onclick="paySponsor('${esc(c.id)}','upfront','start')">Auszahlen ${money(sp.upfront)}</button>`:'offen'}</span></div><div class="sponsor-detail-card"><b>Saisonziel Â· ${esc(sp.seasonGoal)}</b><span>${e.seasonMet?'âœ“ erreicht':'offen'}${e.seasonMet&&e.seasonPaid?' Â· âœ“ ausgezahlt':''}${e.seasonMet&&!e.seasonPaid&&isEditor()?` Â· <button class="mini-link" onclick="paySponsor('${esc(c.id)}','season','goal')">${money(sp.season)} auszahlen</button>`:''}</span></div></div><h3>Rennziele</h3><div class="sponsor-pay-list">${raceRows||'<div class="empty-race">Noch keine Rennen erfasst.</div>'}</div><div class="modal-actions"><button class="ghost" onclick="openSponsorFinance()">ZurÃ¼ck</button></div>`;
+ const c=sponsorEntityById(id);if(!c)return;const sp=SPONSOR_OPTIONS[c.sponsor],e=sponsorEvaluation(c);const seasonReady=e.seasonMet&&!e.seasonPaid;const raceRows=e.raceStates.map((x,i)=>{const ref=String(x.r.number||x.r.round||x.r.id||i+1),paid=!!sponsorPayments[sponsorPaymentKey(c.id,'race',ref)];return `<div class="sponsor-pay-row"><span><b>R${esc(ref)}</b> · ${esc(x.r.track)}</span><span>${x.goals.map(g=>`${g.met?'✓':'✕'} ${esc(g.goal)}`).join(' · ')}</span><b>${x.met?'Bereit':'Nicht erfüllt'}</b>${x.met&&!paid&&isEditor()?`<button class="mini-link" onclick="paySponsor('${esc(c.id)}','race','${esc(ref)}')">Auszahlen ${money(sp.race)}</button>`:paid?'<span>✓ ausgezahlt</span>':''}</div>`}).join('');
+ document.getElementById('modal-content').innerHTML=`<div class="modal-head"><div><h2>🤝 ${esc(c.sponsor)} · ${esc(c.driver)}</h2><p class="race-edit-note">${esc(c.team||'Free Agent')} · ${esc(c.division)} · ${esc(c.season)}</p></div><button onclick="openSponsorFinance()">×</button></div><div class="sponsor-detail"><div class="sponsor-detail-card"><b>Sofortzahlung</b><span>${e.upfrontPaid?'✓ bereits verbucht':isEditor()?`<button class="mini-link" onclick="paySponsor('${esc(c.id)}','upfront','start')">Auszahlen ${money(sp.upfront)}</button>`:'offen'}</span></div><div class="sponsor-detail-card"><b>Saisonziel · ${esc(sp.seasonGoal)}</b><span>${e.seasonMet?'✓ erreicht':'offen'}${e.seasonMet&&e.seasonPaid?' · ✓ ausgezahlt':''}${e.seasonMet&&!e.seasonPaid&&isEditor()?` · <button class="mini-link" onclick="paySponsor('${esc(c.id)}','season','goal')">${money(sp.season)} auszahlen</button>`:''}</span></div></div><h3>Rennziele</h3><div class="sponsor-pay-list">${raceRows||'<div class="empty-race">Noch keine Rennen erfasst.</div>'}</div><div class="modal-actions"><button class="ghost" onclick="openSponsorFinance()">Zurück</button></div>`;
  openModal();
 }
 function paySponsor(contractId,type,ref){
@@ -2056,12 +2045,12 @@ function financeTeamBalance(teamName,season=seasonState.current||'02/26'){
  return {opening,income:tx.filter(t=>t.amount>0).reduce((a,t)=>a+t.amount,0),expense:tx.filter(t=>t.amount<0).reduce((a,t)=>a+Math.abs(t.amount),0),balance:opening+tx.reduce((a,t)=>a+t.amount,0),transactions:tx.sort((a,b)=>String(b.date).localeCompare(String(a.date)))};
 }
 function openFinanceLedger(teamName,season=seasonState.current||'02/26'){
- const b=financeTeamBalance(teamName,season), rows=b.transactions.map(t=>`<div class="finance-tx-row"><span>${esc(new Date(t.date).toLocaleDateString('de-DE'))}</span><span><b>${esc(t.description)}</b><small>${esc(t.driver||'')} Â· ${esc(t.type)}</small></span><span class="${t.amount>=0?'tx-in':'tx-out'}">${t.amount>=0?'+':''}${money(t.amount)}</span>${isEditor()?`<span class="finance-row-actions"><button class="mini-link" onclick="openFinanceTxEditor('${esc(t.id)}','team','${esc(teamName)}','${esc(season)}')">âœï¸</button><button class="mini-link" onclick="deleteFinanceTransaction('${esc(t.id)}','team','${esc(teamName)}','${esc(season)}')">ðŸ—‘ï¸</button></span>`:''}</div>`).join('')||'<div class="empty-race">Noch keine Buchungen vorhanden.</div>';
- document.getElementById('modal-content').innerHTML=`<div class="modal-head"><div><h2>ðŸ“’ Finanzkonto Â· ${esc(teamName)}</h2><p class="race-edit-note">Saison ${esc(season)} Â· TatsÃ¤chliche Buchungen, getrennt vom Planbudget.</p></div><button onclick="closeModal()">Ã—</button></div><div class="ledger-summary"><div><span>Startguthaben</span><b>${money(b.opening)}</b></div><div><span>Einnahmen</span><b>${money(b.income)}</b></div><div><span>Ausgaben</span><b>${money(b.expense)}</b></div><div><span>Kontostand</span><b>${money(b.balance)}</b></div></div><div class="modal-actions">${isEditor()?`<button class="ghost" onclick="openFinanceOpening('${esc(teamName)}','${esc(season)}')">Startguthaben</button><button class="primary" onclick="openFinanceTransaction('${esc(teamName)}','${esc(season)}')">âž• Buchung</button>`:''}</div><div class="finance-ledger">${rows}</div><div class="modal-actions"><button class="ghost" onclick="closeModal()">Fertig</button></div>`;openModal();
+ const b=financeTeamBalance(teamName,season), rows=b.transactions.map(t=>`<div class="finance-tx-row"><span>${esc(new Date(t.date).toLocaleDateString('de-DE'))}</span><span><b>${esc(t.description)}</b><small>${esc(t.driver||'')} · ${esc(t.type)}</small></span><span class="${t.amount>=0?'tx-in':'tx-out'}">${t.amount>=0?'+':''}${money(t.amount)}</span>${isEditor()?`<span class="finance-row-actions"><button class="mini-link" onclick="openFinanceTxEditor('${esc(t.id)}','team','${esc(teamName)}','${esc(season)}')">✏️</button><button class="mini-link" onclick="deleteFinanceTransaction('${esc(t.id)}','team','${esc(teamName)}','${esc(season)}')">🗑️</button></span>`:''}</div>`).join('')||'<div class="empty-race">Noch keine Buchungen vorhanden.</div>';
+ document.getElementById('modal-content').innerHTML=`<div class="modal-head"><div><h2>📒 Finanzkonto · ${esc(teamName)}</h2><p class="race-edit-note">Saison ${esc(season)} · Tatsächliche Buchungen, getrennt vom Planbudget.</p></div><button onclick="closeModal()">×</button></div><div class="ledger-summary"><div><span>Startguthaben</span><b>${money(b.opening)}</b></div><div><span>Einnahmen</span><b>${money(b.income)}</b></div><div><span>Ausgaben</span><b>${money(b.expense)}</b></div><div><span>Kontostand</span><b>${money(b.balance)}</b></div></div><div class="modal-actions">${isEditor()?`<button class="ghost" onclick="openFinanceOpening('${esc(teamName)}','${esc(season)}')">Startguthaben</button><button class="primary" onclick="openFinanceTransaction('${esc(teamName)}','${esc(season)}')">➕ Buchung</button>`:''}</div><div class="finance-ledger">${rows}</div><div class="modal-actions"><button class="ghost" onclick="closeModal()">Fertig</button></div>`;openModal();
 }
-function openFinanceOpening(teamName,season){if(!requireEditor())return;const current=Number(financeOpeningBalances[season]?.[teamName]||0);document.getElementById('modal-content').innerHTML=`<div class="modal-head"><div><h2>ðŸ’° Startguthaben Â· ${esc(teamName)}</h2><p class="race-edit-note">TatsÃ¤chlicher Anfangsbestand des Finanzkontos fÃ¼r ${esc(season)}.</p></div><button onclick="openFinanceLedger('${esc(teamName)}','${esc(season)}')">Ã—</button></div><div class="new-driver-form single"><label>Startguthaben<input id="finance-opening-value" value="${current||0}" inputmode="numeric" placeholder="0"></label></div><div class="modal-actions"><button class="ghost" onclick="openFinanceLedger('${esc(teamName)}','${esc(season)}')">Abbrechen</button><button class="primary" onclick="saveFinanceOpening('${esc(teamName)}','${esc(season)}')">âœ“ Speichern</button></div>`;openModal();}
+function openFinanceOpening(teamName,season){if(!requireEditor())return;const current=Number(financeOpeningBalances[season]?.[teamName]||0);document.getElementById('modal-content').innerHTML=`<div class="modal-head"><div><h2>💰 Startguthaben · ${esc(teamName)}</h2><p class="race-edit-note">Tatsächlicher Anfangsbestand des Finanzkontos für ${esc(season)}.</p></div><button onclick="openFinanceLedger('${esc(teamName)}','${esc(season)}')">×</button></div><div class="new-driver-form single"><label>Startguthaben<input id="finance-opening-value" value="${current||0}" inputmode="numeric" placeholder="0"></label></div><div class="modal-actions"><button class="ghost" onclick="openFinanceLedger('${esc(teamName)}','${esc(season)}')">Abbrechen</button><button class="primary" onclick="saveFinanceOpening('${esc(teamName)}','${esc(season)}')">✓ Speichern</button></div>`;openModal();}
 function saveFinanceOpening(teamName,season){if(!requireEditor())return;const n=parseMoneyValue(document.getElementById('finance-opening-value')?.value||0);if(!financeOpeningBalances[season])financeOpeningBalances[season]={};financeOpeningBalances[season][teamName]=n;save();toast('Startguthaben gespeichert.');openFinanceLedger(teamName,season);renderFinance();}
-function openFinanceTransaction(teamName,season){if(!requireEditor())return;document.getElementById('modal-content').innerHTML=`<div class="modal-head"><div><h2>âž• Finanzbuchung Â· ${esc(teamName)}</h2><p class="race-edit-note">Positive BetrÃ¤ge = Einnahme Â· negative BetrÃ¤ge = Ausgabe.</p></div><button onclick="openFinanceLedger('${esc(teamName)}','${esc(season)}')">Ã—</button></div><div class="new-driver-form"><label>Beschreibung<input id="finance-tx-desc" placeholder="z. B. Startgeld, Strafe, PrÃ¤mie"></label><label>Betrag<input id="finance-tx-amount" inputmode="numeric" placeholder="1500000 oder -500000"></label><label>Datum<input id="finance-tx-date" type="date" value="${new Date().toISOString().slice(0,10)}"></label><label>Typ<select id="finance-tx-type"><option value="manual">Manuell</option><option value="income">Einnahme</option><option value="expense">Ausgabe</option></select></label></div><div class="modal-actions"><button class="ghost" onclick="openFinanceLedger('${esc(teamName)}','${esc(season)}')">Abbrechen</button><button class="primary" onclick="saveFinanceTransaction('${esc(teamName)}','${esc(season)}')">âœ“ Buchen</button></div>`;openModal();}
+function openFinanceTransaction(teamName,season){if(!requireEditor())return;document.getElementById('modal-content').innerHTML=`<div class="modal-head"><div><h2>➕ Finanzbuchung · ${esc(teamName)}</h2><p class="race-edit-note">Positive Beträge = Einnahme · negative Beträge = Ausgabe.</p></div><button onclick="openFinanceLedger('${esc(teamName)}','${esc(season)}')">×</button></div><div class="new-driver-form"><label>Beschreibung<input id="finance-tx-desc" placeholder="z. B. Startgeld, Strafe, Prämie"></label><label>Betrag<input id="finance-tx-amount" inputmode="numeric" placeholder="1500000 oder -500000"></label><label>Datum<input id="finance-tx-date" type="date" value="${new Date().toISOString().slice(0,10)}"></label><label>Typ<select id="finance-tx-type"><option value="manual">Manuell</option><option value="income">Einnahme</option><option value="expense">Ausgabe</option></select></label></div><div class="modal-actions"><button class="ghost" onclick="openFinanceLedger('${esc(teamName)}','${esc(season)}')">Abbrechen</button><button class="primary" onclick="saveFinanceTransaction('${esc(teamName)}','${esc(season)}')">✓ Buchen</button></div>`;openModal();}
 function saveFinanceTransaction(teamName,season){if(!requireEditor())return;const desc=document.getElementById('finance-tx-desc')?.value.trim();let amount=parseMoneyValue(document.getElementById('finance-tx-amount')?.value||0);const type=document.getElementById('finance-tx-type')?.value||'manual';if(!desc||!amount){toast('Beschreibung und Betrag erforderlich.');return}if(type==='expense'&&amount>0)amount=-amount;if(type==='income'&&amount<0)amount=Math.abs(amount);if(financeAddTransaction({season,team:teamName,description:desc,type,amount,date:new Date((document.getElementById('finance-tx-date')?.value||'')+'T12:00:00').toISOString()})){save();toast('Finanzbuchung gespeichert.');openFinanceLedger(teamName,season);renderFinance();}}
 function sponsorFinanceSummary(season=seasonState.current||'02/26'){
  const payments=Object.values(sponsorPayments).filter(p=>p.season===season);return {upfront:payments.filter(p=>p.type==='upfront').reduce((a,p)=>a+p.amount,0),race:payments.filter(p=>p.type==='race').reduce((a,p)=>a+p.amount,0),season:payments.filter(p=>p.type==='season').reduce((a,p)=>a+p.amount,0),total:payments.reduce((a,p)=>a+p.amount,0)};
@@ -2081,10 +2070,10 @@ function financeTeamSummary(teamName,season=seasonState.current||'02/26'){
  const loanCosts=financeTeamBalance(teamName,season).transactions.filter(t=>t.type==='replacement_loan').reduce((a,t)=>a+Math.abs(Number(t.amount)||0),0);
  return {list,active,salary,special,severance,release,committed,loanCosts,budget:Number(financeBudgets[season]?.[teamName]||0)};
 }
-function financeMoneyOrDash(n){return n?money(n):'â€”'}
+function financeMoneyOrDash(n){return n?money(n):'—'}
 function openFinanceBudget(teamName,season){
  if(!requireEditor())return; const cap=Number(financeBudgets[season]?.[teamName]||0); const used=Number(financeCapUsage[season]?.[teamName]||0);
- document.getElementById('modal-content').innerHTML=`<div class="modal-head"><div><h2>ðŸ“Š Budget-Cap Â· ${esc(teamName)}</h2><p class="race-edit-note">Der Budget-Cap wird getrennt vom normalen Team-Finanzkonto gefÃ¼hrt.</p></div><button onclick="closeModal()">Ã—</button></div><div class="new-driver-form"><label>Budget-Cap<input id="finance-budget-value" value="${cap||0}" inputmode="numeric" placeholder="450000000"></label><label>Vom Cap verbraucht<input id="finance-cap-used" value="${used||0}" inputmode="numeric" placeholder="0"></label></div><div class="finance-note">VerfÃ¼gbarer Cap: <b>${money(Math.max(0,cap-used))}</b>. Was genau auf den Cap angerechnet wird, legen wir separat nach euren DoG-Regeln fest.</div><div class="modal-actions"><button class="ghost" onclick="closeModal()">Abbrechen</button><button class="primary" onclick="saveFinanceBudget('${esc(teamName)}','${esc(season)}')">âœ“ Cap speichern</button></div>`;openModal();
+ document.getElementById('modal-content').innerHTML=`<div class="modal-head"><div><h2>📊 Budget-Cap · ${esc(teamName)}</h2><p class="race-edit-note">Der Budget-Cap wird getrennt vom normalen Team-Finanzkonto geführt.</p></div><button onclick="closeModal()">×</button></div><div class="new-driver-form"><label>Budget-Cap<input id="finance-budget-value" value="${cap||0}" inputmode="numeric" placeholder="450000000"></label><label>Vom Cap verbraucht<input id="finance-cap-used" value="${used||0}" inputmode="numeric" placeholder="0"></label></div><div class="finance-note">Verfügbarer Cap: <b>${money(Math.max(0,cap-used))}</b>. Was genau auf den Cap angerechnet wird, legen wir separat nach euren DoG-Regeln fest.</div><div class="modal-actions"><button class="ghost" onclick="closeModal()">Abbrechen</button><button class="primary" onclick="saveFinanceBudget('${esc(teamName)}','${esc(season)}')">✓ Cap speichern</button></div>`;openModal();
 }
 function saveFinanceBudget(teamName,season){
  if(!requireEditor())return; const cap=parseMoneyValue(document.getElementById('finance-budget-value')?.value||0); const used=parseMoneyValue(document.getElementById('finance-cap-used')?.value||0); if(!financeBudgets[season])financeBudgets[season]={};if(!financeCapUsage[season])financeCapUsage[season]={}; financeBudgets[season][teamName]=cap; financeCapUsage[season][teamName]=Math.max(0,used); save(); closeModal(); renderFinance(); toast('Budget-Cap gespeichert.');
@@ -2095,33 +2084,33 @@ function renderFinance(){
  const totalSalary=summaries.reduce((a,x)=>a+x.salary,0), totalSpecial=summaries.reduce((a,x)=>a+x.special,0), totalCommitted=totalSalary+totalSpecial; const sponsorFin=sponsorFinanceSummary(season);
  const cards=summaries.map(x=>{
    const cap=x.budget; const capUsed=Number(financeCapUsage[season]?.[x.team]||0); const capAvailable=Math.max(0,cap-capUsed);
-   const budgetLine=cap?`<span class="finance-budget">Budget-Cap ${money(cap)} Â· verbraucht ${money(capUsed)} Â· verfÃ¼gbar ${money(capAvailable)}</span>`:`<span class="finance-budget">Kein Budget-Cap hinterlegt</span>`;
-   const contracts=x.list.length?x.list.map(c=>`<div class="finance-contract-row"><span><b>${esc(c.driver)}</b><small>${esc(c.division||'â€”')} Â· gesamte Saison</small></span><span>${financeMoneyOrDash(parseMoneyValue(c.salary||c.value))}</span><span>${financeMoneyOrDash(parseMoneyValue(c.specialPayment))}</span><button class="mini-link" onclick="openContractEditor('${esc(c.driver)}','${esc(c.id)}')">Vertrag</button></div>`).join(''):`<div class="empty-race">Keine VertrÃ¤ge fÃ¼r diese Saison.</div>`;
-   return `<div class="finance-team-card"><div class="finance-team-head"><div><h3>${esc(x.team)}</h3><p>${esc(teams.find(t=>t.name===x.team)?.chief||'ohne Teamchef')}</p></div><div class="finance-team-actions">${isEditor()?`<button class="team-edit-btn" onclick="openFinanceBudget('${esc(x.team)}','${esc(season)}')">ðŸ’° Budget</button>`:''}<button class="team-edit-btn" onclick="openTeamContracts('${esc(x.team)}')">ðŸ“‹ VertrÃ¤ge</button><button class="team-edit-btn" onclick="openFinanceLedger('${esc(x.team)}','${esc(season)}')">ðŸ“’ Konto</button><button class="team-edit-btn" onclick="openLoanList('${esc(x.team)}')">ðŸ¤ Leihen</button></div></div><div class="finance-metrics"><div><span>Kontostand</span><b>${money(x.ledger.balance)}</b></div><div><span>Einnahmen</span><b>${money(x.ledger.income)}</b></div><div><span>Ausgaben</span><b>${money(x.ledger.expense)}</b></div><div><span>GehÃ¤lter</span><b>${financeMoneyOrDash(x.salary)}</b></div><div><span>Sonderzahlungen</span><b>${financeMoneyOrDash(x.special)}</b></div><div><span>Vertragliche Bindung</span><b>${financeMoneyOrDash(x.committed)}</b></div><div><span>Ersatzfahrer-Leihen</span><b>${financeMoneyOrDash(x.loanCosts)}</b></div><div><span>Abfindungen*</span><b>${financeMoneyOrDash(x.severance)}</b></div><div><span>Ausstiegsklauseln*</span><b>${financeMoneyOrDash(x.release)}</b></div></div>${budgetLine}${x.budget?`<div class="finance-bar"><span style="width:${Math.min(100,(capUsed/x.budget)*100)}%"></span></div>`:''}<div class="finance-contracts"><div class="finance-contract-head"><span>FAHRER</span><span>GEHALT</span><span>SONDERZAHLUNG</span><span></span></div>${contracts}</div><small class="finance-foot">* Potenzielle Vertragswerte, keine automatisch fÃ¤lligen Zahlungen.</small></div>`;
+   const budgetLine=cap?`<span class="finance-budget">Budget-Cap ${money(cap)} · verbraucht ${money(capUsed)} · verfügbar ${money(capAvailable)}</span>`:`<span class="finance-budget">Kein Budget-Cap hinterlegt</span>`;
+   const contracts=x.list.length?x.list.map(c=>`<div class="finance-contract-row"><span><b>${esc(c.driver)}</b><small>${esc(c.division||'—')} · gesamte Saison</small></span><span>${financeMoneyOrDash(parseMoneyValue(c.salary||c.value))}</span><span>${financeMoneyOrDash(parseMoneyValue(c.specialPayment))}</span><button class="mini-link" onclick="openContractEditor('${esc(c.driver)}','${esc(c.id)}')">Vertrag</button></div>`).join(''):`<div class="empty-race">Keine Verträge für diese Saison.</div>`;
+   return `<div class="finance-team-card"><div class="finance-team-head"><div><h3>${esc(x.team)}</h3><p>${esc(teams.find(t=>t.name===x.team)?.chief||'ohne Teamchef')}</p></div><div class="finance-team-actions">${isEditor()?`<button class="team-edit-btn" onclick="openFinanceBudget('${esc(x.team)}','${esc(season)}')">💰 Budget</button>`:''}<button class="team-edit-btn" onclick="openTeamContracts('${esc(x.team)}')">📋 Verträge</button><button class="team-edit-btn" onclick="openFinanceLedger('${esc(x.team)}','${esc(season)}')">📒 Konto</button><button class="team-edit-btn" onclick="openLoanList('${esc(x.team)}')">🤝 Leihen</button></div></div><div class="finance-metrics"><div><span>Kontostand</span><b>${money(x.ledger.balance)}</b></div><div><span>Einnahmen</span><b>${money(x.ledger.income)}</b></div><div><span>Ausgaben</span><b>${money(x.ledger.expense)}</b></div><div><span>Gehälter</span><b>${financeMoneyOrDash(x.salary)}</b></div><div><span>Sonderzahlungen</span><b>${financeMoneyOrDash(x.special)}</b></div><div><span>Vertragliche Bindung</span><b>${financeMoneyOrDash(x.committed)}</b></div><div><span>Ersatzfahrer-Leihen</span><b>${financeMoneyOrDash(x.loanCosts)}</b></div><div><span>Abfindungen*</span><b>${financeMoneyOrDash(x.severance)}</b></div><div><span>Ausstiegsklauseln*</span><b>${financeMoneyOrDash(x.release)}</b></div></div>${budgetLine}${x.budget?`<div class="finance-bar"><span style="width:${Math.min(100,(capUsed/x.budget)*100)}%"></span></div>`:''}<div class="finance-contracts"><div class="finance-contract-head"><span>FAHRER</span><span>GEHALT</span><span>SONDERZAHLUNG</span><span></span></div>${contracts}</div><small class="finance-foot">* Potenzielle Vertragswerte, keine automatisch fälligen Zahlungen.</small></div>`;
  }).join('');
- wrap.innerHTML=`<div class="section-head finance-section-head"><div><h3>ðŸ’° Finanzen Â· ${esc(season)}</h3><p>Normale Teamfinanzen und Budget-Cap werden getrennt gefÃ¼hrt. Fahrer tragen ihre eigenen Punktkosten.</p></div><div class="finance-total"><span>GehÃ¤lter</span><b>${financeMoneyOrDash(totalSalary)}</b><small>+ Sonderzahlungen ${financeMoneyOrDash(totalSpecial)}</small></div></div><div class="finance-sponsor-summary"><div><span>Sponsor Sofortzahlungen</span><b>${money(sponsorFin.upfront)}</b></div><div><span>Sponsor Rennziele</span><b>${money(sponsorFin.race)}</b></div><div><span>Sponsor Saisonziel</span><b>${money(sponsorFin.season)}</b></div><div><span>Gesamt Sponsor</span><b>${money(sponsorFin.total)}</b></div>${isEditor()?'<button class="primary" onclick="openSponsorFinance()">ðŸ¤ Sponsoren auswerten</button><button class="ghost" onclick="openLoanList()">ðŸ¤ Ersatzfahrer-Leihen</button>':''}</div><div class="finance-note">â„¹ï¸ Abfindung und Ausstiegsklausel werden bewusst als <b>potenzielle Verpflichtung</b> angezeigt. Sie werden nicht automatisch vom Budget abgezogen.</div><div class="finance-grid">${cards}</div>`; const cat=document.getElementById('sponsor-catalog'); if(cat)renderSponsorCatalog();
+ wrap.innerHTML=`<div class="section-head finance-section-head"><div><h3>💰 Finanzen · ${esc(season)}</h3><p>Normale Teamfinanzen und Budget-Cap werden getrennt geführt. Fahrer tragen ihre eigenen Punktkosten.</p></div><div class="finance-total"><span>Gehälter</span><b>${financeMoneyOrDash(totalSalary)}</b><small>+ Sonderzahlungen ${financeMoneyOrDash(totalSpecial)}</small></div></div><div class="finance-sponsor-summary"><div><span>Sponsor Sofortzahlungen</span><b>${money(sponsorFin.upfront)}</b></div><div><span>Sponsor Rennziele</span><b>${money(sponsorFin.race)}</b></div><div><span>Sponsor Saisonziel</span><b>${money(sponsorFin.season)}</b></div><div><span>Gesamt Sponsor</span><b>${money(sponsorFin.total)}</b></div>${isEditor()?'<button class="primary" onclick="openSponsorFinance()">🤝 Sponsoren auswerten</button><button class="ghost" onclick="openLoanList()">🤝 Ersatzfahrer-Leihen</button>':''}</div><div class="finance-note">ℹ️ Abfindung und Ausstiegsklausel werden bewusst als <b>potenzielle Verpflichtung</b> angezeigt. Sie werden nicht automatisch vom Budget abgezogen.</div><div class="finance-grid">${cards}</div>`; const cat=document.getElementById('sponsor-catalog'); if(cat)renderSponsorCatalog();
 }
 function openDriverContracts(driverName){
  const list=contracts.filter(c=>normDriver(c.driver)===normDriver(driverName)).sort((a,b)=>String(b.season).localeCompare(String(a.season),'de'));
- const rows=list.length?list.map(c=>`<div class="contract-row"><span><b>${esc(c.season||'â€”')}</b> Â· ${esc(c.team||'â€”')}</span><span>${esc(c.division||'â€”')}</span><span>${esc(c.startDate||'â€”')} â†’ ${esc(c.endDate||'â€”')}</span><button class="mini-link" onclick="openContractViewer('${esc(c.id)}')">ðŸ‘ï¸ Ansehen</button>${isEditor()?`<button class="mini-link" onclick="openContractEditor('${esc(c.driver)}','${esc(c.id)}')">âœï¸ Bearbeiten</button>`:''}</div>`).join(''):'<div class="empty-race">Noch kein Vertrag gespeichert.</div>';
- document.getElementById('modal-content').innerHTML=`<div class="modal-head"><div><h2>ðŸ“„ VertrÃ¤ge Â· ${esc(driverName)}</h2><p class="race-edit-note">Gespeicherte VertrÃ¤ge bleiben hier jederzeit einsehbar und bearbeitbar.</p></div><button onclick="closeModal()">Ã—</button></div><div class="contract-history">${rows}</div><div class="modal-actions">${isEditor()?`<button class="primary" onclick="openContractEditor('${esc(driverName)}')">âž• Vertrag hinzufÃ¼gen</button>`:''}<button class="ghost" onclick="closeModal()">Fertig</button></div>`;openModal();
+ const rows=list.length?list.map(c=>`<div class="contract-row"><span><b>${esc(c.season||'—')}</b> · ${esc(c.team||'—')}</span><span>${esc(c.division||'—')}</span><span>${esc(c.startDate||'—')} → ${esc(c.endDate||'—')}</span><button class="mini-link" onclick="openContractViewer('${esc(c.id)}')">👁️ Ansehen</button>${isEditor()?`<button class="mini-link" onclick="openContractEditor('${esc(c.driver)}','${esc(c.id)}')">✏️ Bearbeiten</button>`:''}</div>`).join(''):'<div class="empty-race">Noch kein Vertrag gespeichert.</div>';
+ document.getElementById('modal-content').innerHTML=`<div class="modal-head"><div><h2>📄 Verträge · ${esc(driverName)}</h2><p class="race-edit-note">Gespeicherte Verträge bleiben hier jederzeit einsehbar und bearbeitbar.</p></div><button onclick="closeModal()">×</button></div><div class="contract-history">${rows}</div><div class="modal-actions">${isEditor()?`<button class="primary" onclick="openContractEditor('${esc(driverName)}')">➕ Vertrag hinzufügen</button>`:''}<button class="ghost" onclick="closeModal()">Fertig</button></div>`;openModal();
 }
-function openDriver(name){if(!name)return;const c=calcDriver(name),s=driverRaceStats(name),history=getMarketHistory(name,c.mw),team=driverTeam(name)||'Free Agent',vehicles=driverVehicleHistory(name),finishRate=s.races?((s.races-s.dnf-s.dsq)/s.races*100):0;document.getElementById('driver-profile').innerHTML=`<div class="profile-card"><div class="profile-headline"><div><div class="eyebrow">FAHRERAKTE Â· AKTUELLER STAND</div><div class="profile-name">${esc(normDriver(name))} ${driverFlag(name)?`<img class="driver-flag" src="${driverFlag(name)}" alt="${esc(nationalityInfo(name)?.name||'NationalitÃ¤t')}" title="${esc(nationalityInfo(name)?.name||'NationalitÃ¤t')}">`:nationalityInfo(name)?`<span class="driver-nationality-fallback" title="${esc(nationalityInfo(name).name)}">${nationalityInfo(name).emoji}</span>`:''} ${driverNumber(name)?`<span class="driver-number-badge">#${driverNumber(name)}</span>`:''}</div><div class="profile-sub">${nationalityLabel(name)?esc(nationalityLabel(name))+' Â· ':''}${esc(team)} Â· ${esc(currentDivision(name))} Â· ${esc(getStatus(name))} Â· ${driverRoleLabel(name)}</div></div><div class="profile-select"><button class="ghost mini-edit" onclick="openDriverFinance('${esc(name)}')">ðŸ’° Finanzen</button><button class="ghost mini-edit" onclick="openDriverContracts('${esc(name)}')">ðŸ“„ Vertrag</button></div><button class="ghost mini-edit" onclick="openDriverEditor('${esc(name)}')">âœï¸ Bearbeiten</button></div><div class="profile-hero"><img class="profile-team-car-image" src="${esc(driverCar(team))}" alt="${esc(team)} Fahrzeug"><div class="profile-main"><div class="avatar">â™™</div><div><div class="profile-teamline">${esc(team)}</div><div class="profile-car-inline"><img src="${driverCar(team)}" onerror="this.style.display='none'"><span>aktuelles Fahrzeug</span></div></div></div><div class="profile-score-side"><div class="current-rating"><span>OVA Â· GESAMT</span><b>${c.ova}</b></div><div class="profile-ratings">${[['REN',c.ren],['PER',c.per],['TEM',c.tem],['AMK',c.amk],['ERF',c.erf]].map(x=>`<div class="rating"><span>${x[0]}</span><b>${x[1]}</b></div>`).join('')}</div></div></div><div class="market-wrap"><div><h3>ðŸ“ˆ Marktwert-Entwicklung</h3><div class="chart">${marketChart(history)}</div></div><div class="market-current"><span>Aktueller Marktwert</span><strong>${money(c.mw)}</strong><div class="history-list">${history.map(h=>`<div>${esc(h.label)}: ${money(h.value)}</div>`).join('')}</div></div></div>${renderDriverLicenseCard(name)}<div class="profile-sections"><div class="profile-section"><h3>Erfolge</h3>${metric('Siege',s.wins)}${metric('Podien',s.podiums)}${metric('P4â€“P6',validCount(name,4,6))}${metric('P7â€“P10',validCount(name,7,10))}${metric('P11â€“P15',validCount(name,11,15))}</div><div class="profile-section"><h3>Rennleistung</h3>${metric('Positionsgewinne',s.gained)}${metric('Positionsverluste',s.lost)}${metric('Fahrer des Tages',countHighlight(name,'dotd'))}${metric('Meiste ÃœberholmanÃ¶ver',countHighlight(name,'overtakes'))}${metric('Start / Ziel gleich',s.same)}${metric('Ã˜ Platzierung',s.avgPos?s.avgPos.toFixed(1).replace('.',','):'â€”')}</div><div class="profile-section"><h3>ZuverlÃ¤ssigkeit</h3>${metric('Rennen',s.races)}${metric('DNF',s.dnf)}${metric('DSQ',s.dsq)}${metric('TL',s.tl)}${metric('NachtrÃ¤gliche Strafen',s.postPenalty)}${metric('Zielankunftsquote',finishRate.toFixed(2).replace('.',',')+'%')}</div></div><div class="profile-sections"><div class="profile-section"><h3>Qualifying</h3>${metric('Poles','â€”')}${metric('Top 3 Quali','â€”')}${metric('Ã˜ Startposition',s.avgGrid?s.avgGrid.toFixed(1).replace('.',','):'â€”')}</div><div class="profile-section"><h3>Fahrerprofil</h3>${metric('Karrierephase',careerPhase(s.races))}${metric('DNA',driverDNA(c))}${metric('StÃ¤rke',strength(c))}</div><div class="profile-section vehicle-section"><h3>Gefahrene Fahrzeuge</h3><div class="vehicle-history">${vehicles.length?vehicles.map(v=>`<div class="vehicle-chip"><img src="${driverCar(v.team)}"><span>${esc(v.team)}</span><b>${v.count}Ã—</b></div>`).join(''):'<span class="muted">Noch keine Renndaten</span>'}</div></div></div><div class="profile-section race-history-section"><div class="section-inline"><h3>ðŸ Rennhistorie &amp; Strecken</h3></div>${renderDriverRaceHistory(name)}</div><div class="profile-section contract-section"><div class="section-inline"><h3>ðŸ“‹ VertrÃ¤ge &amp; Teamhistorie</h3>${isEditor()?`<button class="ghost mini-edit" onclick="openContractEditor('${esc(name)}')">âž• Vertrag</button>`:''}</div><div class="contract-history">${contractHistory(name).length?contractHistory(name).map(c=>{const isContract=c.source==='contract';return `<div class="contract-row"><span><b>${esc(c.season||'â€”')}</b> Â· ${esc(c.team||'â€”')}</span><span>${esc(c.division||'â€”')}</span><span>${isContract?'Vertrag gespeichert':'Rennhistorie'}</span><span>${c.salary||c.value?esc(c.salary||c.value):'â€”'}</span>${isContract&&isEditor()?`<button class="mini-link" onclick="openContractEditor('${esc(c.driver)}','${esc(c.id)}')">âœï¸ Ansehen / Bearbeiten</button><button class="mini-link" onclick="deleteContract('${esc(c.id)}')">LÃ¶schen</button>`:''}</div>`;}).join(''):'<span class="muted">Noch keine Vertrags-/Teamhistorie vorhanden.</span>'}</div></div></div></div>`}
+function openDriver(name){if(!name)return;const c=calcDriver(name),s=driverRaceStats(name),history=getMarketHistory(name,c.mw),team=driverTeam(name)||'Free Agent',vehicles=driverVehicleHistory(name),finishRate=s.races?((s.races-s.dnf-s.dsq)/s.races*100):0;document.getElementById('driver-profile').innerHTML=`<div class="profile-card"><div class="profile-headline"><div><div class="eyebrow">FAHRERAKTE · AKTUELLER STAND</div><div class="profile-name">${esc(normDriver(name))} ${driverFlag(name)?`<img class="driver-flag" src="${driverFlag(name)}" alt="${esc(nationalityInfo(name)?.name||'Nationalität')}" title="${esc(nationalityInfo(name)?.name||'Nationalität')}">`:nationalityInfo(name)?`<span class="driver-nationality-fallback" title="${esc(nationalityInfo(name).name)}">${nationalityInfo(name).emoji}</span>`:''} ${driverNumber(name)?`<span class="driver-number-badge">#${driverNumber(name)}</span>`:''}</div><div class="profile-sub">${nationalityLabel(name)?esc(nationalityLabel(name))+' · ':''}${esc(team)} · ${esc(currentDivision(name))} · ${esc(getStatus(name))} · ${driverRoleLabel(name)}</div></div><div class="profile-select"><button class="ghost mini-edit" onclick="openDriverFinance('${esc(name)}')">💰 Finanzen</button><button class="ghost mini-edit" onclick="openDriverContracts('${esc(name)}')">📄 Vertrag</button></div><button class="ghost mini-edit" onclick="openDriverEditor('${esc(name)}')">✏️ Bearbeiten</button></div><div class="profile-hero"><img class="profile-team-car-image" src="${esc(driverCar(team))}" alt="${esc(team)} Fahrzeug"><div class="profile-main"><div class="avatar">♙</div><div><div class="profile-teamline">${esc(team)}</div><div class="profile-car-inline"><img src="${driverCar(team)}" onerror="this.style.display='none'"><span>aktuelles Fahrzeug</span></div></div></div><div class="profile-score-side"><div class="current-rating"><span>OVA · GESAMT</span><b>${c.ova}</b></div><div class="profile-ratings">${[['REN',c.ren],['PER',c.per],['TEM',c.tem],['AMK',c.amk],['ERF',c.erf]].map(x=>`<div class="rating"><span>${x[0]}</span><b>${x[1]}</b></div>`).join('')}</div></div></div><div class="market-wrap"><div><h3>📈 Marktwert-Entwicklung</h3><div class="chart">${marketChart(history)}</div></div><div class="market-current"><span>Aktueller Marktwert</span><strong>${money(c.mw)}</strong><div class="history-list">${history.map(h=>`<div>${esc(h.label)}: ${money(h.value)}</div>`).join('')}</div></div></div>${renderDriverLicenseCard(name)}<div class="profile-sections"><div class="profile-section"><h3>Erfolge</h3>${metric('Siege',s.wins)}${metric('Podien',s.podiums)}${metric('P4–P6',validCount(name,4,6))}${metric('P7–P10',validCount(name,7,10))}${metric('P11–P15',validCount(name,11,15))}</div><div class="profile-section"><h3>Rennleistung</h3>${metric('Positionsgewinne',s.gained)}${metric('Positionsverluste',s.lost)}${metric('Fahrer des Tages',countHighlight(name,'dotd'))}${metric('Meiste Überholmanöver',countHighlight(name,'overtakes'))}${metric('Start / Ziel gleich',s.same)}${metric('Ø Platzierung',s.avgPos?s.avgPos.toFixed(1).replace('.',','):'—')}</div><div class="profile-section"><h3>Zuverlässigkeit</h3>${metric('Rennen',s.races)}${metric('DNF',s.dnf)}${metric('DSQ',s.dsq)}${metric('TL',s.tl)}${metric('Nachträgliche Strafen',s.postPenalty)}${metric('Zielankunftsquote',finishRate.toFixed(2).replace('.',',')+'%')}</div></div><div class="profile-sections"><div class="profile-section"><h3>Qualifying</h3>${metric('Poles','—')}${metric('Top 3 Quali','—')}${metric('Ø Startposition',s.avgGrid?s.avgGrid.toFixed(1).replace('.',','):'—')}</div><div class="profile-section"><h3>Fahrerprofil</h3>${metric('Karrierephase',careerPhase(s.races))}${metric('DNA',driverDNA(c))}${metric('Stärke',strength(c))}</div><div class="profile-section vehicle-section"><h3>Gefahrene Fahrzeuge</h3><div class="vehicle-history">${vehicles.length?vehicles.map(v=>`<div class="vehicle-chip"><img src="${driverCar(v.team)}"><span>${esc(v.team)}</span><b>${v.count}×</b></div>`).join(''):'<span class="muted">Noch keine Renndaten</span>'}</div></div></div><div class="profile-section race-history-section"><div class="section-inline"><h3>🏁 Rennhistorie &amp; Strecken</h3></div>${renderDriverRaceHistory(name)}</div><div class="profile-section contract-section"><div class="section-inline"><h3>📋 Verträge &amp; Teamhistorie</h3>${isEditor()?`<button class="ghost mini-edit" onclick="openContractEditor('${esc(name)}')">➕ Vertrag</button>`:''}</div><div class="contract-history">${contractHistory(name).length?contractHistory(name).map(c=>{const isContract=c.source==='contract';return `<div class="contract-row"><span><b>${esc(c.season||'—')}</b> · ${esc(c.team||'—')}</span><span>${esc(c.division||'—')}</span><span>${isContract?'Vertrag gespeichert':'Rennhistorie'}</span><span>${c.salary||c.value?esc(c.salary||c.value):'—'}</span>${isContract&&isEditor()?`<button class="mini-link" onclick="openContractEditor('${esc(c.driver)}','${esc(c.id)}')">✏️ Ansehen / Bearbeiten</button><button class="mini-link" onclick="deleteContract('${esc(c.id)}')">Löschen</button>`:''}</div>`;}).join(''):'<span class="muted">Noch keine Vertrags-/Teamhistorie vorhanden.</span>'}</div></div></div></div>`}
 function metric(label,value){return `<div class="metric-row"><span>${esc(label)}</span><b>${esc(value)}</b></div>`}
 function validCount(name,min,max){return raceList().flatMap(r=>r.results.map((x,i)=>normDriver(x.name)===normDriver(name)?i+1:null)).filter(p=>p&&p>=min&&p<=max).length}
 function countHighlight(name,key){return raceList().filter(r=>normDriver(r.highlights?.[key]||'')===normDriver(name)).length}
 function careerPhase(r){if(r<=10)return'Newcomer';if(r<=20)return'Nachwuchsfahrer';if(r<=30)return'Etablierter Fahrer';if(r<=40)return'Routinierter Fahrer';if(r<=50)return'Elite Fahrer';if(r<=60)return'Veteran';return'Legende'}
 function driverRaceHistory(name){
  const n=normDriver(name);
- return raceChronological().filter(r=>(r.results||[]).some(x=>normDriver(x.name)===n)).map(r=>{const x=r.results.find(y=>normDriver(y.name)===n);const pos=x?r.results.indexOf(x)+1:0;return {season:seasonOfRace(r),number:r.number||r.round||0,track:r.track||'â€”',date:r.raceDate||'',division:r.division||'â€”',pos,grid:Number(x?.grid||0),points:pointsForPosition(pos,statusOfResult(x||{})),team:x?.team||'â€”',status:statusOfResult(x||{})}}).sort((a,b)=>String(a.date||a.number).localeCompare(String(b.date||b.number))||Number(a.number)-Number(b.number));
+ return raceChronological().filter(r=>(r.results||[]).some(x=>normDriver(x.name)===n)).map(r=>{const x=r.results.find(y=>normDriver(y.name)===n);const pos=x?r.results.indexOf(x)+1:0;return {season:seasonOfRace(r),number:r.number||r.round||0,track:r.track||'—',date:r.raceDate||'',division:r.division||'—',pos,grid:Number(x?.grid||0),points:pointsForPosition(pos,statusOfResult(x||{})),team:x?.team||'—',status:statusOfResult(x||{})}}).sort((a,b)=>String(a.date||a.number).localeCompare(String(b.date||b.number))||Number(a.number)-Number(b.number));
 }
 function renderDriverRaceHistory(name){
  const rows=driverRaceHistory(name);
  if(!rows.length)return '<div class="muted">Noch keine Rennhistorie vorhanden.</div>';
- return `<div class="driver-race-history"><div class="driver-race-head"><span>DATUM</span><span>RUNDEN</span><span>STRECKE</span><span>DIV.</span><span>POS.</span><span>GRID</span><span>PKT.</span></div>${rows.map(r=>`<div class="driver-race-row"><span>${r.date?esc(new Date(r.date+'T12:00:00').toLocaleDateString('de-DE')):'â€”'}</span><span>R${esc(r.number)}</span><span><b>${esc(r.track)}</b></span><span>${esc(r.division)}</span><span>${r.pos}</span><span>${r.grid}</span><span>${r.points}</span></div>`).join('')}</div>`;
+ return `<div class="driver-race-history"><div class="driver-race-head"><span>DATUM</span><span>RUNDEN</span><span>STRECKE</span><span>DIV.</span><span>POS.</span><span>GRID</span><span>PKT.</span></div>${rows.map(r=>`<div class="driver-race-row"><span>${r.date?esc(new Date(r.date+'T12:00:00').toLocaleDateString('de-DE')):'—'}</span><span>R${esc(r.number)}</span><span><b>${esc(r.track)}</b></span><span>${esc(r.division)}</span><span>${r.pos}</span><span>${r.grid}</span><span>${r.points}</span></div>`).join('')}</div>`;
 }
 
-function driverDNA(c){if(c.ren>=c.tem+4)return'Racer';if(c.tem>=c.ren+4)return'Quali-KÃ¶nig';if(c.per>=c.ren+4)return'ÃœberholjÃ¤ger';if(c.amk>=95)return'Konstanz';return'Allrounder'} function strength(c){return[['Rennpace',c.ren],['Performance',c.per],['Tempo',c.tem],['Aufmerksamkeit',c.amk],['Erfahrung',c.erf]].sort((a,b)=>b[1]-a[1])[0][0]}
+function driverDNA(c){if(c.ren>=c.tem+4)return'Racer';if(c.tem>=c.ren+4)return'Quali-König';if(c.per>=c.ren+4)return'Überholjäger';if(c.amk>=95)return'Konstanz';return'Allrounder'} function strength(c){return[['Rennpace',c.ren],['Performance',c.per],['Tempo',c.tem],['Aufmerksamkeit',c.amk],['Erfahrung',c.erf]].sort((a,b)=>b[1]-a[1])[0][0]}
 function getMarketHistory(name,current){
  const chronological=raceChronological();
  const history=[{label:'Start 02/26',value:25000000}];
@@ -2134,7 +2123,7 @@ function getMarketHistory(name,current){
    seen.add(weekend);
    const snaps=chronological.filter(x=>`${seasonOfRace(x)}|${x.number||x.round||0}|${x.track||''}`===weekend).map(x=>x.state?.driverValues?.[normDriver(name)]).filter(Boolean);
    const snap=snaps[0];
-   if(snap) history.push({label:`R${r.number||r.round||idx+1} Â· ${r.track}`,value:snap.mw});
+   if(snap) history.push({label:`R${r.number||r.round||idx+1} · ${r.track}`,value:snap.mw});
  });
  if(history.length===1)history[0].value=current;
  return history;
@@ -2157,22 +2146,22 @@ function seasonInfo(season,div){
 }
 function championBadge(info){
  if(!info.leader)return '';
- return info.completed?`<div class="champion-banner"><span>ðŸ†</span><div><small>SAISONMEISTER</small><b>${esc(info.leader.name)}</b><span>${info.leader.points} Punkte Â· ${info.rounds} Rennwochenenden</span></div></div>`:`<div class="champion-banner provisional"><span>ðŸ“ˆ</span><div><small>AKTUELL FÃœHREND</small><b>${esc(info.leader.name)}</b><span>${info.leader.points} Punkte Â· Saison lÃ¤uft</span></div></div>`;
+ return info.completed?`<div class="champion-banner"><span>🏆</span><div><small>SAISONMEISTER</small><b>${esc(info.leader.name)}</b><span>${info.leader.points} Punkte · ${info.rounds} Rennwochenenden</span></div></div>`:`<div class="champion-banner provisional"><span>📈</span><div><small>AKTUELL FÜHREND</small><b>${esc(info.leader.name)}</b><span>${info.leader.points} Punkte · Saison läuft</span></div></div>`;
 }
 
-function renderWM(){initSeasonSelectors();const season=document.getElementById('wm-season')?.value||seasonState.current||'02/26';const div=document.getElementById('wm-div')?.value||'Div 1';const info=seasonInfo(season,div),rows=info.rows;document.getElementById('wm-table').innerHTML=rows.length?`${championBadge(info)}<div class="wm-block"><div class="wm-block-head"><h3>${div==='Div 1'?'Division 1':'Division 2'} Â· ${esc(season)}</h3><span>${info.rounds} Rennwochenenden Â· ${rows.length} Fahrer</span></div><div class="table-panel"><table class="standings"><thead><tr><th>Pos</th><th>Fahrer</th><th>Fahrzeug</th><th>Rennen</th><th>Siege</th><th>Podien</th><th>Marktwert</th><th>Punkte</th></tr></thead><tbody>${rows.map((r,i)=>`<tr><td class="rank ${i<3?'podium-p'+(i+1):''}">${i+1}</td><td><b>${esc(r.name)}</b></td><td><img class="car-mini" src="${standingsCar(r.team)}"></td><td>${r.races}</td><td>${r.wins}</td><td>${r.podiums}</td><td>${money(calcDriver(r.name).mw)}</td><td><b>${r.points}</b></td></tr>`).join('')}</tbody></table></div></div>`:'<div class="empty-race">FÃ¼r diese Division liegen noch keine Rennergebnisse vor.</div>'}
+function renderWM(){initSeasonSelectors();const season=document.getElementById('wm-season')?.value||seasonState.current||'02/26';const div=document.getElementById('wm-div')?.value||'Div 1';const info=seasonInfo(season,div),rows=info.rows;document.getElementById('wm-table').innerHTML=rows.length?`${championBadge(info)}<div class="wm-block"><div class="wm-block-head"><h3>${div==='Div 1'?'Division 1':'Division 2'} · ${esc(season)}</h3><span>${info.rounds} Rennwochenenden · ${rows.length} Fahrer</span></div><div class="table-panel"><table class="standings"><thead><tr><th>Pos</th><th>Fahrer</th><th>Fahrzeug</th><th>Rennen</th><th>Siege</th><th>Podien</th><th>Marktwert</th><th>Punkte</th></tr></thead><tbody>${rows.map((r,i)=>`<tr><td class="rank ${i<3?'podium-p'+(i+1):''}">${i+1}</td><td><b>${esc(r.name)}</b></td><td><img class="car-mini" src="${standingsCar(r.team)}"></td><td>${r.races}</td><td>${r.wins}</td><td>${r.podiums}</td><td>${money(calcDriver(r.name).mw)}</td><td><b>${r.points}</b></td></tr>`).join('')}</tbody></table></div></div>`:'<div class="empty-race">Für diese Division liegen noch keine Rennergebnisse vor.</div>'}
 function kwmRows(mode,season=seasonState.current||'02/26'){const divs=mode==='Overall'?['Div 1','Div 2']:[mode];const map={};seasonRaceList(season).filter(r=>divs.includes(r.division)).forEach(r=>r.results.forEach((x,i)=>{const t=x.team;if(!map[t])map[t]={team:t,points:0,wins:0,podiums:0};const st=statusOfResult(x);map[t].points+=pointsForPosition(i+1,st);if(i===0&&st==='RESULT')map[t].wins++;if(i<3&&st==='RESULT')map[t].podiums++}));return Object.values(map).sort((a,b)=>b.points-a.points||b.wins-a.wins)}
 function renderKWM(){
  initSeasonSelectors(); const season=document.getElementById('kwm-season')?.value||seasonState.current||'02/26'; const mode=document.getElementById('kwm-div').value,rows=kwmRows(mode,season);
  let leader=rows[0];
  const kwmRaceRows=seasonRaceList(season).filter(r=>mode==='Overall'||r.division===mode).sort((a,b)=>Number(a.number||0)-Number(b.number||0)||String(a.division).localeCompare(String(b.division),'de'));
- document.getElementById('kwm-table').innerHTML=rows.length?`${leader?`<div class="champion-banner ${SEASON_META.seasons[season]?.status==='archived'?'':'provisional'}"><span>${SEASON_META.seasons[season]?.status==='archived'?'ðŸ†':'ðŸ“ˆ'}</span><div><small>${SEASON_META.seasons[season]?.status==='archived'?'KONSTRUKTEURS-MEISTER':'AKTUELL FÃœHREND'}</small><b>${esc(leader.team)}</b><span>${leader.points} Punkte</span></div></div>`:''}<div class="table-panel"><table class="standings"><thead><tr><th>Pos</th><th>Team</th><th>Fahrzeug</th><th>Siege</th><th>Podien</th><th>Punkte</th></tr></thead><tbody>${rows.map((r,i)=>`<tr><td class="rank ${i<3?'podium-p'+(i+1):''}">${i+1}</td><td><b>${esc(r.team)}</b></td><td><img class="car-mini" src="${standingsCar(r.team)}"></td><td>${r.wins}</td><td>${r.podiums}</td><td><b>${r.points}</b></td></tr>`).join('')}</tbody></table></div><div class="kwm-race-list"><h3>ðŸ Rennwochenenden &amp; Strecken</h3>${kwmRaceRows.length?kwmRaceRows.map(r=>`<div class="kwm-race-item"><span><b>R${esc(r.number)}</b> Â· ${esc(r.track)}</span><span>${esc(r.division)}</span><span>${r.raceDate?esc(new Date(r.raceDate+'T12:00:00').toLocaleDateString('de-DE')):'Datum offen'}</span><span>${r.results.length} Ergebnisse</span></div>`).join(''):'<div class="muted">Noch keine Rennwochenenden.</div>'}</div>`:'<div class="empty-race">FÃ¼r diese Auswahl liegen noch keine Rennergebnisse vor.</div>';
+ document.getElementById('kwm-table').innerHTML=rows.length?`${leader?`<div class="champion-banner ${SEASON_META.seasons[season]?.status==='archived'?'':'provisional'}"><span>${SEASON_META.seasons[season]?.status==='archived'?'🏆':'📈'}</span><div><small>${SEASON_META.seasons[season]?.status==='archived'?'KONSTRUKTEURS-MEISTER':'AKTUELL FÜHREND'}</small><b>${esc(leader.team)}</b><span>${leader.points} Punkte</span></div></div>`:''}<div class="table-panel"><table class="standings"><thead><tr><th>Pos</th><th>Team</th><th>Fahrzeug</th><th>Siege</th><th>Podien</th><th>Punkte</th></tr></thead><tbody>${rows.map((r,i)=>`<tr><td class="rank ${i<3?'podium-p'+(i+1):''}">${i+1}</td><td><b>${esc(r.team)}</b></td><td><img class="car-mini" src="${standingsCar(r.team)}"></td><td>${r.wins}</td><td>${r.podiums}</td><td><b>${r.points}</b></td></tr>`).join('')}</tbody></table></div><div class="kwm-race-list"><h3>🏁 Rennwochenenden &amp; Strecken</h3>${kwmRaceRows.length?kwmRaceRows.map(r=>`<div class="kwm-race-item"><span><b>R${esc(r.number)}</b> · ${esc(r.track)}</span><span>${esc(r.division)}</span><span>${r.raceDate?esc(new Date(r.raceDate+'T12:00:00').toLocaleDateString('de-DE')):'Datum offen'}</span><span>${r.results.length} Ergebnisse</span></div>`).join(''):'<div class="muted">Noch keine Rennwochenenden.</div>'}</div>`:'<div class="empty-race">Für diese Auswahl liegen noch keine Rennergebnisse vor.</div>';
 }
 
 function isEditor(){return editor}
 function openAdmin(){
  if(editor){adminPanel();return}
- document.getElementById('modal-content').innerHTML=`<div class="modal-card small"><div class="modal-head"><h2>Bearbeitung freischalten</h2><button onclick="closeModal()">Ã—</button></div><p class="race-edit-note">Alle dÃ¼rfen die RaceHub-Daten ansehen. Nur dein persÃ¶nliches Admin-Konto darf Daten Ã¤ndern.</p><input id="admin-email" type="email" placeholder="E-Mail-Adresse"><input id="admin-password" type="password" placeholder="Passwort"><div class="modal-actions"><button class="ghost" onclick="closeModal()">Abbrechen</button><button class="primary" onclick="loginAdmin()">Anmelden</button></div></div>`;openModal();
+ document.getElementById('modal-content').innerHTML=`<div class="modal-card small"><div class="modal-head"><h2>Bearbeitung freischalten</h2><button onclick="closeModal()">×</button></div><p class="race-edit-note">Alle dürfen die RaceHub-Daten ansehen. Nur dein persönliches Admin-Konto darf Daten ändern.</p><input id="admin-email" type="email" placeholder="E-Mail-Adresse"><input id="admin-password" type="password" placeholder="Passwort"><div class="modal-actions"><button class="ghost" onclick="closeModal()">Abbrechen</button><button class="primary" onclick="loginAdmin()">Anmelden</button></div></div>`;openModal();
 }
 async function loginAdmin(){
  if(!cloudConfigured()){toast('Cloud-Setup fehlt. config.js einrichten.');return}
@@ -2206,9 +2195,9 @@ async function logoutAdmin(){
  toast('Bearbeitung gesperrt.');
 }
 function requireEditor(){if(!editor){openAdmin();return false}return true}
-function adminPanel(){const q=databaseIntegrity();document.getElementById('modal-content').innerHTML=`<div class="modal-head"><h2>DoG Liga-Verwaltung</h2><button onclick="closeModal()">Ã—</button></div><p class="race-edit-note">Nur das registrierte Admin-Konto darf Daten verÃ¤ndern. Alle anderen Besucher haben Ansichtszugriff.</p><div class="admin-integrity"><b>Datenstatus</b><span>${q.races} Rennen Â· ${q.weekends} Rennwochenenden Â· ${q.results} Ergebnisse</span><span>${q.orphan?'âš  '+q.orphan+' unbekannte Fahrer':'âœ“ Fahrerzuordnungen OK'}</span><span>${q.duplicate?'âš  '+q.duplicate+' doppelte Ergebniszeilen':'âœ“ Keine doppelten Ergebniszeilen'}</span><span>${q.invalid?'âš  Punkte prÃ¼fen':'âœ“ Punkte konsistent'}</span></div><button class="primary" onclick="recalculateDatabase()">ðŸ”„ Gesamte Datenbank neu berechnen</button><button class="ghost" onclick="cloudSave().then(ok=>ok&&toast('Cloud-Daten gespeichert.'))">â˜ï¸ Jetzt in Cloud speichern</button><button class="ghost" onclick="logoutAdmin()">ðŸ”’ Abmelden / Bearbeitung sperren</button>`;openModal()}
+function adminPanel(){const q=databaseIntegrity();document.getElementById('modal-content').innerHTML=`<div class="modal-head"><h2>DoG Liga-Verwaltung</h2><button onclick="closeModal()">×</button></div><p class="race-edit-note">Nur das registrierte Admin-Konto darf Daten verändern. Alle anderen Besucher haben Ansichtszugriff.</p><div class="admin-integrity"><b>Datenstatus</b><span>${q.races} Rennen · ${q.weekends} Rennwochenenden · ${q.results} Ergebnisse</span><span>${q.orphan?'⚠ '+q.orphan+' unbekannte Fahrer':'✓ Fahrerzuordnungen OK'}</span><span>${q.duplicate?'⚠ '+q.duplicate+' doppelte Ergebniszeilen':'✓ Keine doppelten Ergebniszeilen'}</span><span>${q.invalid?'⚠ Punkte prüfen':'✓ Punkte konsistent'}</span></div><button class="primary" onclick="recalculateDatabase()">🔄 Gesamte Datenbank neu berechnen</button><button class="ghost" onclick="cloudSave().then(ok=>ok&&toast('Cloud-Daten gespeichert.'))">☁️ Jetzt in Cloud speichern</button><button class="ghost" onclick="logoutAdmin()">🔒 Abmelden / Bearbeitung sperren</button>`;openModal()}
 function openModal(){document.getElementById('modal').classList.add('show')} function closeModal(){document.getElementById('modal').classList.remove('show')} function toast(t){const x=document.getElementById('toast');x.textContent=t;x.style.display='block';clearTimeout(window.__toast);window.__toast=setTimeout(()=>x.style.display='none',2600)} function money(n){return new Intl.NumberFormat('de-DE',{style:'currency',currency:'EUR',maximumFractionDigits:0}).format(n)} function esc(s){return String(s??'').replace(/[&<>'"]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[m]))}
-try{ensureRaceMetadata();load();syncTeamChiefRoles();}catch(e){console.error('RaceHub startup',e);toast('RaceHub konnte einige Daten nicht laden. Die Navigation bleibt verfÃ¼gbar.')}
+try{ensureRaceMetadata();load();syncTeamChiefRoles();}catch(e){console.error('RaceHub startup',e);toast('RaceHub konnte einige Daten nicht laden. Die Navigation bleibt verfügbar.')}
 try{ensureLicenseView();updateSeasonChrome();showView('dashboard');updateEditorUI();}catch(e){console.error('RaceHub render',e)}
 setTimeout(()=>initCloud(),50);
 
@@ -2220,7 +2209,7 @@ function filterDriverSelect(){
   const current=sel.value;
   const all=[...new Set((drivers||[]).map(x=>typeof x==='string'?x:(x.name||x.driver)).filter(Boolean))];
   const rows=all.filter(n=>(!q||n.toLowerCase().includes(q))&&(!team||driverTeam(n)===team));
-  sel.innerHTML=rows.map(n=>`<option value="${esc(n)}">${esc(driverNumber(n)?'#'+driverNumber(n)+' Â· ': '')}${esc(n)} Â· ${esc(getStatus(n))}</option>`).join('');
+  sel.innerHTML=rows.map(n=>`<option value="${esc(n)}">${esc(driverNumber(n)?'#'+driverNumber(n)+' · ': '')}${esc(n)} · ${esc(getStatus(n))}</option>`).join('');
   if(rows.includes(current))sel.value=current;
   if(sel.value)openDriver(sel.value);
 }
@@ -2243,6 +2232,5 @@ function filterDriverSelect(){
 })();
 
 /* v1.76 driver reference helpers */
-function filterDriverSelect(){const sel=document.getElementById('driver-select');if(!sel)return;const q=(document.getElementById('driver-search')?.value||'').toLowerCase();const team=document.getElementById('driver-team-filter')?.value||'';const current=sel.value;const all=[...new Set((drivers||[]).map(x=>typeof x==='string'?x:(x.name||x.driver)).filter(Boolean))];const rows=all.filter(n=>(!q||n.toLowerCase().includes(q))&&(!team||driverTeam(n)===team));sel.innerHTML=rows.map(n=>`<option value="${esc(n)}">${esc(driverNumber(n)?'#'+driverNumber(n)+' Â· ':'')}${esc(n)} Â· ${esc(getStatus(n))}</option>`).join('');if(rows.includes(current))sel.value=current;if(sel.value)openDriver(sel.value)}
+function filterDriverSelect(){const sel=document.getElementById('driver-select');if(!sel)return;const q=(document.getElementById('driver-search')?.value||'').toLowerCase();const team=document.getElementById('driver-team-filter')?.value||'';const current=sel.value;const all=[...new Set((drivers||[]).map(x=>typeof x==='string'?x:(x.name||x.driver)).filter(Boolean))];const rows=all.filter(n=>(!q||n.toLowerCase().includes(q))&&(!team||driverTeam(n)===team));sel.innerHTML=rows.map(n=>`<option value="${esc(n)}">${esc(driverNumber(n)?'#'+driverNumber(n)+' · ':'')}${esc(n)} · ${esc(getStatus(n))}</option>`).join('');if(rows.includes(current))sel.value=current;if(sel.value)openDriver(sel.value)}
 (function(){const oldOpen=window.openDriver;window.openDriver=function(name){const r=oldOpen(name);requestAnimationFrame(()=>{const p=document.querySelector('#driver-profile .profile-hero');if(p)p.style.setProperty('--profile-car-image',`url("${driverCar(driverTeam(name)||'Free Agent')}")`)});return r}})();
-
