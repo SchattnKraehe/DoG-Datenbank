@@ -374,16 +374,18 @@ async function cloudSave(){
 
    // Erst vollständigen neuen Snapshot schreiben. Der bisherige Cloud-Stand bleibt
    // aktiv, bis ALLE Blöcke erfolgreich gespeichert wurden.
-   for(let i=0;i<chunks.length;i++){
-     let lastError=null;
-     for(let attempt=0;attempt<3;attempt++){
-       const {error}=await cloudWithTimeout(cloudClient.from('app_state_chunks').insert(chunks[i]),15000,`Cloud-Datenblock ${i+1}`);
-       if(!error){lastError=null;break}
-       lastError=error;
-       if(attempt<2)await new Promise(resolve=>setTimeout(resolve,600*(attempt+1)));
-     }
-     if(lastError)throw lastError;
-   }
+   let chunkError = null;
+for(let attempt=0;attempt<2;attempt++){
+  const result = await cloudWithTimeout(
+    cloudClient.from('app_state_chunks').insert(chunks),
+    30000,
+    'Cloud-DatenblÃ¶cke speichern'
+  );
+  chunkError = result.error || null;
+  if(!chunkError)break;
+  if(attempt<1)await new Promise(resolve=>setTimeout(resolve,800));
+}
+if(chunkError)throw chunkError;
 
    // Erst jetzt wird der kleine Pointer umgeschaltet. Das ist der atomare
    // Veröffentlichungs-Schritt für den neuen Snapshot.
