@@ -319,6 +319,7 @@ async function cloudSave(){
  if(!cloudConfigured())return false;
  if(!cloudClient){try{await initCloud()}catch(e){console.error('DoG RaceHub Cloud init before save',e)}}
  if(!cloudClient)return false;
+ let pointer=null;
  try{
    const {data:sessionData}=await cloudWithTimeout(cloudClient.auth.getSession(),10000,'Cloud-Anmeldung');
    cloudUser=sessionData?.session?.user||cloudUser||null;
@@ -330,7 +331,7 @@ async function cloudSave(){
    if(!cloudOwner){toast('Dieses Konto ist nicht als Admin hinterlegt.');return false}
    cloudReady=true;
 
-   const pointer=await cloudWithTimeout(readCloudPointer(),10000,'Cloud-Pointer');
+   pointer=await cloudWithTimeout(readCloudPointer(),10000,'Cloud-Pointer');
    if(pointer.error){
      cloudChunkReady=false;
      console.error('DoG RaceHub Cloud: app_state_pointer fehlt oder ist nicht erreichbar.',pointer.error);
