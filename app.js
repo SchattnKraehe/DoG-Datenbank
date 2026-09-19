@@ -179,24 +179,12 @@ const CLOUD_CHUNK_SIZE=120000;
 function cloudConfigured(){return !!(window.DOG_SUPABASE_URL&&window.DOG_SUPABASE_ANON_KEY&&window.DOG_SUPABASE_URL.indexOf('YOUR_')<0&&window.DOG_SUPABASE_ANON_KEY.indexOf('YOUR_')<0&&window.supabase?.createClient)}
 function cloudState(){return {drivers,driverMeta,races,teams,seasonState,contracts,transferRecords,financeBudgets,financeCapUsage,sponsorPayments,financeTransactions,financeOpeningBalances,financeTxOverrides,driverFinanceOpeningBalances,driverFinanceOpeningDates,loanAgreements,driverLicenses,activeTracks:ACTIVE_TRACKS,trackNumbers:TRACK_NUMBERS}}
 async function encodeCloudData(data){
- const json=JSON.stringify(data);
- try{
-  if(typeof CompressionStream==='undefined')return data;
-  const cs=new CompressionStream('gzip');
-  const writer=cs.writable.getWriter();
-  await writer.write(new TextEncoder().encode(json));
-  await writer.close();
-  const buf=await new Response(cs.readable).arrayBuffer();
-  let binary=''; const bytes=new Uint8Array(buf);
-  const chunk=0x8000;
-  for(let i=0;i<bytes.length;i+=chunk)binary+=String.fromCharCode(...bytes.subarray(i,i+chunk));
-  return {_compressed:'gzip-base64',payload:btoa(binary)};
- }catch(e){
-  console.warn('DoG RaceHub Cloud: Komprimierung nicht möglich, normaler Datensatz wird verwendet.',e);
+  // v2.30: Keine Browser-GZIP-Komprimierung mehr.
+  // Der bisherige CompressionStream-Aufruf konnte bei groÃŸen RaceHub-Daten
+  // im Browser hÃ¤ngen bleiben. Die Cloud-Snapshot-Struktur bleibt erhalten;
+  // decodeCloudData() akzeptiert weiterhin unkomprimierte Daten.
   return data;
- }
-}
-async function decodeCloudData(data){
+}async function decodeCloudData(data){
  if(!data||typeof data!=='object'||data._compressed!=='gzip-base64')return data;
  try{
   const binary=atob(data.payload||''); const bytes=Uint8Array.from(binary,c=>c.charCodeAt(0));
