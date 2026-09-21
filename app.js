@@ -4,8 +4,8 @@ const RACE_DIR='';
 const carMap={'McLaren':'car_large_mclaren.png','Oracle Red Bull Racing':'car_large_oracle_red_bull_racing.png','Audi':'car_large_audi.png','Mercedes':'car_large_mercedes.png','Williams':'car_large_williams.png','Cadillac':'car_large_cadillac.png','Alpine':'car_large_alpine.png','Aston Martin':'car_large_aston_martin.png','Ferrari':'car_large_ferrari.png','Haas':'car_large_haas.png','Visa Cash':'car_large_visa_cash.png'};
 // Fahrer-Übersicht/Profile: große Fahrzeuge. Fahrer-WM + KWM: kleine Fahrzeuge.
 const standingsCarMap={'McLaren':'car_mini_mclaren.png','Oracle Red Bull Racing':'car_mini_oracle_red_bull_racing.png','Audi':'car_mini_audi.png','Mercedes':'car_mini_mercedes.png','Williams':'car_mini_williams.png','Cadillac':'car_mini_cadillac.png','Alpine':'car_mini_alpine.png','Aston Martin':'car_mini_aston_martin.png','Ferrari':'car_mini_ferrari.png','Haas':'car_mini_haas.png','Visa Cash':'car_mini_visa_cash.png'};
-function driverCar(name){const c=canonicalTeamName(name);return CAR_DIR+(carMap[c]||carMap[teamKey(c)]||'not-available.jpg')}
-function standingsCar(name){const c=canonicalTeamName(name);return CAR_DIR+(standingsCarMap[c]||carMap[c]||carMap[teamKey(c)]||'not-available.jpg')}
+function driverCar(name){const c=canonicalTeamName(name);return CAR_DIR+(carMap[c]||carMap[teamKey(c)]||'not-available.png')}
+function standingsCar(name){const c=canonicalTeamName(name);return CAR_DIR+(standingsCarMap[c]||carMap[c]||carMap[teamKey(c)]||'not-available.png')}
 const teamFactors={'Mercedes':1.2,'Ferrari':1.4,'McLaren':1.6,'Red Bull':1.8,'Alpine':2.6,'Haas':2.8,'Audi':3.0,'Visa Cash':3.2,'Williams':3.3,'Cadillac':4.0,'Aston Martin':4.8};
 const DOG_POINTS={1:25,2:21,3:18,4:15,5:13,6:11,7:9,8:8,9:7,10:6,11:5,12:4,13:3,14:2,15:1};
 // DoG Fahrernummern: 1–99, aktuelle F1-Nummern sind gesperrt. 89 ist auf Wunsch zusätzlich gesperrt.
@@ -89,16 +89,19 @@ const statusOverrides={'Marci_Blend':'Free Agent','Dando_Rorris':'Nicht verfügb
 const aliases={'Szalamander2110':'Salamander2110','luisa_LH44':'Luisa Weinstadl','danieliko':'danieliko99','John Marco':'John_Marco','Erion_':'Erion','[VR] John Marco':'John_Marco','vwgerd':'VwGerd','Oliver_Panls':'Olliver_Panls'};
 let driverMeta={};
 const NATIONALITY_OPTIONS=[
- {code:'DE',name:'Deutschland',flag:'flag-de.png',emoji:'🇩🇪'},
- {code:'CH',name:'Schweiz',flag:'flag-ch.png',emoji:'🇨🇭'},
- {code:'ES',name:'Spanien',flag:'flag-es.png',emoji:'🇪🇸'},
- {code:'AT',name:'Österreich',flag:'flag-at.png',emoji:'🇦🇹'},
- {code:'GB',name:'Großbritannien',flag:'flag-gb.png',emoji:'🇬🇧'},
- {code:'DK',name:'Dänemark',flag:'flag-dk.png',emoji:'🇩🇰'},
- {code:'SE',name:'Schweden',flag:'flag-se.png',emoji:'🇸🇪'},
- {code:'PT',name:'Portugal',flag:'',emoji:'🇵🇹'},
- {code:'NO',name:'Norwegen',flag:'flag-no.png',emoji:'🇳🇴'},
- {code:'PL',name:'Polen',flag:'flag-pl.png',emoji:'🇵🇱'}
+ {code:'DE',name:'Deutschland',flag:'flag-de.png',emoji:'\u{1F1E9}\u{1F1EA}'},
+ {code:'CH',name:'Schweiz',flag:'flag-ch.png',emoji:'\u{1F1E8}\u{1F1ED}'},
+ {code:'ES',name:'Spanien',flag:'flag-es.png',emoji:'\u{1F1EA}\u{1F1F8}'},
+ {code:'AT',name:'\u00D6sterreich',flag:'flag-at.png',emoji:'\u{1F1E6}\u{1F1F9}'},
+ {code:'GB',name:'Gro\u00DFbritannien',flag:'flag-gb.png',emoji:'\u{1F1EC}\u{1F1E7}'},
+ {code:'DK',name:'D\u00E4nemark',flag:'flag-dk.png',emoji:'\u{1F1E9}\u{1F1F0}'},
+ {code:'SE',name:'Schweden',flag:'flag-se.png',emoji:'\u{1F1F8}\u{1F1EA}'},
+ {code:'PT',name:'Portugal',flag:'',emoji:'\u{1F1F5}\u{1F1F9}'},
+ {code:'NO',name:'Norwegen',flag:'flag-no.png',emoji:'\u{1F1F3}\u{1F1F4}'},
+ {code:'PL',name:'Polen',flag:'flag-pl.png',emoji:'\u{1F1F5}\u{1F1F1}'},
+ {code:'AL',name:'Albanien',flag:'flag-al.png',emoji:'\u{1F1E6}\u{1F1F1}'},
+ {code:'PA',name:'Panama',flag:'flag-pa.png',emoji:'\u{1F1F5}\u{1F1E6}'},
+ {code:'CY',name:'Zypern',flag:'flag-cy.png',emoji:'\u{1F1E8}\u{1F1FE}'}
 ];
 const NATIONALITY_BY_CODE=Object.fromEntries(NATIONALITY_OPTIONS.map(x=>[x.code,x]));
 function driverNationality(name){return driverRecord(name)?.nationality||''}
@@ -157,7 +160,7 @@ const TEAM_CANONICAL={
 };
 function canonicalTeamName(name){const raw=String(name||'').trim();return TEAM_CANONICAL[raw]||raw}
 function teamKey(name){const c=canonicalTeamName(name);return c==='Oracle Red Bull Racing'?'Red Bull':c}
-function teamCar(name){const c=canonicalTeamName(name);return CAR_DIR+(carMap[c]||carMap[teamKey(c)]||'not-available.jpg')}
+function teamCar(name){const c=canonicalTeamName(name);return CAR_DIR+(carMap[c]||carMap[teamKey(c)]||'not-available.png')}
 function row(name,team,grid,time,penSec=0,tl=0,status='RESULT',str=0,ban=false,reason=''){return{name,team,grid,time,penSec,tl,status,str:Number(str)||0,ban:!!ban,reason}}
 let races={};
 function statusOfResult(r){return r.status||'RESULT'}
@@ -933,7 +936,7 @@ function renderDashboard(){
 function renderTeams(){
  document.getElementById('team-list').innerHTML=teams.map(t=>`<div class="team-card"><div class="team-head"><img class="team-car-mini" src="${teamCar(t.name)}" onerror="this.style.display='none'"><div><div class="team-name">${esc(t.name)}</div><div class="team-chief">Teamchef: ${esc(t.chief||'ohne Teamchef')}</div></div><div class="team-card-actions"><button class="team-edit-btn" onclick="openTeamContracts('${esc(t.name)}')">📋 Teamzentrale</button><button class="team-edit-btn" onclick="openTeamEditor('${esc(t.name)}')">✏️</button></div></div><div class="division"><div class="division-title">DIVISION 1</div><div class="drivers-two">${slot(t.d1[0])}${slot(t.d1[1])}</div></div><div class="division"><div class="division-title">DIVISION 2</div><div class="drivers-two">${slot(t.d2[0])}${slot(t.d2[1])}</div></div></div>`).join('');
  const free=drivers.filter(n=>getStatus(n)==='Free Agent').sort((a,b)=>normDriver(a).localeCompare(normDriver(b),'de'));const ersatz=drivers.filter(n=>getStatus(n)==='Ersatzfahrer').sort((a,b)=>normDriver(a).localeCompare(normDriver(b),'de'));const unavailable=drivers.filter(n=>getStatus(n)==='Nicht verfügbar').sort((a,b)=>normDriver(a).localeCompare(normDriver(b),'de'));
- const freeNums=DOG_DRIVER_NUMBERS.filter(n=>{const st=driverNumberState(n,'','Stammfahrer');return st.state==='free'}); const blockedNums=F1_BLOCKED_NUMBERS.slice().sort((a,b)=>a-b); document.getElementById('driver-status-list').innerHTML=`<div class="status-card"><div class="status-image-wrap"><img src="free-agent.png" alt="Free Agent"></div><div><h3>Free Agent</h3><p>${free.length?free.map(n=>`${driverNumber(n)?'#'+driverNumber(n)+' · ':''}${esc(normDriver(n))}`).join(' · '):'Keine Fahrer'}</p></div></div><div class="status-card"><div class="status-image-wrap"><img src="dog-logo.png" alt="Ersatzfahrer"></div><div><h3>Ersatzfahrer</h3><p>${ersatz.length?ersatz.map(n=>`${driverNumber(n)?'#'+driverNumber(n)+' · ':''}${esc(normDriver(n))}`).join(' · '):'Keine Fahrer'}</p></div></div><div class="status-card"><div class="status-image-wrap"><img src="not-available.jpg" alt="Not Available"></div><div><h3>Nicht verfügbar</h3><p>${unavailable.length?unavailable.map(n=>esc(normDriver(n))).join(' · '):'Keine Fahrer'}</p></div></div><div class="status-card number-overview-card"><div><h3>🏁 Fahrernummern</h3><p><b>Freie Nummern:</b> ${freeNums.map(n=>`#${n}`).join(' · ')||'Keine'}</p><p class="driver-number-note"><b>F1 gesperrt:</b> ${blockedNums.map(n=>`#${n}`).join(' · ')}</p><p class="driver-number-note">Stammfahrer haben immer Vorrang vor Ersatzfahrern bei der Vergabe.</p></div></div>`;
+ const freeNums=DOG_DRIVER_NUMBERS.filter(n=>{const st=driverNumberState(n,'','Stammfahrer');return st.state==='free'}); const blockedNums=F1_BLOCKED_NUMBERS.slice().sort((a,b)=>a-b); document.getElementById('driver-status-list').innerHTML=`<div class="status-card"><div class="status-image-wrap"><img src="free-agent.png" alt="Free Agent"></div><div><h3>Free Agent</h3><p>${free.length?free.map(n=>`${driverNumber(n)?'#'+driverNumber(n)+' · ':''}${esc(normDriver(n))}`).join(' · '):'Keine Fahrer'}</p></div></div><div class="status-card"><div class="status-image-wrap"><img src="dog-logo.png" alt="Ersatzfahrer"></div><div><h3>Ersatzfahrer</h3><p>${ersatz.length?ersatz.map(n=>`${driverNumber(n)?'#'+driverNumber(n)+' · ':''}${esc(normDriver(n))}`).join(' · '):'Keine Fahrer'}</p></div></div><div class="status-card"><div class="status-image-wrap"><img src="not-available.png" alt="Not Available"></div><div><h3>Nicht verfügbar</h3><p>${unavailable.length?unavailable.map(n=>esc(normDriver(n))).join(' · '):'Keine Fahrer'}</p></div></div><div class="status-card number-overview-card"><div><h3>🏁 Fahrernummern</h3><p><b>Freie Nummern:</b> ${freeNums.map(n=>`#${n}`).join(' · ')||'Keine'}</p><p class="driver-number-note"><b>F1 gesperrt:</b> ${blockedNums.map(n=>`#${n}`).join(' · ')}</p><p class="driver-number-note">Stammfahrer haben immer Vorrang vor Ersatzfahrern bei der Vergabe.</p></div></div>`;
 }
 
 function openTransferManager(){
