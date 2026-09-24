@@ -2580,3 +2580,525 @@ function filterDriverSelect(){
 /* v1.76 driver reference helpers */
 function filterDriverSelect(){const sel=document.getElementById('driver-select');if(!sel)return;const q=(document.getElementById('driver-search')?.value||'').toLowerCase();const team=document.getElementById('driver-team-filter')?.value||'';const current=sel.value;const all=[...new Set((drivers||[]).map(x=>typeof x==='string'?x:(x.name||x.driver)).filter(Boolean))];const rows=all.filter(n=>(!q||n.toLowerCase().includes(q))&&(!team||driverTeam(n)===team));sel.innerHTML=rows.map(n=>`<option value="${esc(n)}">${esc(driverNumber(n)?'#'+driverNumber(n)+' · ':'')}${esc(n)} · ${esc(getStatus(n))}</option>`).join('');if(rows.includes(current))sel.value=current;if(sel.value)openDriver(sel.value)}
 (function(){const oldOpen=window.openDriver;window.openDriver=function(name){const r=oldOpen(name);requestAnimationFrame(()=>{const p=document.querySelector('#driver-profile .profile-hero');if(p)p.style.setProperty('--profile-car-image',`url("${driverStatusImage(name)}")`)});return r}})();
+
+/* DoG RaceHub v2.48 - OCR / Race Editor / Sponsor reminder patch */
+function dogOCRWordsFromData(data){
+  const out=[];
+  const add=(w)=>{
+    const text=String(w?.text||'').trim(); const b=w?.bbox||{};
+    if(!text)return;
+    const left=Number(w.left??b.x0??0),top=Number(w.top??b.y0??0);
+    const width=Number(w.width??((b.x1??left)-left)),height=Number(w.height??((b.y1??top)-top));
+    out.push({text,left,top,width:Math.max(1,width),height:Math.max(1,height),conf:Number(w.conf??-1)});
+  };
+  if(Array.isArray(data?.lines)) data.lines.forEach(line=>(line.words||[]).forEach(add));
+  if(out.length)return out;
+  if(Array.isArray(data?.blocks)) data.blocks.forEach(block=>(block.paragraphs||[]).forEach(par=>(par.lines||[]).forEach(line=>(line.words||[]).forEach(add))));
+  if(out.length)return out;
+  const tsv=String(data?.tsv||'').trim();
+  if(tsv){
+    const lines=tsv.split(/\r?\n/);
+    for(let i=1;i<lines.length;i++){
+      const p=lines[i].split('\t');
+      if(p.length<12||String(p[0])!=='5')continue;
+      add({text:p[11],left:Number(p[6]),top:Number(p[7]),width:Number(p[8]),height:Number(p[9]),conf:Number(p[10])});
+    }
+  }
+  return out;
+}
+function dogOCRBands(words){
+  const sorted=(words||[]).filter(w=>String(w.text||'').trim()).sort((a,b)=>(a.top+a.height/2)-(b.top+b.height/2));
+  if(!sorted.length)return [];
+  const medH=sorted.map(w=>w.height).sort((a,b)=>a-b)[Math.floor(sorted.length/2)]||20;
+  const tol=Math.max(10,medH*0.72),bands=[];
+  for(const w of sorted){
+    const cy=w.top+w.height/2; let band=bands[bands.length-1];
+    if(!band||Math.abs(band.cy-cy)>tol){band={cy,words:[]};bands.push(band);}
+    band.words.push(w); band.cy=(band.cy*(band.words.length-1)+cy)/band.words.length;
+  }
+  return bands.filter(b=>b.words.length>=1);
+}
+function dogOCRRowsFromData(data,canvas){
+  const W=Math.max(1,canvas?.width||1),words=dogOCRWordsFromData(data);
+  if(!words.length)return [];
+  const rows=[];
+  for(const band of dogOCRBands(words)){
+    const rw=band.words.slice().sort((a,b)=>a.left-b.left);
+    const text=rw.map(w=>w.text).join(' ').replace(/\s+/g,' ').trim();
+    if(!text||/^(POS|FAHRER|TEAM|GRID|STOPPS|BESTE|ZEIT|PKT|POSITION)\b/i.test(text))continue;
+    const posWord=rw.find(w=>{
+      const cx=(w.left+w.width/2)/W,t=String(w.text||'').replace(/[.,]/g,'').trim();
+      return cx<0.28&&/^(?:[1-9]|[12]\d|30)$/.test(t);
+    });
+    const rawPos=posWord?Number(String(posWord.text).replace(/[.,]/g,'')):0;
+    const driverRegion=rw.filter(w=>{const cx=(w.left+w.width/2)/W;return cx>=0.04&&cx<0.60}).map(w=>w.text).join(' ');
+    const match=ocrMatchDriverFromRowText(driverRegion||text),teamHit=ocrFindTeam(text);
+    const time=ocrExtractTime(text),penalty=ocrExtractPenalty(text),grid=ocrExtractGridFromWords(rw);
+    if(!(rawPos||match.score>=0.42||teamHit?.team||time.time||grid))continue;
+    rows.push({rawPos,pos:rawPos,raw:text,match:match.name||'',score:match.score||0,team:teamHit?.team||'',grid,time:time.time,status:time.status,penSec:penalty.penSec,tl:penalty.tl,penaltyRaw:penalty.raw,type:match.score>=0.82?'known':match.score>=0.55?'similar':'new',_y:band.cy});
+  }
+  rows.sort((a,b)=>a._y-b._y);
+  const first=rows.find(r=>r.rawPos>=1&&r.rawPos<=30)?.rawPos||1;
+  rows.forEach((r,i)=>{r.pos=first+i;delete r._y;});
+  return rows;
+}
+function extractOCRRaceRowsRobust(text,structured=[]){
+  let rows=structured.flatMap(x=>dogOCRRowsFromData(x.data,x.canvas));
+  if(!rows.length){
+    for(const line of String(text||'').split(/\r?\n/).map(x=>x.trim()).filter(Boolean)){
+      const m=line.match(/^\s*(\d{1,2})\b/); if(!m)continue;
+      const pos=Number(m[1]); if(!pos||pos>30)continue;
+      const teamHit=ocrFindTeam(line),candidate=ocrExtractCandidate(line,teamHit),match=knownDriverMatch(candidate),time=ocrExtractTime(line),penalty=ocrExtractPenalty(line);
+      rows.push({pos,raw:match?.score>=0.55?match.name:candidate,match:match?.name||'',score:match?.score||0,team:teamHit?.team||'',grid:ocrExtractGrid(line),time:time.time,status:time.status,penSec:penalty.penSec,tl:penalty.tl,type:(match?.score||0)>=0.82?'known':(match?.score||0)>=0.55?'similar':'new'});
+    }
+  }
+  return rows.length?mergeOCRRaceRows(rows).sort((a,b)=>Number(a.pos||99)-Number(b.pos||99)):[];
+}
+function ocrCanvasFromImage(img,mode='full'){
+  const c=document.createElement('canvas'),w=img.naturalWidth||img.width,h=img.naturalHeight||img.height;
+  let sx=0,sy=0,sw=w,sh=h;
+  if(mode==='table'){sx=Math.round(w*.04);sy=Math.round(h*.08);sw=Math.round(w*.94);sh=Math.round(h*.90);}
+  else if(mode==='race-left'){sx=Math.round(w*.03);sy=Math.round(h*.08);sw=Math.round(w*.58);sh=Math.round(h*.90);}
+  const max=3800,scale=Math.min(max/sw,3.6);c.width=Math.max(1,Math.round(sw*scale));c.height=Math.max(1,Math.round(sh*scale));
+  const ctx=c.getContext('2d',{willReadFrequently:true});ctx.imageSmoothingEnabled=true;ctx.imageSmoothingQuality='high';
+  ctx.fillStyle='#ffffff';ctx.fillRect(0,0,c.width,c.height);ctx.drawImage(img,sx,sy,sw,sh,0,0,c.width,c.height);return c;
+}
+async function startRaceOCR(input){
+  if(!requireEditor()){input.value='';return}
+  const files=[...input.files];if(!files.length)return;
+  if(typeof Tesseract==='undefined'){toast('OCR-Bibliothek konnte nicht geladen werden.');return}
+  const raceId=input.dataset.raceId,race=races[raceId];if(!race){toast('Rennen nicht gefunden.');return}
+  document.getElementById('modal-content').innerHTML='<div class="modal-head"><div><h2>🔎 Rennergebnis per OCR</h2><p class="race-edit-note">'+esc(race.division)+' · Rennen '+race.number+' · '+esc(race.track)+'. Mehrere OCR-Pässe werden zusammengeführt.</p></div><button onclick="closeModal()">×</button></div><div id="ocr-progress" class="ocr-progress">OCR wird vorbereitet …</div><div id="ocr-results"></div>';openModal();
+  try{
+    const worker=await Tesseract.createWorker('eng');let all='',structured=[];
+    for(let i=0;i<files.length;i++){
+      document.getElementById('ocr-progress').textContent='Bild '+(i+1)+'/'+files.length+': Rennzeilen werden analysiert …';
+      const canvases=await Promise.all([ocrPreprocess(files[i],'table'),ocrPreprocess(files[i],'race-left')]);
+      for(let v=0;v<canvases.length;v++)for(const psm of ['6','4','11']){
+        await worker.setParameters({tessedit_pageseg_mode:psm,preserve_interword_spaces:'1',user_defined_dpi:'300'});
+        const res=await worker.recognize(canvases[v],{}, {blocks:true,tsv:true});
+        structured.push({data:res.data||{},canvas:canvases[v],psm,variant:v});
+        all+='\n--- Tabelle '+(i+1)+' · Variante '+(v+1)+' · PSM '+psm+' ---\n'+(res.data?.text||'');
+      }
+    }
+    await worker.terminate();renderOCRRaceReview(extractOCRRaceRowsRobust(all,structured),all,raceId);
+  }catch(e){document.getElementById('ocr-progress').textContent='OCR konnte nicht abgeschlossen werden.';document.getElementById('ocr-results').innerHTML='<div class="ocr-error">'+esc(e?.message||e)+'</div>'}
+  input.value='';
+}
+function ocrReviewRowHtml(r,i,sortedDrivers){
+  const selected=drivers.find(n=>ocrNormName(n)===ocrNormName(r.match||r.name||r.raw||'')),opts='<option value="">— Fahrer auswählen —</option>'+sortedDrivers.map(n=>'<option value="'+esc(n)+'" '+(selected&&normDriver(selected)===normDriver(n)?'selected':'')+'>'+esc(n)+'</option>').join('')+'<option value="__NEW__">➕ Neuen Fahrer anlegen …</option>';
+  return '<div class="ocr-race-row '+(r.type==='similar'?'needs-review ':'')+(r.type==='new'?'new-driver-row':'')+'"><input class="ocr-pos" type="number" value="'+(Number(r.pos)||i+1)+'" min="1" max="30" oninput="updateOCRRow(this)"><div><select class="ocr-driver-select" onchange="updateOCRDriverSelect(this,'+i+')">'+opts+'</select><input class="ocr-name" type="hidden" value="'+esc(selected||r.match||r.name||'')+'"><small class="ocr-match '+(r.type||'new')+'">'+(selected?'✓ Fahrer ausgewählt: '+esc(normDriver(selected)):'⚠ Fahrer bitte auswählen')+'</small></div><select class="ocr-team" onchange="updateOCRRow(this)"><option value="">— Team auswählen —</option>'+TEAM_CHOICES.filter(Boolean).map(t=>'<option value="'+esc(t)+'" '+(canonicalTeamName(t)===canonicalTeamName(r.team||'')?'selected':'')+'>'+esc(t)+'</option>').join('')+'</select><input class="ocr-grid" type="number" value="'+(Number(r.grid)||0)+'" min="0" max="30" oninput="updateOCRRow(this)"><input class="ocr-time" value="'+esc(r.time||'')+'" oninput="updateOCRRow(this)"><div><input class="ocr-pen" type="number" value="'+(Number(r.penSec)||0)+'" min="0" oninput="updateOCRRow(this)"><small>'+(r.tl?String(r.tl)+' TL':'')+'</small></div><b class="ocr-points">'+ocrRowPoints(r.pos,r.status||'RESULT')+'</b><button class="ghost" onclick="this.closest(\'.ocr-race-row\').remove();updateOCRSummary()">✕</button></div>';
+}
+function renderOCRRaceReview(rows,raw,raceId){
+  window.__ocrRaceId=raceId;window.__ocrRaw=raw;window.__ocrRaceDivision=races[raceId]?.division||'Div 1';
+  const known=rows.filter(r=>r.type==='known').length,similar=rows.filter(r=>r.type==='similar').length,fresh=rows.filter(r=>r.type==='new').length,sortedDrivers=drivers.slice().sort((a,b)=>normDriver(a).localeCompare(normDriver(b),'de'));
+  const body=rows.length?'<div class="ocr-summary"><span>✓ '+known+' sicher</span><span>⚠ '+similar+' prüfen</span><span>🆕 '+fresh+' neu/unklar</span><span>📸 '+rows.length+' Zeilen</span></div>':'<div class="empty-race"><b>Keine Zeile sicher erkannt.</b><br>Du kannst die Fahrer unten trotzdem vollständig manuell hinzufügen.</div>';
+  const table=rows.length?'<div class="ocr-race-table"><div class="ocr-race-row head"><span>POS</span><span>FAHRER</span><span>TEAM</span><span>START</span><span>ZEIT</span><span>STRAFE</span><span>PKT.</span><span></span></div>'+rows.map((r,i)=>ocrReviewRowHtml(r,i,sortedDrivers)).join('')+'</div>':'';
+  document.getElementById('ocr-progress').innerHTML='<b>'+rows.length+'</b> Ergebniszeilen erkannt · <span class="muted">'+esc(raceId)+'</span>';
+  document.getElementById('ocr-results').innerHTML=body+table+'<div class="ocr-manual-actions"><button class="ghost" onclick="addOCRReviewRow()">➕ Fahrer / Ergebniszeile hinzufügen</button><span class="muted">Fehlende Fahrer können hier unabhängig vom OCR ergänzt werden.</span></div><details class="ocr-raw"><summary>OCR-Rohtext anzeigen</summary><pre>'+esc(raw)+'</pre></details><div class="modal-actions"><button class="ghost" onclick="closeModal()">Abbrechen</button><button class="primary" onclick="applyOCRRace(\''+esc(raceId)+'\')">✓ Ergebnis übernehmen</button></div>';
+}
+function addOCRReviewRow(){
+  const rows=captureOCRRowsFromDOM(),maxPos=rows.reduce((m,x)=>Math.max(m,Number(x.pos)||0),0);
+  rows.push({pos:maxPos+1,name:'',match:'',raw:'',team:'',grid:0,time:'',penSec:0,tl:0,status:'RESULT',type:'new'});
+  renderOCRRaceReview(rows,window.__ocrRaw||'',window.__ocrRaceId||'');
+}
+function applyOCRRace(id){
+  if(!requireEditor())return;const race=races[id];if(!race)return;
+  const rows=[...document.querySelectorAll('.ocr-race-row:not(.head)')].map(row=>{
+    const select=row.querySelector('.ocr-driver-select'),selected=select?.value||'',name=(selected&&selected!=='__NEW__'?selected:'')||row.querySelector('.ocr-name')?.value.trim()||'',team=row.querySelector('.ocr-team')?.value||'',grid=Number(row.querySelector('.ocr-grid')?.value)||0,time=row.querySelector('.ocr-time')?.value.trim()||'',penSec=Number(row.querySelector('.ocr-pen')?.value)||0,pos=Number(row.querySelector('.ocr-pos')?.value)||99,status=/^DNF$/i.test(time)?'DNF':/^DSQ$/i.test(time)?'DSQ':'RESULT',tl=penSec?({3:1,6:2,9:3,10:3,19:4}[penSec]||Math.max(1,Math.round(penSec/3))):0;return{pos,name,team,grid,time,penSec,tl,status};
+  }).filter(x=>x.name);
+  if(!rows.length){toast('Bitte mindestens einen Fahrer auswählen.');return}
+  const unknown=rows.filter(x=>!drivers.some(n=>ocrNormName(n)===ocrNormName(x.name)));if(unknown.length){toast('Bitte alle Fahrer per Pfeil auswählen oder neu anlegen.');return}
+  const oldByName={};(race.results||[]).forEach(x=>oldByName[ocrNormName(normDriver(x.name))]=x);
+  race.results=rows.map(x=>{const old=oldByName[ocrNormName(normDriver(x.name))];return{...x,name:normDriver(x.name),penaltyNote:old?.penaltyNote||'',penaltyImage:old?.penaltyImage||''}}).sort((a,b)=>a.pos-b.pos);
+  race.ocr={capturedAt:new Date().toISOString(),rows:race.results.length,source:'Tesseract.js · structured OCR · manual completion'};
+  saveRaceAndRecalculate(id,'OCR übernommen',race.results.length+' Ergebniszeilen aus OCR/manueller Ergänzung übernommen');closeModal();renderSelectedRace();renderWM();renderKWM();renderDashboard();initDriverOverview();renderTeams();toast(race.results.length+' Ergebniszeilen übernommen · WM/KWM/Fahrerwerte aktualisiert.');
+}
+function editRow(x,i,raceId){
+  return '<div class="edit-grid" data-i="'+i+'"><label>Pos.<input class="e-pos" type="number" min="1" max="99" value="'+(Number(x.pos)||i+1)+'"></label><label>Fahrer<select class="e-name">'+contractDriverOptions(normDriver(x.name))+'</select></label><label>Team<select class="e-team"><option value="">— Team —</option>'+TEAM_CHOICES.filter(Boolean).map(t=>'<option value="'+esc(t)+'" '+(canonicalTeamName(t)===canonicalTeamName(x.team||'')?'selected':'')+'>'+esc(t)+'</option>').join('')+'</select></label><label>Startposition<input class="e-grid" type="number" min="1" max="99" value="'+(Number(x.grid)||0)+'"></label><label>Zeit<input class="e-time" value="'+esc(x.time||'')+'"></label><label>Zeitstrafe (Sek.)<input class="e-pen" type="number" min="0" value="'+(Number(x.penSec)||0)+'"></label><label>TL<input class="e-tl" type="number" min="0" value="'+(Number(x.tl)||0)+'"></label><label>Nachträgliche Strafe<input class="e-penalty-note" value="'+esc(x.penaltyNote||'')+'" placeholder="z. B. 5 Sek. Zeitstrafe / Verwarnung"></label><label>Strafenbild<input class="e-penalty-image" type="file" accept="image/*" onchange="attachPenaltyImage(this,\''+raceId+'\','+i+')"></label><label>Status<select class="e-status"><option value="RESULT" '+(x.status==='RESULT'?'selected':'')+'>Ergebnis</option><option value="DNF" '+(x.status==='DNF'?'selected':'')+'>DNF</option><option value="DSQ" '+(x.status==='DSQ'?'selected':'')+'>DSQ</option></select></label><button class="ghost edit-remove-row" type="button" onclick="this.closest(\'.edit-grid\').remove()">🗑️ Zeile</button></div>';
+}
+function addRaceEditRow(){
+  const host=document.getElementById('edit-rows');if(!host)return;
+  const idx=host.querySelectorAll('.edit-grid').length;host.insertAdjacentHTML('beforeend',editRow({name:'',team:'',grid:0,time:'',penSec:0,tl:0,status:'RESULT'},idx,''));
+}
+function openRaceEdit(id){
+  if(!requireEditor())return;const r=races[id];if(!r)return;
+  document.getElementById('modal-content').innerHTML='<div class="modal-head"><div><h2>'+esc(r.track)+' · Rennen '+r.number+'</h2><p class="race-edit-note">Ergebnisdaten können korrigiert, Fahrer hinzugefügt oder entfernt werden.</p></div><button onclick="closeModal()">×</button></div><div id="edit-rows">'+(r.results||[]).map((x,i)=>editRow(x,i,r.id)).join('')+'</div><div class="modal-actions"><button class="ghost" onclick="addRaceEditRow()">➕ Fahrer hinzufügen</button><button class="ghost" onclick="closeModal()">Abbrechen</button><button class="primary" onclick="saveRaceEdit(\''+esc(r.id)+'\')">Änderungen speichern</button></div>';openModal();
+}
+function saveRaceEdit(id){
+  if(!requireEditor())return;const race=races[id];if(!race)return;
+  const rows=[...document.querySelectorAll('#edit-rows .edit-grid')],old=race.results||[],oldImages={};old.forEach(x=>{if(x.penaltyImage)oldImages[normDriver(x.name)]=x.penaltyImage});
+  const data=rows.map((row,idx)=>{const name=row.querySelector('.e-name')?.value.trim()||'';return{name,team:row.querySelector('.e-team')?.value.trim()||'',grid:Number(row.querySelector('.e-grid')?.value)||0,time:row.querySelector('.e-time')?.value.trim()||'',penSec:Number(row.querySelector('.e-pen')?.value)||0,tl:Number(row.querySelector('.e-tl')?.value)||0,penaltyNote:row.querySelector('.e-penalty-note')?.value.trim()||'',penaltyImage:oldImages[normDriver(name)]||'',status:row.querySelector('.e-status')?.value||'RESULT',pos:Number(row.querySelector('.e-pos')?.value)||idx+1};}).filter(x=>x.name).sort((a,b)=>a.pos-b.pos);
+  if(!data.length){toast('Mindestens ein Fahrer muss im Rennen vorhanden sein.');return}
+  const unknown=data.filter(x=>!drivers.some(n=>normDriver(n)===normDriver(x.name)));if(unknown.length){toast('Bitte nur vorhandene Fahrer auswählen.');return}
+  race.results=data.map(x=>({...x,name:normDriver(x.name)}));race.ocr={capturedAt:new Date().toISOString(),rows:race.results.length,source:'manuelle Ergebnisbearbeitung'};
+  saveRaceAndRecalculate(id,'Ergebnis geändert','Rennresultat manuell bearbeitet · '+race.results.length+' Ergebniszeilen');closeModal();renderSelectedRace();renderWM();renderKWM();renderDashboard();initDriverOverview();renderTeams();toast('Rennen aktualisiert · '+race.results.length+' Ergebniszeilen gespeichert.');
+}
+function dogRaceSponsorIndicator(r){
+  if(!r||typeof sponsorRacePaymentCandidates!=='function')return '';
+  const candidates=sponsorRacePaymentCandidates(r.id)||[];if(!candidates.length)return '';
+  return '<button class="sponsor-due-btn" title="Sponsorzahlung fällig · '+candidates.length+' offene Rennzahlung'+(candidates.length===1?'':'en')+'" onclick="promptSponsorRacePayments(\''+esc(r.id)+'\')">🤝 <span>+'+candidates.length+'</span></button>';
+}
+function raceCard(r){
+  const editable=isEditor(),h=r.highlights||{},sponsorDue=dogRaceSponsorIndicator(r),val=v=>esc(normDriver(v||''))||'—';
+  return '<div class="race-card"><div class="race-title"><div><div class="eyebrow">'+esc(r.division)+' · RENNEN '+r.number+(r.raceDate?' · '+esc(new Date(r.raceDate+'T12:00:00').toLocaleDateString('de-DE')):'')+'</div><h3>'+esc(r.track)+'</h3><div class="race-edit-note">Regelstand: '+esc(r.ruleVersion)+' · DoG-Punkte 25 / 21 / 18 / 15 / 13 / 11 / 9 / 8 / 7 / 6 / 5 / 4 / 3 / 2 / 1</div>'+(r.state?'<div class="race-dataflow">✓ Gespeichert · '+(r.state.resultCount||r.results.length)+' Ergebnisse · WM/KWM/Fahrerwerte synchronisiert · Regelstand fixiert</div>':'')+'</div><div class="race-tools">'+sponsorDue+(editable?'<button class="ghost" onclick="openRaceMetaEditor(\''+r.id+'\')">⚙️ Rennen bearbeiten</button><button class="primary" onclick="openRaceEdit(\''+r.id+'\')">✏️ Ergebnis bearbeiten</button>':'<span class="race-edit-note">🔒 Bearbeitung gesperrt</span>')+'</div></div><div class="race-table"><div class="race-row head"><span>POS.</span><span>FAHRER</span><span>TEAM</span><span>START</span><span>PUNKTE</span><span>ZEIT</span><span>ZEITSTRAFE</span><span>NACHTRÄGLICHE STRAFE</span></div>'+(r.results||[]).map((x,i)=>{const st=statusOfResult(x);return '<div class="race-row '+(st!=='RESULT'?'special':'')+'"><span class="pos">'+(i+1)+'</span><span>'+esc(normDriver(x.name))+'</span><span>'+esc(x.team||'')+'</span><span>G'+(x.grid||0)+'</span><span><b>'+pointsForPosition(i+1,st)+'</b></span><span class="'+(st==='DNF'||st==='DSQ'?'dnf':'')+'">'+esc(x.time||'')+'</span><span class="'+(x.penSec?'pen':'')+'">'+(x.penSec?'+'+x.penSec+' Sek. · '+(x.tl||0)+' TL':'—')+'</span><span class="'+(x.penaltyNote||x.penaltyImage?'pen':'')+'">'+penaltyCell(x)+'</span></div>'}).join('')+'</div><div class="upload"><b>📷 Renn-Screenshots</b><div class="muted">Die Bilder bleiben am Rennen gespeichert und können später als Beleg geöffnet werden.</div>'+(editable?'<input type="file" accept="image/*" multiple onchange="attachScreens(this,\''+r.id+'\')"><button class="ghost ocr-btn" onclick="document.getElementById(\'ocr-input-'+r.id+'\').click()">🔎 Rennergebnis per OCR</button><input id="ocr-input-'+r.id+'" data-race-id="'+r.id+'" type="file" accept="image/*" multiple hidden onchange="startRaceOCR(this)">':'')+'<div class="screens">'+(r.screens||[]).map(s=>'<img src="'+(String(s).startsWith('data:')?s:RACE_DIR+s)+'" onclick="viewImage(this.src)">').join('')+'</div></div><div class="race-highlights"><span>🏆 Sieger <b>'+val(h.winner)+'</b></span><span>⚡ Schnellste Runde <b>'+val(h.fastest)+'</b></span><span>⭐ FdT <b>'+val(h.dotd)+'</b></span><span>🔄 Überholmanöver <b>'+val(h.overtakes)+'</b></span><span>🧼 Sauberster <b>'+val(h.cleanest)+'</b></span></div>'+(editable?'<div class="highlight-tools"><button class="ghost" onclick="openHighlightEditor(\''+r.id+'\')">⭐ Highlights bearbeiten</button><button class="ghost" onclick="document.getElementById(\'highlight-input-'+r.id+'\').click()">📷 Highlight-Screenshot OCR</button><input id="highlight-input-'+r.id+'" type="file" accept="image/*" multiple hidden onchange="startHighlightOCR(this,\''+r.id+'\')"></div>':'')+'</div>';
+}
+(function(){
+  if(document.getElementById('dog-racehub-v248-styles'))return;
+  const st=document.createElement('style');st.id='dog-racehub-v248-styles';
+  st.textContent='.sponsor-due-btn{display:inline-flex;align-items:center;gap:5px;padding:7px 10px;border:1px solid rgba(255,212,90,.75);background:rgba(255,212,90,.12);color:#ffd45a;border-radius:10px;font-weight:800;cursor:pointer}.sponsor-due-btn:hover{background:rgba(255,212,90,.22);transform:translateY(-1px)}.sponsor-due-btn span{font-size:10px}.ocr-manual-actions{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:12px 0;padding:10px;border:1px dashed #24434c;border-radius:10px}.edit-remove-row{grid-column:1/-1}.ocr-race-table{overflow:auto}.ocr-race-row{min-width:980px}';
+  document.head.appendChild(st);
+})();
+
+
+
+/* DoG RaceHub v2.48.1 - editor refresh + race delete fix */
+function updateEditorUI(){
+  document.querySelectorAll('.edit-btn').forEach(function(b){
+    b.textContent = editor ? '✏️ Bearbeiten · Admin' : '🔐 Admin / Bearbeiten';
+  });
+  /* The admin state can change without a full race-page render.
+     Refresh the currently selected race so edit/OCR/delete controls appear immediately. */
+  try{
+    if(typeof renderSelectedRace === 'function' && document.getElementById('race-editor') &&
+       document.getElementById('race-div') && document.getElementById('race-track')){
+      renderSelectedRace();
+    }
+  }catch(e){ console.warn('DoG RaceHub editor UI refresh',e); }
+}
+
+function deleteRace(id){
+  if(!requireEditor())return;
+  const r=races[id];
+  if(!r){toast('Rennen nicht gefunden.');return;}
+  const label=(r.season||'')+' · '+(r.division||'')+' · Rennen '+(r.number||'')+' · '+(r.track||'');
+  if(!confirm('ACHTUNG: Rennen wirklich löschen?\n\n'+label+'\n\nAlle Ergebniszeilen, Screenshots und Renn-Daten dieses Rennens werden gelöscht.'))return;
+  if(!confirm('Letzte Bestätigung:\n\nDas Rennen "'+(r.track||'')+'" endgültig löschen?'))return;
+  delete races[id];
+  saveRaceAndRecalculate(id,'Rennen gelöscht',label+' wurde gelöscht.');
+  closeModal();
+  try{
+    initRaceSelectors();
+    renderSelectedRace();
+    renderWM(); renderKWM(); renderDashboard(); updateStats();
+  }catch(e){console.warn('DoG RaceHub race delete render',e);}
+  toast('Rennen wurde gelöscht.');
+}
+
+/* v2.48.1: add a delete button to the existing race editor controls */
+const dogRaceCard2481 = raceCard;
+function raceCard(r){
+  const html = dogRaceCard2481(r);
+  if(!isEditor()) return html;
+  const marker='<div class="race-tools">';
+  const pos=html.indexOf(marker);
+  if(pos<0)return html;
+  const end=html.indexOf('</div>',pos);
+  if(end<0)return html;
+  const button='<button class="ghost race-delete-btn" onclick="deleteRace(\''+esc(r.id)+'\')" title="Rennen löschen">🗑️ Rennen löschen</button>';
+  return html.slice(0,end)+button+html.slice(end);
+}
+(function(){
+  if(document.getElementById('dog-racehub-v2481-styles'))return;
+  const st=document.createElement('style');
+  st.id='dog-racehub-v2481-styles';
+  st.textContent='.race-delete-btn{border-color:rgba(255,80,80,.55)!important;color:#ff8d8d!important}.race-delete-btn:hover{background:rgba(255,80,80,.12)!important}';
+  document.head.appendChild(st);
+})();
+
+
+
+/* DoG RaceHub v2.48.2 - clean race/dashboard/market consistency fix */
+(function(){
+  if(window.__DOG_RACEHUB_V2482__) return;
+  window.__DOG_RACEHUB_V2482__=true;
+
+  function dogLatestRaceForDivision(div){
+    return raceChronological()
+      .filter(r=>String(r.division||'')===String(div||'') && Array.isArray(r.results) && r.results.length>0)
+      .sort((a,b)=>{
+        const sa=String(a.raceDate||''), sb=String(b.raceDate||'');
+        if(sa && sb && sa!==sb) return sa.localeCompare(sb);
+        return Number(a.number||a.round||0)-Number(b.number||b.round||0);
+      })
+      .at(-1) || null;
+  }
+
+  /* Only return a driver-of-the-day record when a race actually exists
+     and that race has an explicitly stored FdT. */
+  window.dotdForDivision=function(div){
+    const race=dogLatestRaceForDivision(div);
+    if(!race) return null;
+    const driver=normDriver(race.highlights?.dotd||'');
+    if(!driver) return null;
+    const row=(race.results||[]).find(x=>normDriver(x.name)===driver);
+    if(!row) return null;
+    return {race,driver};
+  };
+
+  /* The dashboard must distinguish:
+     1) no race,
+     2) race exists but FdT not recorded,
+     3) race + FdT available. */
+  window.renderDashboard=function(){
+    const el=document.getElementById('dotd-dashboard');
+    if(el){
+      el.innerHTML=['Div 1','Div 2'].map(div=>{
+        const race=dogLatestRaceForDivision(div);
+        const ds=window.dotdForDivision(div);
+        if(!race){
+          return `<div class="panel dotd-card"><div class="panel-head"><div><h3>⭐ Fahrer des Tages · ${esc(div)}</h3><p>Noch kein Rennen erfasst</p></div></div><div class="empty-race">Für ${esc(div)} ist noch kein Rennen eingetragen.</div></div>`;
+        }
+        if(!ds){
+          return `<div class="panel dotd-card"><div class="panel-head"><div><h3>⭐ Fahrer des Tages · ${esc(div)}</h3><p>${esc(race.track)} · Rennen ${Number(race.number||race.round||0)}</p></div></div><div class="empty-race">Rennen ist vorhanden, aber der Fahrer des Tages wurde noch nicht erfasst.</div></div>`;
+        }
+        const row=ds.race.results.find(x=>normDriver(x.name)===normDriver(ds.driver));
+        const pos=row ? ds.race.results.indexOf(row)+1 : 0;
+        return `<div class="panel dotd-card"><div class="panel-head"><div><h3>⭐ Fahrer des Tages · ${esc(div)}</h3><p>${esc(ds.race.track)} · Rennen ${Number(ds.race.number||ds.race.round||0)}</p></div><span class="dotd-badge">FdT</span></div><div class="dotd-main"><div><strong>${esc(normDriver(ds.driver))}</strong><span>${esc(row?.team||'')}</span></div><b>${row?pointsForPosition(pos,statusOfResult(row)):0} Pkt.</b></div><div class="dotd-stats"><span>Pos. <b>${pos||'—'}</b></span><span>Grid <b>${row?.grid??'—'}</b></span><span>Delta <b>${row?formatDelta(row.grid,pos):'—'}</b></span><span>Zeit <b>${esc(row?.time||'—')}</b></span></div></div>`;
+      }).join('');
+    }
+    renderMarketMovers();
+  };
+
+  /* Market history is derived exclusively from races that still exist.
+     Deleted races therefore cannot leave a Baku/etc. point behind. */
+  window.getMarketHistory=function(name,current){
+    const target=normDriver(name);
+    const chronological=raceChronological();
+    const history=[{label:'Start 02/26',value:25000000}];
+    const seen=new Set();
+
+    chronological.forEach((r,idx)=>{
+      if(!(r.results||[]).some(x=>normDriver(x.name)===target)) return;
+      const weekend=`${seasonOfRace(r)}|${r.number||r.round||0}|${r.track||''}`;
+      if(seen.has(weekend)) return;
+      seen.add(weekend);
+
+      const group=chronological.filter(x=>`${seasonOfRace(x)}|${x.number||x.round||0}|${x.track||''}`===weekend);
+      const snap=group.map(x=>x.state?.driverValues?.[target]).find(Boolean);
+      if(snap && Number.isFinite(Number(snap.mw))){
+        history.push({
+          label:`R${r.number||r.round||idx+1} · ${r.track}`,
+          value:Number(snap.mw)
+        });
+      }
+    });
+
+    /* If no race exists for this driver, show only the current value as the
+       neutral starting point. This is not a race-derived market movement. */
+    if(history.length===1) history[0].value=Number.isFinite(Number(current))?Number(current):25000000;
+    return history;
+  };
+
+  /* Keep the editor state and the visible race card synchronized after login. */
+  const dogUpdateEditorUI2482=window.updateEditorUI;
+  window.updateEditorUI=function(){
+    try{ if(typeof dogUpdateEditorUI2482==='function') dogUpdateEditorUI2482(); }catch(e){}
+    try{ if(typeof renderSelectedRace==='function') renderSelectedRace(); }catch(e){}
+  };
+
+  /* Robust delete: remove the race, recalculate every remaining race from
+     scratch, persist the new state, and refresh all affected views. */
+  window.deleteRace=function(id){
+    if(!requireEditor()) return;
+    const race=races[id];
+    if(!race){toast('Rennen nicht gefunden.');return;}
+    const label=`${race.season||''} · ${race.division||''} · Rennen ${race.number||''} · ${race.track||''}`;
+    if(!confirm(`ACHTUNG: Rennen wirklich löschen?\n\n${label}\n\nDas Rennen, seine Ergebniszeilen, Screenshots und gespeicherten Rennstände werden aus der aktuellen Datenbank entfernt.`)) return;
+    if(!confirm(`Letzte Bestätigung:\n\n"${race.track||''}" · Rennen ${race.number||''}\n\nWirklich endgültig löschen?`)) return;
+
+    delete races[id];
+
+    /* Rebuild all historical snapshots from the races that remain. */
+    calculateLeagueState();
+    syncFinancialRules();
+    const saved=save();
+    if(saved===false){
+      toast('Rennen entfernt, aber die Cloud-Speicherung konnte nicht abgeschlossen werden.');
+    }
+
+    closeModal();
+    try{
+      initRaceSelectors();
+      const div=document.getElementById('race-div');
+      const season=document.getElementById('race-season');
+      if(season) season.value=seasonState.current||season?.value||'02/26';
+      if(div && !div.value) div.value='Div 1';
+      initRaceSelectors();
+      renderSelectedRace();
+      renderDashboard();
+      renderWM();
+      renderKWM();
+      renderArchive();
+      initDriverOverview();
+      renderTeams();
+      updateStats();
+    }catch(e){console.warn('DoG RaceHub v2.48.2 delete refresh',e);}
+    toast('Rennen gelöscht und alle verbleibenden Rennstände neu berechnet.');
+  };
+
+  /* Add the delete control once, regardless of whether v2.48 or v2.48.1
+     is the current raceCard implementation. */
+  const dogRaceCardBase2482=window.raceCard;
+  if(typeof dogRaceCardBase2482==='function'){
+    window.raceCard=function(r){
+      let html=dogRaceCardBase2482(r);
+      if(isEditor() && !html.includes('deleteRace(')){
+        const marker='<div class="race-tools">';
+        const pos=html.indexOf(marker);
+        if(pos>=0){
+          const end=html.indexOf('</div>',pos);
+          if(end>=0){
+            html=html.slice(0,end)+'<button class="ghost race-delete-btn" onclick="deleteRace(\''+esc(r.id)+'\')" title="Rennen löschen">🗑️ Rennen löschen</button>'+html.slice(end);
+          }
+        }
+      }
+      return html;
+    };
+  }
+
+  if(!document.getElementById('dog-racehub-v2482-styles')){
+    const st=document.createElement('style');
+    st.id='dog-racehub-v2482-styles';
+    st.textContent='.race-delete-btn{border-color:rgba(255,80,80,.55)!important;color:#ff8d8d!important}.race-delete-btn:hover{background:rgba(255,80,80,.12)!important}';
+    document.head.appendChild(st);
+  }
+
+  /* Re-render once after this patch has loaded, so the current page uses the
+     corrected dashboard and editor state without requiring a new login. */
+  try{
+    if(typeof renderDashboard==='function') renderDashboard();
+    if(typeof renderSelectedRace==='function') renderSelectedRace();
+  }catch(e){}
+})();
+
+
+/* DoG RaceHub v2.48.3 - fix recursive raceCard */
+function raceCard(r){
+  const editable=isEditor(),h=r.highlights||{};
+  const sponsorDue=typeof dogRaceSponsorIndicator==='function'?dogRaceSponsorIndicator(r):'';
+  const deleteBtn=editable?`<button class="ghost race-delete-btn" onclick="deleteRace('${esc(r.id)}')" title="Rennen löschen">🗑️ Rennen löschen</button>`:'';
+  return `<div class="race-card"><div class="race-title"><div><div class="eyebrow">${esc(r.division)} · RENNEN ${r.number}${r.raceDate?` · ${esc(new Date(r.raceDate+'T12:00:00').toLocaleDateString('de-DE'))}`:''}</div><h3>${esc(r.track)}</h3><div class="race-edit-note">Regelstand: ${esc(r.ruleVersion)} · DoG-Punkte 25 / 21 / 18 / 15 / 13 / 11 / 9 / 8 / 7 / 6 / 5 / 4 / 3 / 2 / 1</div>${r.state?`<div class="race-dataflow">✓ Gespeichert · ${r.state.resultCount||r.results.length} Ergebnisse · WM/KWM/Fahrerwerte synchronisiert · Regelstand fixiert</div>`:''}</div><div class="race-tools">${sponsorDue}${editable?`<button class="ghost" onclick="openRaceMetaEditor('${r.id}')">⚙️ Rennen bearbeiten</button><button class="primary" onclick="openRaceEdit('${r.id}')">✏️ Ergebnis bearbeiten</button>${deleteBtn}`:'<span class="race-edit-note">🔒 Bearbeitung gesperrt</span>'}</div></div><div class="race-table"><div class="race-row head"><span>POS.</span><span>FAHRER</span><span>TEAM</span><span>START</span><span>PUNKTE</span><span>ZEIT</span><span>ZEITSTRAFE</span><span>NACHTRÄGLICHE STRAFE</span></div>${(r.results||[]).map((x,i)=>{const st=statusOfResult(x);return `<div class="race-row ${st!=='RESULT'?'special':''}"><span class="pos">${i+1}</span><span>${esc(normDriver(x.name))}</span><span>${esc(x.team||'')}</span><span>G${x.grid||0}</span><span><b>${pointsForPosition(i+1,st)}</b></span><span class="${st==='DNF'||st==='DSQ'?'dnf':''}">${esc(x.time||'')}</span><span class="${x.penSec?'pen':''}">${x.penSec?`+${x.penSec} Sek. · ${x.tl||0} TL`:'—'}</span><span class="${x.penaltyNote||x.penaltyImage?'pen':''}">${penaltyCell(x)}</span></div>`}).join('')}</div><div class="upload"><b>📷 Renn-Screenshots</b><div class="muted">Die Bilder bleiben am Rennen gespeichert und können später als Beleg geöffnet werden.</div>${editable?`<input type="file" accept="image/*" multiple onchange="attachScreens(this,'${r.id}')"><button class="ghost ocr-btn" onclick="document.getElementById('ocr-input-${r.id}').click()">🔎 Rennergebnis per OCR</button><input id="ocr-input-${r.id}" data-race-id="${r.id}" type="file" accept="image/*" multiple hidden onchange="startRaceOCR(this)">`:''}<div class="screens">${(r.screens||[]).map(s=>`<img src="${String(s).startsWith('data:')?s:RACE_DIR+s}" onclick="viewImage(this.src)">`).join('')}</div></div><div class="race-highlights"><span>🏆 Sieger <b>${esc(normDriver(h.winner||''))||'—'}</b></span><span>⚡ Schnellste Runde <b>${esc(normDriver(h.fastest||''))||'—'}</b></span><span>⭐ FdT <b>${esc(normDriver(h.dotd||''))||'—'}</b></span><span>🔄 Überholmanöver <b>${esc(normDriver(h.overtakes||''))||'—'}</b></span><span>🧼 Sauberster <b>${esc(normDriver(h.cleanest||''))||'—'}</b></span></div>${editable?`<div class="highlight-tools"><button class="ghost" onclick="openHighlightEditor('${r.id}')">⭐ Highlights bearbeiten</button><button class="ghost" onclick="document.getElementById('highlight-input-${r.id}').click()">📷 Highlight-Screenshot OCR</button><input id="highlight-input-${r.id}" type="file" accept="image/*" multiple hidden onchange="startHighlightOCR(this,'${r.id}')"></div>`:''}</div>`;
+}
+
+/* DoG RaceHub v2.48.4 - preserve OCR edits when adding rows/drivers + safe race date */
+
+function dogSafeRaceDate(value){
+  const raw=String(value||'').trim();
+  if(!raw) return '';
+  const d=new Date(raw+'T12:00:00');
+  return Number.isNaN(d.getTime()) ? '' : d.toLocaleDateString('de-DE');
+}
+
+/* Important: the current OCR review uses a <select> for the driver.
+   The old capture function only looked for .ocr-name, so adding a row
+   reconstructed every existing row with blank values. */
+function captureOCRRowsFromDOM(){
+  return [...document.querySelectorAll('.ocr-race-row:not(.head)')].map(row=>{
+    const select=row.querySelector('.ocr-driver-select');
+    const selected=select?.value||'';
+    const name=selected && selected!=='__NEW__'
+      ? selected
+      : (row.querySelector('.ocr-name')?.value||'').trim();
+    const time=(row.querySelector('.ocr-time')?.value||'').trim();
+    const pos=Number(row.querySelector('.ocr-pos')?.value)||99;
+    const grid=Number(row.querySelector('.ocr-grid')?.value)||0;
+    const penSec=Number(row.querySelector('.ocr-pen')?.value)||0;
+    const team=row.querySelector('.ocr-team')?.value||'';
+    const status=/^DNF$/i.test(time)?'DNF':/^DSQ$/i.test(time)?'DSQ':'RESULT';
+    return {
+      pos,name,match:name,raw:name,team,grid,time,penSec,
+      tl:penSec?({3:1,6:2,9:3,10:3,19:4}[penSec]||Math.max(1,Math.round(penSec/3))):0,
+      status,type:'known'
+    };
+  });
+}
+
+/* Add a row without rebuilding the entire table.
+   This means typed values, dropdown selections and OCR corrections
+   stay exactly where the user left them. */
+function addOCRReviewRow(){
+  const table=document.querySelector('.ocr-race-table');
+  if(!table){ toast('OCR-Tabelle ist noch nicht bereit.'); return; }
+  const rows=captureOCRRowsFromDOM();
+  const maxPos=rows.reduce((m,x)=>Math.max(m,Number(x.pos)||0),0);
+  const fresh={
+    pos:maxPos+1,name:'',match:'',raw:'',team:'',grid:0,time:'',
+    penSec:0,tl:0,status:'RESULT',type:'new'
+  };
+  const sortedDrivers=drivers.slice().sort((a,b)=>normDriver(a).localeCompare(normDriver(b),'de'));
+  const holder=document.createElement('div');
+  holder.innerHTML=ocrReviewRowHtml(fresh,rows.length,sortedDrivers);
+  const node=holder.firstElementChild;
+  if(node){
+    table.appendChild(node);
+    updateOCRSummary();
+    node.scrollIntoView({block:'nearest'});
+  }
+}
+
+/* Preserve the complete draft when creating a new driver from an OCR row. */
+function openOCRNewDriver(index){
+  const draft={
+    raceId:window.__ocrRaceId||'',
+    raw:window.__ocrRaw||'',
+    rows:captureOCRRowsFromDOM(),
+    index:Number(index)||0
+  };
+  const row=draft.rows[draft.index]||{};
+  window.__ocrRaceDraft=draft;
+  openAddDriver(row.name||'',row.team||'',window.__ocrRaceDivision||'Div 1');
+}
+
+/* Defensive version: never throw Invalid time value for a malformed race date. */
+function raceCard(r){
+  const editable=isEditor(),h=r.highlights||{};
+  const sponsorDue=typeof dogRaceSponsorIndicator==='function'?dogRaceSponsorIndicator(r):'';
+  const safeDate=dogSafeRaceDate(r.raceDate);
+  const deleteBtn=editable?`<button class="ghost race-delete-btn" onclick="deleteRace('${esc(r.id)}')" title="Rennen löschen">🗑️ Rennen löschen</button>`:'';
+  return `<div class="race-card"><div class="race-title"><div><div class="eyebrow">${esc(r.division)} · RENNEN ${r.number}${safeDate?' · '+esc(safeDate):''}</div><h3>${esc(r.track)}</h3><div class="race-edit-note">Regelstand: ${esc(r.ruleVersion)} · DoG-Punkte 25 / 21 / 18 / 15 / 13 / 11 / 9 / 8 / 7 / 6 / 5 / 4 / 3 / 2 / 1</div>${r.state?`<div class="race-dataflow">✓ Gespeichert · ${r.state.resultCount||r.results.length} Ergebnisse · WM/KWM/Fahrerwerte synchronisiert · Regelstand fixiert</div>`:''}</div><div class="race-tools">${sponsorDue}${editable?`<button class="ghost" onclick="openRaceMetaEditor('${r.id}')">⚙️ Rennen bearbeiten</button><button class="primary" onclick="openRaceEdit('${r.id}')">✏️ Ergebnis bearbeiten</button>${deleteBtn}`:'<span class="race-edit-note">🔒 Bearbeitung gesperrt</span>'}</div></div><div class="race-table"><div class="race-row head"><span>POS.</span><span>FAHRER</span><span>TEAM</span><span>START</span><span>PUNKTE</span><span>ZEIT</span><span>ZEITSTRAFE</span><span>NACHTRÄGLICHE STRAFE</span></div>${(r.results||[]).map((x,i)=>{const st=statusOfResult(x);return `<div class="race-row ${st!=='RESULT'?'special':''}"><span class="pos">${i+1}</span><span>${esc(normDriver(x.name))}</span><span>${esc(x.team||'')}</span><span>G${x.grid||0}</span><span><b>${pointsForPosition(i+1,st)}</b></span><span class="${st==='DNF'||st==='DSQ'?'dnf':''}">${esc(x.time||'')}</span><span class="${x.penSec?'pen':''}">${x.penSec?`+${x.penSec} Sek. · ${x.tl||0} TL`:'—'}</span><span class="${x.penaltyNote||x.penaltyImage?'pen':''}">${penaltyCell(x)}</span></div>`}).join('')}</div><div class="upload"><b>📷 Renn-Screenshots</b><div class="muted">Die Bilder bleiben am Rennen gespeichert und können später als Beleg geöffnet werden.</div>${editable?`<input type="file" accept="image/*" multiple onchange="attachScreens(this,'${r.id}')"><button class="ghost ocr-btn" onclick="document.getElementById('ocr-input-${r.id}').click()">🔎 Rennergebnis per OCR</button><input id="ocr-input-${r.id}" data-race-id="${r.id}" type="file" accept="image/*" multiple hidden onchange="startRaceOCR(this)">`:''}<div class="screens">${(r.screens||[]).map(s=>`<img src="${String(s).startsWith('data:')?s:RACE_DIR+s}" onclick="viewImage(this.src)">`).join('')}</div></div><div class="race-highlights"><span>🏆 Sieger <b>${esc(normDriver(h.winner||''))||'—'}</b></span><span>⚡ Schnellste Runde <b>${esc(normDriver(h.fastest||''))||'—'}</b></span><span>⭐ FdT <b>${esc(normDriver(h.dotd||''))||'—'}</b></span><span>🔄 Überholmanöver <b>${esc(normDriver(h.overtakes||''))||'—'}</b></span><span>🧼 Sauberster <b>${esc(normDriver(h.cleanest||''))||'—'}</b></span></div>${editable?`<div class="highlight-tools"><button class="ghost" onclick="openHighlightEditor('${r.id}')">⭐ Highlights bearbeiten</button><button class="ghost" onclick="document.getElementById('highlight-input-${r.id}').click()">📷 Highlight-Screenshot OCR</button><input id="highlight-input-${r.id}" type="file" accept="image/*" multiple hidden onchange="startHighlightOCR(this,'${r.id}')"></div>`:''}</div>`;
+}
+
+
+/* DoG RaceHub v2.48.5 - safe contract special-payment date */
+
+function dogSafeISODate(value,fallback=''){
+  const raw=String(value||'').trim();
+  if(!raw) return fallback||new Date().toISOString();
+  const direct=new Date(raw);
+  if(Number.isFinite(direct.getTime())) return direct.toISOString();
+  const iso=new Date(raw+'T12:00:00');
+  if(Number.isFinite(iso.getTime())) return iso.toISOString();
+  return fallback||new Date().toISOString();
+}
+
+/* The save operation was failing in syncContractSpecialPayments:
+   trigger.date could contain an invalid/empty date and
+   new Date(trigger.date+'T12:00:00').toISOString() throws
+   "RangeError: Invalid time value". */
+function syncContractSpecialPayments(){
+  contracts.filter(c=>c&&!c.draft).forEach(c=>{
+    const amount=parseMoneyValue(c.specialPayment);
+    if(amount<=0||!c.specialCondition?.enabled)return;
+    const trigger=specialPaymentTrigger(c);
+    if(!trigger)return;
+    const existing=financeTransactions.find(t=>t.type==='contract_special_income'&&t.contractId===c.id);
+    if(existing)return;
+
+    const fallback=c.endDate||c.startDate||c.createdAt||new Date().toISOString();
+    const tx={
+      id:financeTxId(),
+      season:c.season,
+      team:c.team||'',
+      driver:normDriver(c.driver),
+      contractId:c.id,
+      type:'contract_special_income',
+      description:`Sonderzahlung Vertrag · ${c.team||''} · ${trigger.reason}`.trim(),
+      amount,
+      date:dogSafeISODate(trigger.date,fallback)
+    };
+    const applied=financeTxApplyOverride(tx);
+    if(applied)financeTransactions.push(applied);
+  });
+}
+
