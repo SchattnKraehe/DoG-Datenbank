@@ -544,7 +544,122 @@ function renderLicenses(){
   </div>`;
 }
 
-function showView(id){document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));document.getElementById(id).classList.add('active');document.querySelectorAll('.nav').forEach(n=>n.classList.toggle('active',n.dataset.view===id));document.getElementById('page-title').textContent={dashboard:'Dashboard',drivers:'Fahrer',compare:'Vergleich',teams:'Teams',races:'Rennen',wm:'Fahrer-WM',kwm:'KWM',licenses:'Lizenzen',archive:'Archiv'}[id]||'DoG RaceHub';try{if(id==='drivers')initDriverOverview();if(id==='compare')renderCompare();if(id==='teams')renderTeams();if(id==='races')initRaceSelectors();if(id==='wm')renderWM();if(id==='kwm')renderKWM();if(id==='licenses')renderLicenses();if(id==='dashboard')renderDashboard();if(id==='archive')renderArchive();updateStats()}catch(e){console.error('showView',e)}}
+function renderMarketValues(){
+ const el=document.getElementById('market-values-page');
+ if(!el)return;
+
+ const getRows=(div)=>{
+   return drivers.map(name=>{
+     const status=getStatus(name);
+     if(status==='Nicht verfügbar')return null;
+
+     const roster=currentRosterEntry(name);
+     const meta=driverRecord(name);
+     const division=roster?.division||meta?.division||currentDivision(name)||'';
+     if(String(division)!==String(div))return null;
+
+     const c=calcDriver(name);
+     const team=roster?.team||meta?.team||driverTeam(name)||'Free Agent';
+
+     return {
+       name:normDriver(name),
+       team,
+       mw:Number(c?.mw)||0,
+       car:driverStatusImage(name),
+       flag:driverFlag(name),
+       nationality:nationalityInfo(name)
+     };
+   })
+   .filter(Boolean)
+   .sort((a,b)=>b.mw-a.mw);
+ };
+
+ const flag=r=>{
+   if(r.flag)return `<img class="mv-flag" src="${esc(r.flag)}" alt="">`;
+   return r.nationality?.emoji||'';
+ };
+
+ const division=(div)=>{
+   const rows=getRows(div);
+
+   if(!rows.length){
+     return `
+       <div class="mv-division">
+         <div class="mv-division-head">
+           <span class="mv-eyebrow">MARKTWERTE</span>
+           <h3>${esc(div)}</h3>
+         </div>
+         <div class="empty-race">Keine Fahrer vorhanden.</div>
+       </div>`;
+   }
+
+   const top=rows.slice(0,3);
+   const rest=rows.slice(3);
+
+   const topHtml=top.map((r,i)=>`
+     <div class="mv-top-driver mv-top-${i+1}">
+       <div class="mv-top-rank">${i+1}</div>
+
+       <div class="mv-top-info">
+         <div class="mv-driver-name">
+           ${esc(r.name)} ${flag(r)}
+         </div>
+         <div class="mv-team">${esc(r.team)}</div>
+         <div class="mv-value">${money(r.mw)}</div>
+       </div>
+
+       <div class="mv-top-car">
+         <img src="${esc(r.car)}"
+              alt="${esc(r.team)} Fahrzeug"
+              onerror="this.style.display='none'">
+       </div>
+     </div>
+   `).join('');
+
+   const restHtml=rest.map((r,i)=>`
+     <div class="mv-compact-row">
+       <div class="mv-compact-rank">${i+4}</div>
+
+       <div class="mv-compact-driver">
+         <span>${esc(r.name)} ${flag(r)}</span>
+         <small>${esc(r.team)}</small>
+       </div>
+
+       <strong>${money(r.mw)}</strong>
+     </div>
+   `).join('');
+
+   return `
+     <div class="mv-division">
+       <div class="mv-division-head">
+         <div>
+           <span class="mv-eyebrow">MARKTWERTE</span>
+           <h3>${esc(div)}</h3>
+         </div>
+         <span class="mv-count">${rows.length} Fahrer</span>
+       </div>
+
+       <div class="mv-top-list">
+         ${topHtml}
+       </div>
+
+       <div class="mv-all-title">
+         <span>Alle weiteren Fahrer</span>
+       </div>
+
+       <div class="mv-compact-list">
+         ${restHtml || '<div class="empty-race">Keine weiteren Fahrer.</div>'}
+       </div>
+     </div>`;
+ };
+
+ el.innerHTML=`
+   <div class="market-values-grid">
+     ${division('Div 1')}
+     ${division('Div 2')}
+   </div>`;
+}
+function showView(id){document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));document.getElementById(id).classList.add('active');document.querySelectorAll('.nav').forEach(n=>n.classList.toggle('active',n.dataset.view===id));document.getElementById('page-title').textContent={dashboard:'Dashboard',drivers:'Fahrer',marketvalues:'Marktwerte',compare:'Vergleich',teams:'Teams',races:'Rennen',wm:'Fahrer-WM',kwm:'KWM',licenses:'Lizenzen',archive:'Archiv'}[id]||'DoG RaceHub';try{if(id==='drivers')initDriverOverview();if(id==='marketvalues')renderMarketValues();if(id==='compare')renderCompare();if(id==='teams')renderTeams();if(id==='races')initRaceSelectors();if(id==='wm')renderWM();if(id==='kwm')renderKWM();if(id==='licenses')renderLicenses();if(id==='dashboard')renderDashboard();if(id==='archive')renderArchive();updateStats()}catch(e){console.error('showView',e)}}
 document.querySelectorAll('.nav').forEach(n=>n.addEventListener('click',()=>showView(n.dataset.view)));
 function updateStats(){document.getElementById('stat-drivers').textContent=drivers.filter(n=>getStatus(n)==='Stammfahrer').length;document.getElementById('stat-races').textContent=new Set(raceList().map(r=>r.track)).size}
 function initDriverOverview(){const sel=document.getElementById('driver-select');if(!sel)return;const current=sel.value;sel.innerHTML=drivers.filter(n=>getStatus(n)!=='Nicht verfügbar').sort((a,b)=>a.localeCompare(b,'de')).map(n=>`<option value="${esc(n)}">${driverNumber(n)?'#'+driverNumber(n)+' · ':''}${esc(n)} · ${esc(getStatus(n))}</option>`).join('');if(current&&drivers.includes(current)&&getStatus(current)!=='Nicht verfügbar')sel.value=current;else if(sel.options.length)sel.selectedIndex=0;openDriver(sel.value)}
@@ -931,7 +1046,19 @@ function renderMarketMovers(){
  el.innerHTML=card('Höchster Marktwert-Anstieg','⬆️',m.rise,true)+card('Höchster Marktwert-Abstieg','⬇️',m.fall,false);
 }
 function dotdForDivision(div){
-  return null;
+  const race=raceChronological()
+    .filter(r=>String(r.division||'')===String(div||'') && Array.isArray(r.results) && r.results.length>0)
+    .sort((a,b)=>{
+      const sa=String(a.raceDate||''), sb=String(b.raceDate||'');
+      if(sa && sb && sa!==sb) return sa.localeCompare(sb);
+      return Number(a.number||a.round||0)-Number(b.number||b.round||0);
+    }).at(-1)||null;
+  if(!race)return null;
+  const driver=normDriver(race.highlights?.dotd||'');
+  if(!driver)return null;
+  const row=(race.results||[]).find(x=>normDriver(x.name)===driver);
+  if(!row)return null;
+  return {race,driver};
 }
 
 function renderDashboard(){
@@ -940,7 +1067,7 @@ function renderDashboard(){
    if(!ds)return `<div class="panel dotd-card"><div class="panel-head"><div><h3>⭐ Fahrer des Tages · ${div}</h3><p>Noch kein erfasstes Rennen</p></div></div><div class="empty-race">Für ${div} liegt noch kein Rennergebnis vor.</div></div>`;
    const r=ds.race,row=r.results.find(x=>normDriver(x.name)===normDriver(ds.driver));
    const pos=row?r.results.indexOf(row)+1:0;
-   return `<div class="panel dotd-card"><div class="panel-head"><div><h3>⭐ Fahrer des Tages · ${div}</h3><p>${esc(r.track)} · Rennen ${r.number}</p></div><span class="dotd-badge">FdT</span></div><div class="dotd-main"><div><strong>${esc(normDriver(ds.driver))}</strong><span>${esc(row?.team||'')}</span></div><b>${row?pointsForPosition(pos,statusOfResult(row)):0} Pkt.</b></div><div class="dotd-stats"><span>Pos. <b>${pos||'—'}</b></span><span>Grid <b>${row?.grid??'—'}</b></span><span>Delta <b>${row?formatDelta(row.grid,pos):'—'}</b></span><span>Zeit <b>${esc(row?.time||'—')}</b></span></div></div>`;
+   return `<div class="panel dotd-card"><div class="panel-head"><div><h3>⭐ Fahrer des Tages · ${div}</h3><p>${esc(r.track)} · Rennen ${r.number}</p></div><span class="dotd-badge">FdT</span></div><div class="dotd-main"><div><strong>${esc(normDriver(ds.driver))}</strong><span>${esc(row?.team||'')}</span></div><b>${row?pointsForPosition(pos,statusOfResult(row)):0} Pkt.</b></div><div class="dotd-stats"><span>Pos. <b>${pos||'—'}</b></span><span>Grid <b>${row?.grid??'—'}</b></span><span>Delta <b>${row?(Number(row.grid)||0)>0?((Number(row.grid)||0)-pos>0?'+'+((Number(row.grid)||0)-pos):((Number(row.grid)||0)-pos)):'—':'—'}</b></span><span>Zeit <b>${esc(row?.time||'—')}</b></span></div></div>`;
  }).join('');
  document.getElementById('dotd-dashboard').innerHTML=cards;
  renderMarketMovers();
@@ -2854,7 +2981,7 @@ function raceCard(r){
         }
         const row=ds.race.results.find(x=>normDriver(x.name)===normDriver(ds.driver));
         const pos=row ? ds.race.results.indexOf(row)+1 : 0;
-        return `<div class="panel dotd-card"><div class="panel-head"><div><h3>⭐ Fahrer des Tages · ${esc(div)}</h3><p>${esc(ds.race.track)} · Rennen ${Number(ds.race.number||ds.race.round||0)}</p></div><span class="dotd-badge">FdT</span></div><div class="dotd-main"><div><strong>${esc(normDriver(ds.driver))}</strong><span>${esc(row?.team||'')}</span></div><b>${row?pointsForPosition(pos,statusOfResult(row)):0} Pkt.</b></div><div class="dotd-stats"><span>Pos. <b>${pos||'—'}</b></span><span>Grid <b>${row?.grid??'—'}</b></span><span>Delta <b>${row?formatDelta(row.grid,pos):'—'}</b></span><span>Zeit <b>${esc(row?.time||'—')}</b></span></div></div>`;
+        return `<div class="panel dotd-card"><div class="panel-head"><div><h3>⭐ Fahrer des Tages · ${esc(div)}</h3><p>${esc(ds.race.track)} · Rennen ${Number(ds.race.number||ds.race.round||0)}</p></div><span class="dotd-badge">FdT</span></div><div class="dotd-main"><div><strong>${esc(normDriver(ds.driver))}</strong><span>${esc(row?.team||'')}</span></div><b>${row?pointsForPosition(pos,statusOfResult(row)):0} Pkt.</b></div><div class="dotd-stats"><span>Pos. <b>${pos||'—'}</b></span><span>Grid <b>${row?.grid??'—'}</b></span><span>Delta <b>${row?(Number(row.grid)||0)>0?((Number(row.grid)||0)-pos>0?'+'+((Number(row.grid)||0)-pos):((Number(row.grid)||0)-pos)):'—':'—'}</b></span><span>Zeit <b>${esc(row?.time||'—')}</b></span></div></div>`;
       }).join('');
     }
     renderMarketMovers();

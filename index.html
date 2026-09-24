@@ -12,6 +12,7 @@
   <div class="nav-group"><div class="nav-title">AKTUELLE SAISON <b>02/26</b></div>
     <button class="nav active" data-view="dashboard">⌂ <span>Dashboard</span></button>
     <button class="nav" data-view="drivers">♙ <span>Fahrer</span></button>
+    <button class="nav" data-view="marketvalues">💰 <span>Marktwerte</span></button>
     <button class="nav" data-view="compare">⇄ <span>Vergleich</span></button>
     <button class="nav" data-view="teams">▦ <span>Teams</span></button>
     <button class="nav" data-view="races">◉ <span>Rennen</span></button>
@@ -36,7 +37,17 @@
   <div class="two-col"><div class="panel"><div class="panel-head"><div><h3>Schnellzugriff</h3><p>Die wichtigsten Bereiche</p></div></div><div class="quick-grid"><button onclick="showView('drivers')">♙<b>Fahrer</b><small>Einzelakte &amp; Marktwert</small></button><button onclick="showView('teams')">▦<b>Teams</b><small>Fahrer &amp; Fahrzeuge</small></button><button onclick="showView('races')">◉<b>Rennen</b><small>Ergebnisse &amp; Screenshots</small></button><button onclick="showView('wm')">🏆<b>Fahrer-WM</b><small>Div 1 und Div 2</small></button></div></div></div>
 </section>
 
-<section id="drivers" class="view"><div class="racehub-page-hero"><div class="rh-hero-copy"><div class="eyebrow">DOG RACEHUB · DRIVERS</div><h2>FAHRER</h2><p>Eine kompakte, vollständige Übersicht aller Fahrer.</p></div><div class="rh-hero-actions"><span class="pill">▣ SAISON 02/26</span><span class="status-dot">● System bereit</span></div><div class="rh-hero-car"></div></div><div class="driver-toolbar"><div class="driver-search-wrap">⌕<input id="driver-search" placeholder="Fahrer suchen ..." oninput="filterDriverSelect()"></div><label class="driver-team-filter">Team <select id="driver-team-filter" onchange="filterDriverSelect()"><option value="">Alle</option></select></label><button class="primary" onclick="openAddDriver()">＋ Fahrer hinzufügen</button></div><div class="driver-overview"><label class="legacy-driver-select">Fahrer auswählen<select id="driver-select" onchange="openDriver(this.value)"></select></label><div id="driver-profile"></div></div></section><section id="compare" class="view"><div class="section-head"><div><h3>Vergleich</h3><p>Direkter Vergleich von bis zu vier Fahrern.</p></div></div><div id="compare-content"></div></section>
+<section id="drivers" class="view"><div class="racehub-page-hero"><div class="rh-hero-copy"><div class="eyebrow">DOG RACEHUB · DRIVERS</div><h2>FAHRER</h2><p>Eine kompakte, vollständige Übersicht aller Fahrer.</p></div><div class="rh-hero-actions"><span class="pill">▣ SAISON 02/26</span><span class="status-dot">● System bereit</span></div><div class="rh-hero-car"></div></div><div class="driver-toolbar"><div class="driver-search-wrap">⌕<input id="driver-search" placeholder="Fahrer suchen ..." oninput="filterDriverSelect()"></div><label class="driver-team-filter">Team <select id="driver-team-filter" onchange="filterDriverSelect()"><option value="">Alle</option></select></label><button class="primary" onclick="openAddDriver()">＋ Fahrer hinzufügen</button></div><div class="driver-overview"><label class="legacy-driver-select">Fahrer auswählen<select id="driver-select" onchange="openDriver(this.value)"></select></label><div id="driver-profile"></div></div></section>
+<section id="marketvalues" class="view">
+  <div class="section-head">
+    <div>
+      <h3>💰 Marktwerte</h3>
+      <p>Die vier wertvollsten Fahrer jeder Division.</p>
+    </div>
+  </div>
+  <div id="market-values-page"></div>
+</section>
+<section id="compare" class="view"><div class="section-head"><div><h3>Vergleich</h3><p>Direkter Vergleich von bis zu vier Fahrern.</p></div></div><div id="compare-content"></div></section>
 <section id="teams" class="view"><div class="section-head"><div><h3>Teams</h3><p>Aktuelle Teamstruktur · Fahrzeug klein neben dem Teamnamen.</p></div><button class="primary" onclick="openTransferManager()">🔄 Transfers</button></div><div id="team-list" class="team-list"></div><div id="driver-status-list" class="status-board"></div></section>
 <section id="wm" class="view"><div class="section-head"><div><h3>Fahrer-WM</h3><p>Division auswählen und die Fahrer-WM anzeigen.</p></div><div class="selector-row"><select id="wm-season" class="div-select" onchange="renderWM()"></select><select id="wm-div" class="div-select" onchange="renderWM()"><option selected>Div 1</option><option>Div 2</option></select></div></div><div id="wm-table"></div></section>
 <section id="kwm" class="view"><div class="section-head"><div><h3>KWM</h3><p>Konstrukteurs-WM mit Div 1, Div 2 oder Gesamt.</p></div><div class="selector-row"><select id="kwm-season" class="div-select" onchange="renderKWM()"></select><select id="kwm-div" class="div-select" onchange="renderKWM()"><option>Div 1</option><option selected>Div 2</option><option>Overall</option></select></div></div><div id="kwm-table" class="table-panel"></div></section>

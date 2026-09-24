@@ -228,3 +228,260 @@ html,body{background:#050607;min-height:100%}body{font-family:Inter,Segoe UI,Ari
 /* v2.2: visible admin access in sidebar; keeps existing page layout intact */
 .sidebar-admin-btn{width:100%;margin-top:10px;text-align:left;font-size:12px;padding:10px 12px;}
 .sidebar-admin-btn:hover{border-color:var(--accent);}
+/* =========================================================
+   MARKTWERTE
+   ========================================================= */
+
+.market-values-grid{
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:18px;
+  align-items:start;
+}
+
+.mv-division{
+  background:rgba(12,12,14,.94);
+  border:1px solid #342023;
+  border-radius:14px;
+  padding:16px;
+  box-shadow:0 12px 28px rgba(0,0,0,.18);
+  min-width:0;
+}
+
+.mv-division-head{
+  display:flex;
+  justify-content:space-between;
+  align-items:end;
+  gap:12px;
+  padding-bottom:12px;
+  margin-bottom:12px;
+  border-bottom:1px solid #342023;
+}
+
+.mv-division-head h3{
+  margin:4px 0 0;
+  font-size:21px;
+}
+
+.mv-eyebrow{
+  color:var(--accent);
+  font-size:9px;
+  letter-spacing:1.8px;
+  font-weight:800;
+}
+
+.mv-count{
+  color:var(--muted);
+  font-size:10px;
+}
+
+.mv-top-list{
+  display:grid;
+  gap:8px;
+}
+
+.mv-top-driver{
+  position:relative;
+  min-height:112px;
+  display:flex;
+  align-items:center;
+  gap:12px;
+  overflow:hidden;
+  padding:11px 13px;
+  border:1px solid #3b292c;
+  border-radius:12px;
+  background:linear-gradient(135deg,#111114,#0b0b0d);
+}
+
+.mv-top-1{
+  border-color:#725f27;
+  background:linear-gradient(135deg,#17140d,#0d0d0e);
+}
+
+.mv-top-2{
+  border-color:#465058;
+}
+
+.mv-top-3{
+  border-color:#68452f;
+}
+
+.mv-top-rank{
+  width:30px;
+  height:30px;
+  flex:none;
+  display:grid;
+  place-items:center;
+  border-radius:50%;
+  background:#19191b;
+  border:1px solid #3b3b3d;
+  font-weight:900;
+  font-size:14px;
+}
+
+.mv-top-1 .mv-top-rank{
+  color:var(--gold);
+  border-color:#8a712c;
+}
+
+.mv-top-2 .mv-top-rank{
+  color:#d5dde2;
+}
+
+.mv-top-3 .mv-top-rank{
+  color:#cd8b62;
+}
+
+.mv-top-info{
+  position:relative;
+  z-index:2;
+  min-width:0;
+  flex:1;
+}
+
+.mv-driver-name{
+  font-size:16px;
+  font-weight:900;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+
+.mv-team{
+  color:var(--muted);
+  font-size:10px;
+  margin-top:3px;
+}
+
+.mv-value{
+  color:var(--gold);
+  font-size:17px;
+  font-weight:900;
+  margin-top:7px;
+}
+
+.mv-top-car{
+  width:145px;
+  height:75px;
+  flex:none;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  position:relative;
+}
+
+.mv-top-car img{
+  display:block;
+  width:145px;
+  height:75px;
+  max-width:145px;
+  max-height:75px;
+  object-fit:contain;
+}
+
+.mv-flag{
+  width:22px;
+  height:15px;
+  object-fit:cover;
+  border-radius:2px;
+  vertical-align:middle;
+  margin-left:4px;
+}
+
+.mv-all-title{
+  margin:15px 0 7px;
+  padding-bottom:6px;
+  border-bottom:1px solid #252528;
+  color:var(--muted);
+  font-size:9px;
+  text-transform:uppercase;
+  letter-spacing:1.2px;
+}
+
+.mv-compact-list{
+  display:grid;
+  gap:3px;
+}
+
+.mv-compact-row{
+  display:grid;
+  grid-template-columns:30px minmax(0,1fr) auto;
+  align-items:center;
+  gap:9px;
+  padding:8px 7px;
+  border-bottom:1px solid #191a1c;
+  font-size:11px;
+}
+
+.mv-compact-row:last-child{
+  border-bottom:0;
+}
+
+.mv-compact-rank{
+  color:var(--muted);
+  font-weight:800;
+  text-align:center;
+}
+
+.mv-compact-driver{
+  min-width:0;
+}
+
+.mv-compact-driver span{
+  display:block;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+
+.mv-compact-driver small{
+  display:block;
+  color:var(--muted);
+  font-size:9px;
+  margin-top:2px;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+
+.mv-compact-row strong{
+  color:var(--gold);
+  font-size:11px;
+  white-space:nowrap;
+}
+
+@media(max-width:900px){
+  .market-values-grid{
+    grid-template-columns:1fr;
+  }
+}
+
+@media(max-width:700px){
+  .mv-division{
+    padding:11px;
+  }
+
+  .mv-top-driver{
+    min-height:92px;
+  }
+
+  .mv-top-car{
+    width:105px;
+    height:60px;
+  }
+
+  .mv-top-car img{
+    width:105px;
+    height:60px;
+    max-width:105px;
+    max-height:60px;
+  }
+
+  .mv-driver-name{
+    font-size:14px;
+  }
+
+  .mv-value{
+    font-size:14px;
+  }
+}
