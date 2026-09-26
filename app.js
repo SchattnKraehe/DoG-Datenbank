@@ -113,7 +113,8 @@ const NATIONALITY_OPTIONS=[
  {code:'PL',name:'Polen',flag:'flag-pl.png',emoji:'\u{1F1F5}\u{1F1F1}'},
  {code:'AL',name:'Albanien',flag:'flag-al.png',emoji:'\u{1F1E6}\u{1F1F1}'},
  {code:'PA',name:'Panama',flag:'flag-pa.png',emoji:'\u{1F1F5}\u{1F1E6}'},
- {code:'CY',name:'Zypern',flag:'flag-cy.png',emoji:'\u{1F1E8}\u{1F1FE}'}
+ {code:'CY',name:'Zypern',flag:'flag-cy.png',emoji:'\u{1F1E8}\u{1F1FE}'},
+ {code:'BR',name:'Brasilien',flag:'flag-br.png',emoji:'\u{1F1E7}\u{1F1F7}'}
 ];
 const NATIONALITY_BY_CODE=Object.fromEntries(NATIONALITY_OPTIONS.map(x=>[x.code,x]));
 function driverNationality(name){return driverRecord(name)?.nationality||''}
