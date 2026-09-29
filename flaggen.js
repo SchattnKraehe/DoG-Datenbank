@@ -10,7 +10,8 @@
     {code:'IN',name:'Indien',flag:'flag-in.png',emoji:'🇮🇳'},
     {code:'IT',name:'Italien',flag:'flag-it.png',emoji:'🇮🇹'},
     {code:'JM',name:'Jamaika',flag:'flag-jm.png',emoji:'🇯🇲'},
-    {code:'TH',name:'Thailand',flag:'flag-th.png',emoji:'🇹🇭'}
+    {code:'TH',name:'Thailand',flag:'flag-th.png',emoji:'🇹🇭'},
+    {code:'LB',name:'Libanon',flag:'flag-lb.png',emoji:'🇱🇧'}
   ];
 
   if (typeof NATIONALITY_OPTIONS !== 'undefined') {

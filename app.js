@@ -470,11 +470,6 @@ function ensureLicenseView(){
   if(document.getElementById('licenses'))return;
   const nav=document.querySelector('.nav-group');
   if(nav){
-    const btn=document.createElement('button');
-    btn.className='nav'; btn.dataset.view='licenses'; btn.innerHTML='🪪 <span>Lizenzen</span>';
-    const kwm=document.querySelector('.nav[data-view="kwm"]');
-    if(kwm&&kwm.parentNode===nav)kwm.insertAdjacentElement('afterend',btn);else nav.appendChild(btn);
-    btn.addEventListener('click',()=>showView('licenses'));
   }
   const main=document.querySelector('.main');
   if(main){
@@ -660,7 +655,7 @@ function renderMarketValues(){
      ${division('Div 2')}
    </div>`;
 }
-function showView(id){document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));document.getElementById(id).classList.add('active');document.querySelectorAll('.nav').forEach(n=>n.classList.toggle('active',n.dataset.view===id));document.getElementById('page-title').textContent={dashboard:'Dashboard',drivers:'Fahrer',marketvalues:'Marktwerte',compare:'Vergleich',teams:'Teams',races:'Rennen',wm:'Fahrer-WM',kwm:'KWM',licenses:'Lizenzen',archive:'Archiv'}[id]||'DoG RaceHub';try{if(id==='drivers')initDriverOverview();if(id==='marketvalues')renderMarketValues();if(id==='compare')renderCompare();if(id==='teams')renderTeams();if(id==='races')initRaceSelectors();if(id==='wm')renderWM();if(id==='kwm')renderKWM();if(id==='licenses')renderLicenses();if(id==='dashboard')renderDashboard();if(id==='archive')renderArchive();updateStats()}catch(e){console.error('showView',e)}}
+function showView(id){document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));document.getElementById(id).classList.add('active');document.querySelectorAll('.nav').forEach(n=>n.classList.toggle('active',n.dataset.view===id));document.getElementById('page-title').textContent={dashboard:'Dashboard',drivers:'Fahrer',loans:'Fahrer-Leihen',marketvalues:'Marktwerte',compare:'Vergleich',teams:'Teams',races:'Rennen',wm:'Fahrer-WM',kwm:'KWM',licenses:'Lizenzen',archive:'Archiv'}[id]||'DoG RaceHub';try{if(id==='drivers')initDriverOverview();if(id==='loans')renderLoanCenter('drivers');if(id==='marketvalues')renderMarketValues();if(id==='compare')renderCompare();if(id==='teams')renderTeams();if(id==='races')initRaceSelectors();if(id==='wm')renderWM();if(id==='kwm')renderKWM();if(id==='licenses')renderLicenses();if(id==='dashboard')renderDashboard();if(id==='archive')renderArchive();updateStats()}catch(e){console.error('showView',e)}}
 document.querySelectorAll('.nav').forEach(n=>n.addEventListener('click',()=>showView(n.dataset.view)));
 function updateStats(){document.getElementById('stat-drivers').textContent=drivers.filter(n=>getStatus(n)==='Stammfahrer').length;document.getElementById('stat-races').textContent=new Set(raceList().map(r=>r.track)).size}
 function initDriverOverview(){const sel=document.getElementById('driver-select');if(!sel)return;const current=sel.value;sel.innerHTML=drivers.filter(n=>getStatus(n)!=='Nicht verfügbar').sort((a,b)=>a.localeCompare(b,'de')).map(n=>`<option value="${esc(n)}">${driverNumber(n)?'#'+driverNumber(n)+' · ':''}${esc(n)} · ${esc(getStatus(n))}</option>`).join('');if(current&&drivers.includes(current)&&getStatus(current)!=='Nicht verfügbar')sel.value=current;else if(sel.options.length)sel.selectedIndex=0;openDriver(sel.value)}
@@ -1677,21 +1672,175 @@ function syncPointCostTransactions(){
 }
 function openLoanEditor(existingId=''){
  if(!requireEditor())return;
- const ex=loanAgreements.find(x=>x.id===existingId); const season=seasonState.current||'02/26';
- const driverOpts=drivers.filter(n=>getStatus(n)!=='Nicht verfügbar').sort((a,b)=>a.localeCompare(b,'de')).map(n=>`<option value="${esc(n)}" ${ex&&normDriver(ex.driver)===normDriver(n)?'selected':''}>${esc(n)}</option>`).join('');
- const teamOpts=TEAM_CHOICES.filter(Boolean).map(t=>`<option value="${esc(t)}" ${ex?.borrowerTeam===t?'selected':''}>${esc(t)}</option>`).join('');
- const sourceOpts=`<option value="">— Free Agent / keine Leihgebühr an Team —</option>`+TEAM_CHOICES.filter(Boolean).map(t=>`<option value="${esc(t)}" ${ex?.sourceTeam===t?'selected':''}>${esc(t)}</option>`).join('');
- document.getElementById('modal-content').innerHTML=`<div class="modal-head"><div><h2>🤝 Ersatzfahrer ${ex?'bearbeiten':'leihen'}</h2><p class="race-edit-note">Eine Leihvereinbarung ist eine eigene Finanzbuchung und ersetzt keinen Fahrervertrag.</p></div><button onclick="closeModal()">×</button></div><div class="new-driver-form"><label>Ersatzfahrer<select id="loan-driver">${driverOpts}</select></label><label>Leihendes Team (optional)<select id="loan-source">${sourceOpts}</select></label><label>Ausleihendes Team<select id="loan-borrower">${teamOpts}</select></label><label>Division<select id="loan-div"><option ${ex?.division==='Div 1'?'selected':''}>Div 1</option><option ${ex?.division==='Div 2'||!ex?'selected':''}>Div 2</option></select></label><label>Saison<select id="loan-season">${Object.keys(SEASON_META.seasons).map(x=>`<option ${x===season?'selected':''}>${x}</option>`).join('')}</select></label><label>Leihgebühr<input id="loan-fee" value="${esc(ex?.fee||'')}" placeholder="z. B. 500.000 €"></label><label>Rennrunde Beginn<input id="loan-start" type="number" min="1" value="${ex?.startRound||1}"></label><label>Rennrunde Ende<input id="loan-end" type="number" min="1" value="${ex?.endRound||''}" placeholder="optional"></label><label>Status<select id="loan-status"><option ${ex?.status==='Aktiv'||!ex?'selected':''}>Aktiv</option><option ${ex?.status==='Beendet'?'selected':''}>Beendet</option><option ${ex?.status==='Vorläufig'?'selected':''}>Vorläufig</option></select></label></div><div class="modal-actions"><button class="ghost" onclick="closeModal()">Abbrechen</button><button class="primary" onclick="saveLoanAgreement('${esc(existingId)}')">✓ Leihvereinbarung speichern</button></div>`;openModal();
+
+ const ex=loanAgreements.find(x=>x.id===existingId);
+ const season=seasonState.current||'02/26';
+
+ const driverOpts=drivers
+   .filter(n=>getStatus(n)!=='Nicht verfügbar')
+   .sort((a,b)=>a.localeCompare(b,'de'))
+   .map(n=>`<option value="${esc(n)}" ${ex&&normDriver(ex.driver)===normDriver(n)?'selected':''}>${esc(n)}</option>`)
+   .join('');
+
+ const teamOpts=TEAM_CHOICES
+   .filter(Boolean)
+   .map(t=>`<option value="${esc(t)}" ${ex?.borrowerTeam===t?'selected':''}>${esc(t)}</option>`)
+   .join('');
+
+ const sourceOpts=
+   `<option value="" ${!ex?.sourceTeam?'selected':''}>Free Agent</option>`+
+   TEAM_CHOICES
+     .filter(Boolean)
+     .map(t=>`<option value="${esc(t)}" ${ex?.sourceTeam===t?'selected':''}>${esc(t)}</option>`)
+     .join('');
+
+ const raceOpts=seasonRaceList(season)
+   .slice()
+   .sort((a,b)=>Number(a.number||a.round||0)-Number(b.number||b.round||0))
+   .map(r=>{
+      const round=Number(r.number||r.round||0);
+      const date=r.raceDate?new Date(r.raceDate+'T12:00:00').toLocaleDateString('de-DE'):'';
+      const value=r.id||`${round}|${r.track||''}`;
+      const selected=ex?.raceId===r.id || (!ex?.raceId && Number(ex?.startRound||0)===round);
+      return `<option value="${esc(value)}" data-round="${round}" data-division="${esc(r.division||'')}" ${selected?'selected':''}>R${round} · ${esc(r.track||'—')}${date?' · '+date:''}</option>`;
+   })
+   .join('');
+
+ const currentRace=ex?.raceId ? races[ex.raceId] : null;
+ const currentDivision=ex?.division||currentRace?.division||'Div 2';
+
+ document.getElementById('modal-content').innerHTML=`
+   <div class="modal-head">
+     <div>
+       <h2>🤝 Ersatzfahrer ${ex?'bearbeiten':'leihen'}</h2>
+       <p class="race-edit-note">Leihe für ein Rennen der aktuellen Saison ${esc(season)}.</p>
+     </div>
+     <button onclick="closeModal()">×</button>
+   </div>
+
+   <div class="new-driver-form">
+
+     <label>
+       Fahrer
+       <select id="loan-driver">${driverOpts}</select>
+     </label>
+
+     <label>
+       Leihendes Team
+       <select id="loan-borrower">${teamOpts}</select>
+     </label>
+
+     <label>
+       Status Fahrer
+       <select id="loan-source">${sourceOpts}</select>
+     </label>
+
+     <label>
+       Division
+       <select id="loan-div">
+         <option ${currentDivision==='Div 1'?'selected':''}>Div 1</option>
+         <option ${currentDivision==='Div 2'?'selected':''}>Div 2</option>
+       </select>
+     </label>
+
+     <label>
+       Leihgebühr
+       <input id="loan-fee" value="${esc(ex?.fee||'')}" placeholder="z. B. 5.000.000 €">
+     </label>
+
+     <label>
+       Rennen
+       <select id="loan-race">
+         <option value="">— Rennen auswählen —</option>
+         ${raceOpts}
+       </select>
+     </label>
+
+     <label>
+       Status
+       <select id="loan-status">
+         <option ${ex?.status==='Aktiv'||!ex?'selected':''}>Aktiv</option>
+         <option ${ex?.status==='Beendet'?'selected':''}>Beendet</option>
+         <option ${ex?.status==='Vorläufig'?'selected':''}>Vorläufig</option>
+       </select>
+     </label>
+
+   </div>
+
+   <div class="modal-actions">
+     <button class="ghost" onclick="closeModal()">Abbrechen</button>
+     ${ex?`<button class="danger" onclick="deleteLoanAgreement('${esc(existingId)}')">🗑️ Leihvereinbarung löschen</button>`:''}
+     <button class="primary" onclick="saveLoanAgreement('${esc(existingId)}')">
+       ✓ Leihvereinbarung speichern
+     </button>
+   </div>`;
+
+ openModal();
+
+ const raceSelect=document.getElementById('loan-race');
+ const divisionSelect=document.getElementById('loan-div');
+
+ if(raceSelect&&divisionSelect){
+   raceSelect.addEventListener('change',()=>{
+     const opt=raceSelect.options[raceSelect.selectedIndex];
+     if(opt?.dataset?.division) divisionSelect.value=opt.dataset.division;
+   });
+ }
 }
+
 function saveLoanAgreement(existingId=''){
  if(!requireEditor())return;
- const driver=normDriver(document.getElementById('loan-driver')?.value||'');const borrower=document.getElementById('loan-borrower')?.value||'';const source=document.getElementById('loan-source')?.value||'';const season=document.getElementById('loan-season')?.value||seasonState.current;const division=document.getElementById('loan-div')?.value||'Div 2';const fee=parseMoneyValue(document.getElementById('loan-fee')?.value||0);const start=Number(document.getElementById('loan-start')?.value)||1;const end=Number(document.getElementById('loan-end')?.value)||0;const status=document.getElementById('loan-status')?.value||'Aktiv';
- if(!driver||!borrower||fee<=0){toast('Ersatzfahrer, ausleihendes Team und Leihgebühr erforderlich.');return}
- const payload={driver,sourceTeam:source,borrowerTeam:borrower,division,season,fee,startRound:start,endRound:end,status,updatedAt:new Date().toISOString()};
- if(existingId){const i=loanAgreements.findIndex(x=>x.id===existingId);if(i>=0)loanAgreements[i]={...loanAgreements[i],...payload};}
- else loanAgreements.push({id:crypto.randomUUID?crypto.randomUUID():'loan-'+Date.now(),...payload,createdAt:new Date().toISOString()});
- syncLoanTransactions();save();closeModal();renderFinance();renderTeams();toast(existingId?'Leihvereinbarung aktualisiert.':'Ersatzfahrer geliehen · Leihgebühr verbucht.');
+
+ const driver=normDriver(document.getElementById('loan-driver')?.value||'');
+ const borrower=document.getElementById('loan-borrower')?.value||'';
+ const source=document.getElementById('loan-source')?.value||'';
+ const division=document.getElementById('loan-div')?.value||'Div 2';
+ const fee=parseMoneyValue(document.getElementById('loan-fee')?.value||0);
+ const raceId=document.getElementById('loan-race')?.value||'';
+ const status=document.getElementById('loan-status')?.value||'Aktiv';
+
+ const race=raceId ? races[raceId] : null;
+ const start=Number(race?.number||race?.round||1)||1;
+
+ if(!driver||!borrower||!raceId||fee<=0){
+   toast('Fahrer, leihendes Team, Rennen und Leihgebühr sind erforderlich.');
+   return;
+ }
+
+ const payload={
+   driver,
+   sourceTeam:source,
+   borrowerTeam:borrower,
+   division,
+   season:seasonState.current||'02/26',
+   fee,
+   raceId,
+   startRound:start,
+   endRound:0,
+   status,
+   updatedAt:new Date().toISOString()
+ };
+
+ if(existingId){
+   const i=loanAgreements.findIndex(x=>x.id===existingId);
+   if(i>=0)loanAgreements[i]={...loanAgreements[i],...payload};
+ }else{
+   loanAgreements.push({
+     id:crypto.randomUUID?crypto.randomUUID():'loan-'+Date.now(),
+     ...payload,
+     createdAt:new Date().toISOString()
+   });
+ }
+
+ syncLoanTransactions();
+ save();
+ closeModal();
+ renderFinance();
+ renderTeams();
+
+ toast(existingId?'Leihvereinbarung aktualisiert.':'Ersatzfahrer geliehen · Leihgebühr verbucht.');
 }
+
 function syncLoanTransactions(){
  financeTransactions=financeTransactions.filter(t=>t.type!=='replacement_loan'&&t.type!=='replacement_loan_income');
  loanAgreements.filter(l=>l.status!=='Vorläufig'&&Number(l.fee)>0).forEach(l=>{
@@ -1881,10 +2030,74 @@ function openDriverFinance(driverName,season=seasonState.current||'02/26'){
 function refreshDriverFinance(driverName,season){if(!requireEditor())return;syncFinancialRules();save();openDriverFinance(driverName,season);toast('Fahrerfinanzen neu aus Verträgen, Leihen und Rennen berechnet.');}
 function openDriverFinanceOpening(driverName,season){if(!requireEditor())return;const key=normDriver(driverName),current=Number(driverFinanceOpeningBalances[season]?.[key]||0),date=driverFinanceOpeningDates[season]?.[key]||'';document.getElementById('modal-content').innerHTML=`<div class="modal-head"><div><h2>💰 Fahrer-Startkapital</h2><p class="race-edit-note">Persönlicher Anfangsbestand von ${esc(driverName)} für ${esc(season)}. Das Datum erscheint als erste Buchung im Finanzkonto.</p></div><button onclick="openDriverFinance('${esc(driverName)}','${esc(season)}')">×</button></div><div class="new-driver-form"><label>Startkapital<input id="driver-finance-opening-value" value="${current||0}" inputmode="numeric" placeholder="0"></label><label>Datum<input id="driver-finance-opening-date" type="date" value="${esc(date)}"></label></div><div class="modal-actions"><button class="ghost" onclick="openDriverFinance('${esc(driverName)}','${esc(season)}')">Abbrechen</button><button class="primary" onclick="saveDriverFinanceOpening('${esc(driverName)}','${esc(season)}')">✓ Speichern</button></div>`;openModal();}
 function saveDriverFinanceOpening(driverName,season){if(!requireEditor())return;const key=normDriver(driverName),n=parseMoneyValue(document.getElementById('driver-finance-opening-value')?.value||0),date=document.getElementById('driver-finance-opening-date')?.value||'';if(!driverFinanceOpeningBalances[season])driverFinanceOpeningBalances[season]={};if(!driverFinanceOpeningDates[season])driverFinanceOpeningDates[season]={};driverFinanceOpeningBalances[season][key]=n;driverFinanceOpeningDates[season][key]=date;save();toast('Fahrer-Startkapital gespeichert.');openDriverFinance(driverName,season);}
+function loanMatchesRace(loan,race){
+ const lSeason=String(loan?.season||''), rSeason=String(seasonOfRace(race)||'');
+ const lDiv=String(loan?.division||''), rDiv=String(race?.division||'');
+ const round=Number(race?.number||race?.round||0), start=Number(loan?.startRound||0), end=Number(loan?.endRound||start);
+ if(!loan||!race||!lSeason||lSeason!==rSeason||lDiv!==rDiv||!round||!start)return false;
+ return round>=start && round<=(end||start);
+}
+function loanRaceMatches(loan){
+ const rs=seasonRaceList(loan?.season||seasonState.current||'02/26').filter(r=>loanMatchesRace(loan,r));
+ return rs.sort((a,b)=>Number(a.number||a.round||0)-Number(b.number||b.round||0));
+}
+function loanRaceLabel(loan){
+ const rs=loanRaceMatches(loan);
+ if(rs.length){const r=rs[0];return `R${Number(r.number||r.round||0)} · ${esc(r.track||'Rennen')}`;}
+ const start=Number(loan?.startRound||0),end=Number(loan?.endRound||0);
+ return start?(end&&end!==start?`R${start}–R${end}`:`R${start} · offen`):'Noch kein Rennbezug';
+}
+function loanRaceDate(loan){
+ const r=loanRaceMatches(loan)[0];
+ return r?.raceDate?new Date(r.raceDate+'T12:00:00').toLocaleDateString('de-DE'):(loan?.createdAt?new Date(loan.createdAt).toLocaleDateString('de-DE'):'—');
+}
+function renderLoanCenter(mode='drivers'){
+ const el=document.getElementById('loan-center-page');if(!el)return;
+ document.querySelectorAll('.loan-tab').forEach(b=>b.classList.remove('active'));
+ const active=document.getElementById(mode==='teams'?'loan-tab-teams':'loan-tab-drivers');if(active)active.classList.add('active');
+ const season=seasonState.current||'02/26';
+ const period=document.getElementById('loan-period-filter')?.value||'all',div=document.getElementById('loan-div-filter')?.value||'all';
+ const seasonLoans=loanAgreements.filter(l=>String(l.season||season)===String(season));
+ const filtered=seasonLoans.filter(l=>(period==='all'||(period==='active'&&l.status==='Aktiv')||(period==='ended'&&l.status!=='Aktiv'))&&(div==='all'||l.division===div));
+ const controls=`<div class="loan-toolbar"><label>Saison<select><option>${esc(season)}</option></select></label><label>Zeitraum<select id="loan-period-filter" onchange="renderLoanCenter('${mode}')"><option value="all" ${period==='all'?'selected':''}>Alle</option><option value="active" ${period==='active'?'selected':''}>Aktive Leihen</option><option value="ended" ${period==='ended'?'selected':''}>Beendete Leihen</option></select></label><label>Division<select id="loan-div-filter" onchange="renderLoanCenter('${mode}')"><option value="all" ${div==='all'?'selected':''}>Alle</option><option ${div==='Div 1'?'selected':''}>Div 1</option><option ${div==='Div 2'?'selected':''}>Div 2</option></select></label>${isEditor()?'<button class="primary" onclick="openLoanEditor()">➕ Fahrer leihen</button>':''}</div>`;
+ const stats=`<div class="loan-stat-grid"><div><span>Leihvorgänge</span><b>${filtered.length}</b></div><div><span>Teams mit Leihen</span><b>${new Set(filtered.map(l=>l.borrowerTeam).filter(Boolean)).size}</b></div><div><span>Leihgebühren</span><b>${money(filtered.reduce((n,l)=>n+Math.abs(Number(l.fee)||0),0))}</b></div><div><span>Rennen offen</span><b>${filtered.filter(l=>!loanRaceMatches(l).length).length}</b></div></div>`;
+ if(mode==='teams'){
+   const groups={};filtered.forEach(l=>{const t=l.borrowerTeam||'Ohne Team';(groups[t]||(groups[t]=[])).push(l);});
+   const rows=Object.entries(groups).sort((a,b)=>b[1].length-a[1].length||a[0].localeCompare(b[0],'de')).map(([team,ls],i)=>`<div class="loan-team-card"><div class="loan-team-head"><div><span class="loan-rank">${i+1}</span><strong>${esc(team)}</strong></div><div><b>${ls.length}</b> Leihen · <b>${money(ls.reduce((n,l)=>n+Math.abs(Number(l.fee)||0),0))}</b></div></div><div class="loan-team-drivers">${ls.map(l=>`<div class="loan-team-driver"><span><b>${esc(l.driver)}</b><small>${esc(l.division||'—')} · ${esc(l.sourceTeam||'Free Agent')} → ${esc(l.borrowerTeam||'—')}</small></span><strong>${money(l.fee)}</strong>${isEditor()?`<button class="mini-link" onclick="openLoanEditor('${esc(l.id)}')">✏️</button><button class="mini-link loan-delete-btn" onclick="deleteLoanAgreement('${esc(l.id)}')" title="Leihe löschen">🗑️</button>`:''}</div>`).join('')}</div></div>`).join('')||'<div class="empty-race">Keine Leihvereinbarungen in dieser Auswahl.</div>';
+   el.innerHTML=controls+stats+`<div class="loan-section-title">Leihenübersicht · Teams</div><div class="loan-team-list">${rows}</div>`;
+ }else{
+   const rows=filtered.slice().sort((a,b)=>String(b.createdAt||'').localeCompare(String(a.createdAt||''))).map(l=>`<div class="loan-driver-row"><span><b>${esc(l.driver)}</b><small>${esc(l.division||'—')} · ${esc(l.sourceTeam||'Free Agent')} → ${esc(l.borrowerTeam||'—')}</small></span><span>${esc(l.borrowerTeam||'—')}</span><strong>${money(l.fee)}</strong><span>${esc(loanRaceDate(l))}</span><span>${esc(loanRaceLabel(l))}</span><span class="loan-status ${loanRaceMatches(l).length?'is-ok':'is-open'}">${loanRaceMatches(l).length?'Rennen erfasst':'Rennen offen'}</span>${isEditor()?`<button class="mini-link" onclick="openLoanEditor('${esc(l.id)}')">✏️</button><button class="mini-link loan-delete-btn" onclick="deleteLoanAgreement('${esc(l.id)}')" title="Leihe löschen">🗑️</button>`:''}</div>`).join('')||'<div class="empty-race">Keine Leihvereinbarungen in dieser Auswahl.</div>';
+   el.innerHTML=controls+stats+`<div class="loan-section-title">Fahrerübersicht · chronologisch</div><div class="loan-table"><div class="loan-driver-head"><span>Fahrer</span><span>Team</span><span>Geld</span><span>Datum</span><span>Rennen</span><span>Status</span><span></span></div>${rows}</div>`;
+ }
+}
 function openLoanList(teamName=''){
  const season=seasonState.current||'02/26'; const list=loanAgreements.filter(l=>l.season===season&&(!teamName||l.borrowerTeam===teamName||l.sourceTeam===teamName));
- const rows=list.map(l=>`<div class="finance-tx-row"><span>${esc(l.division)}</span><span><b>${esc(l.driver)}</b><small>${esc(l.sourceTeam||'Free Agent')} → ${esc(l.borrowerTeam)} · ${esc(l.status)}</small></span><span>${money(l.fee)}</span>${isEditor()?`<button class="mini-link" onclick="openLoanEditor('${esc(l.id)}')">Bearbeiten</button>`:''}</div>`).join('')||'<div class="empty-race">Keine Ersatzfahrer-Leihen in dieser Saison.</div>';
+ const rows=list.map(l=>`<div class="finance-tx-row"><span>${esc(l.division)}</span><span><b>${esc(l.driver)}</b><small>${esc(l.sourceTeam||'Free Agent')} → ${esc(l.borrowerTeam)} · ${esc(l.status)}</small></span><span>${money(l.fee)}</span>${isEditor()?`<button class="mini-link" onclick="openLoanEditor('${esc(l.id)}')">✏️ Bearbeiten</button><button class="mini-link" onclick="deleteLoanAgreement('${esc(l.id)}')">🗑️ Löschen</button>`:''}</div>`).join('')||'<div class="empty-race">Keine Ersatzfahrer-Leihen in dieser Saison.</div>';
  document.getElementById('modal-content').innerHTML=`<div class="modal-head"><div><h2>🤝 Ersatzfahrer-Leihen · ${esc(teamName||'Alle Teams')}</h2><p class="race-edit-note">Leihgebühren werden als Ausgabe beim ausleihenden Team verbucht.</p></div><button onclick="closeModal()">×</button></div><div class="modal-actions">${isEditor()?'<button class="primary" onclick="openLoanEditor()">➕ Ersatzfahrer leihen</button>':''}</div><div class="finance-ledger">${rows}</div>`;openModal();
+}
+function deleteLoanAgreement(id){
+ if(!requireEditor())return;
+ const loan=loanAgreements.find(x=>String(x.id)===String(id));
+ if(!loan){
+  toast('Leihvereinbarung nicht gefunden.');
+  return;
+ }
+
+ if(!confirm(`⚠️ Leihvereinbarung löschen?
+
+${loan.driver||'Fahrer'}
+${loan.sourceTeam||'Free Agent'} → ${loan.borrowerTeam||'—'}
+${money(loan.fee||0)}
+
+Die zugehörigen automatischen Finanzbuchungen werden ebenfalls entfernt.`))return;
+
+ loanAgreements=loanAgreements.filter(x=>String(x.id)!==String(id));
+ syncLoanTransactions();
+ save();
+ renderFinance();
+ renderTeams();
+ toast('Leihvereinbarung gelöscht.');
+ openLoanList();
 }
 function syncFinancialRules(){
   // Rebuild all automatically derived financial entries from authoritative sources.
@@ -2558,7 +2771,14 @@ function openDriverContracts(driverName){
  const rows=list.length?list.map(c=>`<div class="contract-row"><span><b>${esc(c.season||'—')}</b> · ${esc(c.team||'—')}</span><span>${esc(c.division||'—')}</span><span>${esc(c.startDate||'—')} → ${esc(c.endDate||'—')}</span><button class="mini-link" onclick="openContractViewer('${esc(c.id)}')">👁️ Ansehen</button>${isEditor()?`<button class="mini-link" onclick="openContractEditor('${esc(c.driver)}','${esc(c.id)}')">✏️ Bearbeiten</button>`:''}</div>`).join(''):'<div class="empty-race">Noch kein Vertrag gespeichert.</div>';
  document.getElementById('modal-content').innerHTML=`<div class="modal-head"><div><h2>📄 Verträge · ${esc(driverName)}</h2><p class="race-edit-note">Gespeicherte Verträge bleiben hier jederzeit einsehbar und bearbeitbar.</p></div><button onclick="closeModal()">×</button></div><div class="contract-history">${rows}</div><div class="modal-actions">${isEditor()?`<button class="primary" onclick="openContractEditor('${esc(driverName)}')">➕ Vertrag hinzufügen</button>`:''}<button class="ghost" onclick="closeModal()">Fertig</button></div>`;openModal();
 }
-function openDriver(name){if(!name)return;const c=calcDriver(name),s=driverRaceStats(name),history=getMarketHistory(name,c.mw),team=driverTeam(name)||'Free Agent',vehicles=driverVehicleHistory(name),finishRate=s.races?((s.races-s.dnf-s.dsq)/s.races*100):0;document.getElementById('driver-profile').innerHTML=`<div class="profile-card"><div class="profile-headline"><div><div class="eyebrow">FAHRERAKTE · AKTUELLER STAND</div><div class="profile-name">${esc(normDriver(name))} ${driverFlag(name)?`<img class="driver-flag" src="${driverFlag(name)}" alt="${esc(nationalityInfo(name)?.name||'Nationalität')}" title="${esc(nationalityInfo(name)?.name||'Nationalität')}">`:nationalityInfo(name)?`<span class="driver-nationality-fallback" title="${esc(nationalityInfo(name).name)}">${nationalityInfo(name).emoji}</span>`:''} ${driverNumber(name)?`<span class="driver-number-badge">#${driverNumber(name)}</span>`:''}</div><div class="profile-sub">${nationalityLabel(name)?esc(nationalityLabel(name))+' · ':''}${esc(team)} · ${esc(currentDivision(name))} · ${esc(getStatus(name))} · ${driverRoleLabel(name)}</div></div><div class="profile-select"><button class="ghost mini-edit" onclick="openDriverFinance('${esc(name)}')">💰 Finanzen</button><button class="ghost mini-edit" onclick="openDriverContracts('${esc(name)}')">📄 Vertrag</button></div><button class="ghost mini-edit" onclick="openDriverEditor('${esc(name)}')">✏️ Bearbeiten</button></div><div class="profile-hero"><img class="profile-team-car-image" src="${esc(driverStatusImage(name))}" alt="${esc(team)} Fahrzeug"><div class="profile-main"><div class="avatar">♙</div><div><div class="profile-teamline">${esc(team)}</div><div class="profile-car-inline"><img src="${driverStatusImage(name)}" onerror="this.style.display='none'"><span>aktuelles Fahrzeug</span></div></div></div><div class="profile-score-side"><div class="current-rating"><span>OVA · GESAMT</span><b>${c.ova}</b></div><div class="profile-ratings">${[['REN',c.ren],['PER',c.per],['TEM',c.tem],['AMK',c.amk],['ERF',c.erf]].map(x=>`<div class="rating"><span>${x[0]}</span><b>${x[1]}</b></div>`).join('')}</div></div></div><div class="market-wrap"><div><h3>📈 Marktwert-Entwicklung</h3><div class="chart">${marketChart(history)}</div></div><div class="market-current"><span>Aktueller Marktwert</span><strong>${money(c.mw)}</strong><div class="history-list">${history.map(h=>`<div>${esc(h.label)}: ${money(h.value)}</div>`).join('')}</div></div></div>${renderDriverLicenseCard(name)}<div class="profile-sections"><div class="profile-section"><h3>Erfolge</h3>${metric('Siege',s.wins)}${metric('Podien',s.podiums)}${metric('P4–P6',validCount(name,4,6))}${metric('P7–P10',validCount(name,7,10))}${metric('P11–P15',validCount(name,11,15))}</div><div class="profile-section"><h3>Rennleistung</h3>${metric('Positionsgewinne',s.gained)}${metric('Positionsverluste',s.lost)}${metric('Fahrer des Tages',countHighlight(name,'dotd'))}${metric('Meiste Überholmanöver',countHighlight(name,'overtakes'))}${metric('Start / Ziel gleich',s.same)}${metric('Ø Platzierung',s.avgPos?s.avgPos.toFixed(1).replace('.',','):'—')}</div><div class="profile-section"><h3>Zuverlässigkeit</h3>${metric('Rennen',s.races)}${metric('DNF',s.dnf)}${metric('DSQ',s.dsq)}${metric('TL',s.tl)}${metric('Nachträgliche Strafen',s.postPenalty)}${metric('Zielankunftsquote',finishRate.toFixed(2).replace('.',',')+'%')}</div></div><div class="profile-sections"><div class="profile-section"><h3>Qualifying</h3>${metric('Poles','—')}${metric('Top 3 Quali','—')}${metric('Ø Startposition',s.avgGrid?s.avgGrid.toFixed(1).replace('.',','):'—')}</div><div class="profile-section"><h3>Fahrerprofil</h3>${metric('Karrierephase',careerPhase(s.races))}${metric('DNA',driverDNA(c))}${metric('Stärke',strength(c))}</div><div class="profile-section vehicle-section"><h3>Gefahrene Fahrzeuge</h3><div class="vehicle-history">${vehicles.length?vehicles.map(v=>`<div class="vehicle-chip"><img src="${driverCar(v.team)}"><span>${esc(v.team)}</span><b>${v.count}×</b></div>`).join(''):'<span class="muted">Noch keine Renndaten</span>'}</div></div></div><div class="profile-section race-history-section"><div class="section-inline"><h3>🏁 Rennhistorie &amp; Strecken</h3></div>${renderDriverRaceHistory(name)}</div><div class="profile-section contract-section"><div class="section-inline"><h3>📋 Verträge &amp; Teamhistorie</h3>${isEditor()?`<button class="ghost mini-edit" onclick="openContractEditor('${esc(name)}')">➕ Vertrag</button>`:''}</div><div class="contract-history">${contractHistory(name).length?contractHistory(name).map(c=>{const isContract=c.source==='contract';return `<div class="contract-row"><span><b>${esc(c.season||'—')}</b> · ${esc(c.team||'—')}</span><span>${esc(c.division||'—')}</span><span>${isContract?'Vertrag gespeichert':'Rennhistorie'}</span><span>${c.salary||c.value?esc(c.salary||c.value):'—'}</span>${isContract&&isEditor()?`<button class="mini-link" onclick="openContractEditor('${esc(c.driver)}','${esc(c.id)}')">✏️ Ansehen / Bearbeiten</button><button class="mini-link" onclick="deleteContract('${esc(c.id)}')">Löschen</button>`:''}</div>`;}).join(''):'<span class="muted">Noch keine Vertrags-/Teamhistorie vorhanden.</span>'}</div></div></div></div>`}
+function driverProfileImage(name){
+ const n=normDriver(name);
+ if(n===normDriver('SchattnKraehe')){
+   return `<img class="driver-avatar-image" src="driver-schattnkraehe.png" alt="SchattnKraehe Fahrerbild" onerror="this.parentElement.innerHTML='♙'">`;
+ }
+ return '♙';
+}
+function openDriver(name){if(!name)return;const c=calcDriver(name),s=driverRaceStats(name),history=getMarketHistory(name,c.mw),team=driverTeam(name)||'Free Agent',vehicles=driverVehicleHistory(name),finishRate=s.races?((s.races-s.dnf-s.dsq)/s.races*100):0;document.getElementById('driver-profile').innerHTML=`<div class="profile-card"><div class="profile-headline"><div><div class="eyebrow">FAHRERAKTE · AKTUELLER STAND</div><div class="profile-name">${esc(normDriver(name))} ${driverFlag(name)?`<img class="driver-flag" src="${driverFlag(name)}" alt="${esc(nationalityInfo(name)?.name||'Nationalität')}" title="${esc(nationalityInfo(name)?.name||'Nationalität')}">`:nationalityInfo(name)?`<span class="driver-nationality-fallback" title="${esc(nationalityInfo(name).name)}">${nationalityInfo(name).emoji}</span>`:''} ${driverNumber(name)?`<span class="driver-number-badge">#${driverNumber(name)}</span>`:''}</div><div class="profile-sub">${nationalityLabel(name)?esc(nationalityLabel(name))+' · ':''}${esc(team)} · ${esc(currentDivision(name))} · ${esc(getStatus(name))} · ${driverRoleLabel(name)}</div></div><div class="profile-select"><button class="ghost mini-edit" onclick="openDriverFinance('${esc(name)}')">💰 Finanzen</button><button class="ghost mini-edit" onclick="openDriverContracts('${esc(name)}')">📄 Vertrag</button></div><button class="ghost mini-edit" onclick="openDriverEditor('${esc(name)}')">✏️ Bearbeiten</button></div><div class="profile-hero"><img class="profile-team-car-image" src="${esc(driverStatusImage(name))}" alt="${esc(team)} Fahrzeug"><div class="profile-main"><div class="avatar driver-avatar">${driverProfileImage(name)}</div><div><div class="profile-teamline">${esc(team)}</div><div class="profile-car-inline"><img src="${driverStatusImage(name)}" onerror="this.style.display='none'"><span>aktuelles Fahrzeug</span></div></div></div><div class="profile-score-side"><div class="current-rating"><span>OVA · GESAMT</span><b>${c.ova}</b></div><div class="profile-ratings">${[['REN',c.ren],['PER',c.per],['TEM',c.tem],['AMK',c.amk],['ERF',c.erf]].map(x=>`<div class="rating"><span>${x[0]}</span><b>${x[1]}</b></div>`).join('')}</div></div></div><div class="market-wrap"><div><h3>📈 Marktwert-Entwicklung</h3><div class="chart">${marketChart(history)}</div></div><div class="market-current"><span>Aktueller Marktwert</span><strong>${money(c.mw)}</strong><div class="history-list">${history.map(h=>`<div>${esc(h.label)}: ${money(h.value)}</div>`).join('')}</div></div></div>${renderDriverLicenseCard(name)}<div class="profile-sections"><div class="profile-section"><h3>Erfolge</h3>${metric('Siege',s.wins)}${metric('Podien',s.podiums)}${metric('P4–P6',validCount(name,4,6))}${metric('P7–P10',validCount(name,7,10))}${metric('P11–P15',validCount(name,11,15))}</div><div class="profile-section"><h3>Rennleistung</h3>${metric('Positionsgewinne',s.gained)}${metric('Positionsverluste',s.lost)}${metric('Fahrer des Tages',countHighlight(name,'dotd'))}${metric('Meiste Überholmanöver',countHighlight(name,'overtakes'))}${metric('Start / Ziel gleich',s.same)}${metric('Ø Platzierung',s.avgPos?s.avgPos.toFixed(1).replace('.',','):'—')}</div><div class="profile-section"><h3>Zuverlässigkeit</h3>${metric('Rennen',s.races)}${metric('DNF',s.dnf)}${metric('DSQ',s.dsq)}${metric('TL',s.tl)}${metric('Nachträgliche Strafen',s.postPenalty)}${metric('Zielankunftsquote',finishRate.toFixed(2).replace('.',',')+'%')}</div></div><div class="profile-sections"><div class="profile-section"><h3>Qualifying</h3>${metric('Poles','—')}${metric('Top 3 Quali','—')}${metric('Ø Startposition',s.avgGrid?s.avgGrid.toFixed(1).replace('.',','):'—')}</div><div class="profile-section"><h3>Fahrerprofil</h3>${metric('Karrierephase',careerPhase(s.races))}${metric('DNA',driverDNA(c))}${metric('Stärke',strength(c))}</div><div class="profile-section vehicle-section"><h3>Gefahrene Fahrzeuge</h3><div class="vehicle-history">${vehicles.length?vehicles.map(v=>`<div class="vehicle-chip"><img src="${driverCar(v.team)}"><span>${esc(v.team)}</span><b>${v.count}×</b></div>`).join(''):'<span class="muted">Noch keine Renndaten</span>'}</div></div></div><div class="profile-section race-history-section"><div class="section-inline"><h3>🏁 Rennhistorie &amp; Strecken</h3></div>${renderDriverRaceHistory(name)}</div><div class="profile-section contract-section"><div class="section-inline"><h3>📋 Verträge &amp; Teamhistorie</h3>${isEditor()?`<button class="ghost mini-edit" onclick="openContractEditor('${esc(name)}')">➕ Vertrag</button>`:''}</div><div class="contract-history">${contractHistory(name).length?contractHistory(name).map(c=>{const isContract=c.source==='contract';return `<div class="contract-row"><span><b>${esc(c.season||'—')}</b> · ${esc(c.team||'—')}</span><span>${esc(c.division||'—')}</span><span>${isContract?'Vertrag gespeichert':'Rennhistorie'}</span><span>${c.salary||c.value?esc(c.salary||c.value):'—'}</span>${isContract&&isEditor()?`<button class="mini-link" onclick="openContractEditor('${esc(c.driver)}','${esc(c.id)}')">✏️ Ansehen / Bearbeiten</button><button class="mini-link" onclick="deleteContract('${esc(c.id)}')">Löschen</button>`:''}</div>`;}).join(''):'<span class="muted">Noch keine Vertrags-/Teamhistorie vorhanden.</span>'}</div></div></div></div>`}
 function metric(label,value){return `<div class="metric-row"><span>${esc(label)}</span><b>${esc(value)}</b></div>`}
 function validCount(name,min,max){return raceList().flatMap(r=>r.results.map((x,i)=>normDriver(x.name)===normDriver(name)?i+1:null)).filter(p=>p&&p>=min&&p<=max).length}
 function countHighlight(name,key){return raceList().filter(r=>normDriver(r.highlights?.[key]||'')===normDriver(name)).length}
