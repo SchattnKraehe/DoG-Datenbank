@@ -1769,7 +1769,6 @@ function openLoanEditor(existingId=''){
 
    <div class="modal-actions">
      <button class="ghost" onclick="closeModal()">Abbrechen</button>
-     ${ex?`<button class="danger" onclick="deleteLoanAgreement('${esc(existingId)}')">🗑️ Leihvereinbarung löschen</button>`:''}
      <button class="primary" onclick="saveLoanAgreement('${esc(existingId)}')">
        ✓ Leihvereinbarung speichern
      </button>
@@ -1843,10 +1842,43 @@ function saveLoanAgreement(existingId=''){
 
 function syncLoanTransactions(){
  financeTransactions=financeTransactions.filter(t=>t.type!=='replacement_loan'&&t.type!=='replacement_loan_income');
+
  loanAgreements.filter(l=>l.status!=='Vorläufig'&&Number(l.fee)>0).forEach(l=>{
    const fee=Math.abs(Number(l.fee));
-   {const tx=financeTxApplyOverride({id:`loan_${l.id}`,season:l.season,team:l.borrowerTeam,driver:l.driver,description:`Ersatzfahrer-Leihe · ${l.driver}${l.sourceTeam?' von '+l.sourceTeam:''}`,type:'replacement_loan',amount:-fee,date:l.createdAt||new Date().toISOString(),loanId:l.id});if(tx)financeTransactions.push(tx);}
-   {const tx=financeTxApplyOverride({id:`loan_income_${l.id}`,season:l.season,team:'',driver:l.driver,description:`Ersatzfahrer-Leihe erhalten · ${l.borrowerTeam}`,type:'replacement_loan_income',amount:fee,date:l.createdAt||new Date().toISOString(),loanId:l.id});if(tx)financeTransactions.push(tx);}
+   const race=l.raceId ? races[l.raceId] : null;
+   const loanDate=race?.raceDate
+     ? new Date(race.raceDate+'T12:00:00').toISOString()
+     : (l.createdAt||new Date().toISOString());
+
+   {
+     const tx=financeTxApplyOverride({
+       id:`loan_${l.id}`,
+       season:l.season,
+       team:l.borrowerTeam,
+       driver:'',
+       description:`Ersatzfahrer-Leihe · ${l.driver}${l.sourceTeam?' von '+l.sourceTeam:''}`,
+       type:'replacement_loan',
+       amount:-fee,
+       date:loanDate,
+       loanId:l.id
+     });
+     if(tx)financeTransactions.push(tx);
+   }
+
+   {
+     const tx=financeTxApplyOverride({
+       id:`loan_income_${l.id}`,
+       season:l.season,
+       team:'',
+       driver:l.driver,
+       description:`Ersatzfahrer-Leihe erhalten · ${l.borrowerTeam}`,
+       type:'replacement_loan_income',
+       amount:fee,
+       date:loanDate,
+       loanId:l.id
+     });
+     if(tx)financeTransactions.push(tx);
+   }
  });
 }
 function syncDriverContractFinance(c){
@@ -2063,10 +2095,10 @@ function renderLoanCenter(mode='drivers'){
  const stats=`<div class="loan-stat-grid"><div><span>Leihvorgänge</span><b>${filtered.length}</b></div><div><span>Teams mit Leihen</span><b>${new Set(filtered.map(l=>l.borrowerTeam).filter(Boolean)).size}</b></div><div><span>Leihgebühren</span><b>${money(filtered.reduce((n,l)=>n+Math.abs(Number(l.fee)||0),0))}</b></div><div><span>Rennen offen</span><b>${filtered.filter(l=>!loanRaceMatches(l).length).length}</b></div></div>`;
  if(mode==='teams'){
    const groups={};filtered.forEach(l=>{const t=l.borrowerTeam||'Ohne Team';(groups[t]||(groups[t]=[])).push(l);});
-   const rows=Object.entries(groups).sort((a,b)=>b[1].length-a[1].length||a[0].localeCompare(b[0],'de')).map(([team,ls],i)=>`<div class="loan-team-card"><div class="loan-team-head"><div><span class="loan-rank">${i+1}</span><strong>${esc(team)}</strong></div><div><b>${ls.length}</b> Leihen · <b>${money(ls.reduce((n,l)=>n+Math.abs(Number(l.fee)||0),0))}</b></div></div><div class="loan-team-drivers">${ls.map(l=>`<div class="loan-team-driver"><span><b>${esc(l.driver)}</b><small>${esc(l.division||'—')} · ${esc(l.sourceTeam||'Free Agent')} → ${esc(l.borrowerTeam||'—')}</small></span><strong>${money(l.fee)}</strong>${isEditor()?`<button class="mini-link" onclick="openLoanEditor('${esc(l.id)}')">✏️</button><button class="mini-link loan-delete-btn" onclick="deleteLoanAgreement('${esc(l.id)}')" title="Leihe löschen">🗑️</button>`:''}</div>`).join('')}</div></div>`).join('')||'<div class="empty-race">Keine Leihvereinbarungen in dieser Auswahl.</div>';
+   const rows=Object.entries(groups).sort((a,b)=>b[1].length-a[1].length||a[0].localeCompare(b[0],'de')).map(([team,ls],i)=>`<div class="loan-team-card"><div class="loan-team-head"><div><span class="loan-rank">${i+1}</span><strong>${esc(team)}</strong></div><div><b>${ls.length}</b> Leihen · <b>${money(ls.reduce((n,l)=>n+Math.abs(Number(l.fee)||0),0))}</b></div></div><div class="loan-team-drivers">${ls.map(l=>`<div class="loan-team-driver"><span><b>${esc(l.driver)}</b><small>${esc(l.division||'—')} · ${esc(l.sourceTeam||'Free Agent')} → ${esc(l.borrowerTeam||'—')}</small></span><strong>${money(l.fee)}</strong>${isEditor()?`<button class="mini-link" onclick="openLoanEditor('${esc(l.id)}')">✏️</button>`:''}</div>`).join('')}</div></div>`).join('')||'<div class="empty-race">Keine Leihvereinbarungen in dieser Auswahl.</div>';
    el.innerHTML=controls+stats+`<div class="loan-section-title">Leihenübersicht · Teams</div><div class="loan-team-list">${rows}</div>`;
  }else{
-   const rows=filtered.slice().sort((a,b)=>String(b.createdAt||'').localeCompare(String(a.createdAt||''))).map(l=>`<div class="loan-driver-row"><span><b>${esc(l.driver)}</b><small>${esc(l.division||'—')} · ${esc(l.sourceTeam||'Free Agent')} → ${esc(l.borrowerTeam||'—')}</small></span><span>${esc(l.borrowerTeam||'—')}</span><strong>${money(l.fee)}</strong><span>${esc(loanRaceDate(l))}</span><span>${esc(loanRaceLabel(l))}</span><span class="loan-status ${loanRaceMatches(l).length?'is-ok':'is-open'}">${loanRaceMatches(l).length?'Rennen erfasst':'Rennen offen'}</span>${isEditor()?`<button class="mini-link" onclick="openLoanEditor('${esc(l.id)}')">✏️</button><button class="mini-link loan-delete-btn" onclick="deleteLoanAgreement('${esc(l.id)}')" title="Leihe löschen">🗑️</button>`:''}</div>`).join('')||'<div class="empty-race">Keine Leihvereinbarungen in dieser Auswahl.</div>';
+   const rows=filtered.slice().sort((a,b)=>String(b.createdAt||'').localeCompare(String(a.createdAt||''))).map(l=>`<div class="loan-driver-row"><span><b>${esc(l.driver)}</b><small>${esc(l.division||'—')} · ${esc(l.sourceTeam||'Free Agent')} → ${esc(l.borrowerTeam||'—')}</small></span><span>${esc(l.borrowerTeam||'—')}</span><strong>${money(l.fee)}</strong><span>${esc(loanRaceDate(l))}</span><span>${esc(loanRaceLabel(l))}</span><span class="loan-status ${loanRaceMatches(l).length?'is-ok':'is-open'}">${loanRaceMatches(l).length?'Rennen erfasst':'Rennen offen'}</span>${isEditor()?`<button class="mini-link" onclick="openLoanEditor('${esc(l.id)}')">✏️</button>`:''}</div>`).join('')||'<div class="empty-race">Keine Leihvereinbarungen in dieser Auswahl.</div>';
    el.innerHTML=controls+stats+`<div class="loan-section-title">Fahrerübersicht · chronologisch</div><div class="loan-table"><div class="loan-driver-head"><span>Fahrer</span><span>Team</span><span>Geld</span><span>Datum</span><span>Rennen</span><span>Status</span><span></span></div>${rows}</div>`;
  }
 }
@@ -2074,30 +2106,6 @@ function openLoanList(teamName=''){
  const season=seasonState.current||'02/26'; const list=loanAgreements.filter(l=>l.season===season&&(!teamName||l.borrowerTeam===teamName||l.sourceTeam===teamName));
  const rows=list.map(l=>`<div class="finance-tx-row"><span>${esc(l.division)}</span><span><b>${esc(l.driver)}</b><small>${esc(l.sourceTeam||'Free Agent')} → ${esc(l.borrowerTeam)} · ${esc(l.status)}</small></span><span>${money(l.fee)}</span>${isEditor()?`<button class="mini-link" onclick="openLoanEditor('${esc(l.id)}')">✏️ Bearbeiten</button><button class="mini-link" onclick="deleteLoanAgreement('${esc(l.id)}')">🗑️ Löschen</button>`:''}</div>`).join('')||'<div class="empty-race">Keine Ersatzfahrer-Leihen in dieser Saison.</div>';
  document.getElementById('modal-content').innerHTML=`<div class="modal-head"><div><h2>🤝 Ersatzfahrer-Leihen · ${esc(teamName||'Alle Teams')}</h2><p class="race-edit-note">Leihgebühren werden als Ausgabe beim ausleihenden Team verbucht.</p></div><button onclick="closeModal()">×</button></div><div class="modal-actions">${isEditor()?'<button class="primary" onclick="openLoanEditor()">➕ Ersatzfahrer leihen</button>':''}</div><div class="finance-ledger">${rows}</div>`;openModal();
-}
-function deleteLoanAgreement(id){
- if(!requireEditor())return;
- const loan=loanAgreements.find(x=>String(x.id)===String(id));
- if(!loan){
-  toast('Leihvereinbarung nicht gefunden.');
-  return;
- }
-
- if(!confirm(`⚠️ Leihvereinbarung löschen?
-
-${loan.driver||'Fahrer'}
-${loan.sourceTeam||'Free Agent'} → ${loan.borrowerTeam||'—'}
-${money(loan.fee||0)}
-
-Die zugehörigen automatischen Finanzbuchungen werden ebenfalls entfernt.`))return;
-
- loanAgreements=loanAgreements.filter(x=>String(x.id)!==String(id));
- syncLoanTransactions();
- save();
- renderFinance();
- renderTeams();
- toast('Leihvereinbarung gelöscht.');
- openLoanList();
 }
 function syncFinancialRules(){
   // Rebuild all automatically derived financial entries from authoritative sources.
