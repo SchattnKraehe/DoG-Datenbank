@@ -1454,7 +1454,6 @@ function saveDriverEditor(oldName){
   contracts:snapshot.contracts.length,
   transfers:snapshot.transferRecords.length,
   loans:snapshot.loanAgreements.length,
-  finance:snapshot.financeTransactions.length,
   licenses:Object.keys(snapshot.driverLicenses).reduce((n,s)=>n+Object.keys(snapshot.driverLicenses[s]||{}).length,0),
   raceResults:snapshot.races?Object.values(snapshot.races).reduce((n,r)=>n+(r.results||[]).length,0):0
 };
@@ -1464,7 +1463,6 @@ const afterCounts={
   contracts:contracts.length,
   transfers:transferRecords.length,
   loans:loanAgreements.length,
-  finance:financeTransactions.length,
   licenses:Object.keys(driverLicenses).reduce((n,s)=>n+Object.keys(driverLicenses[s]||{}).length,0),
   raceResults:Object.values(races).reduce((n,r)=>n+(r.results||[]).length,0)
 };
