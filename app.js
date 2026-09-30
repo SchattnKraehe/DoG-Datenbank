@@ -1449,16 +1449,25 @@ function saveDriverEditor(oldName){
      const newSponsor=driverSponsorEntity(newName,newMeta.sponsorInfo?.season||seasonState.current||'02/26');
      if(newSponsor)ensureSponsorPayment(newSponsor,'upfront','start',SPONSOR_OPTIONS[sponsorName].upfront,sponsorUpfrontDate(newSponsor));
    }
-   const beforeCounts={
-     drivers:snapshot.drivers.length,contracts:snapshot.contracts.length,transfers:snapshot.transferRecords.length,loans:snapshot.loanAgreements.length,finance:snapshot.financeTransactions.length,
-     sponsorKeys:Object.keys(snapshot.sponsorPayments).length,licenses:Object.keys(snapshot.driverLicenses).reduce((n,s)=>n+Object.keys(snapshot.driverLicenses[s]||{}).length,0),
-     raceResults:snapshot.races?Object.values(snapshot.races).reduce((n,r)=>n+(r.results||[]).length,0):0
-   };
-   const afterCounts={
-     drivers:drivers.length,contracts:contracts.length,transfers:transferRecords.length,loans:loanAgreements.length,finance:financeTransactions.length,
-     sponsorKeys:Object.keys(sponsorPayments).length,licenses:Object.keys(driverLicenses).reduce((n,s)=>n+Object.keys(driverLicenses[s]||{}).length,0),
-     raceResults:Object.values(races).reduce((n,r)=>n+(r.results||[]).length,0)
-   };
+  const beforeCounts={
+  drivers:snapshot.drivers.length,
+  contracts:snapshot.contracts.length,
+  transfers:snapshot.transferRecords.length,
+  loans:snapshot.loanAgreements.length,
+  finance:snapshot.financeTransactions.length,
+  licenses:Object.keys(snapshot.driverLicenses).reduce((n,s)=>n+Object.keys(snapshot.driverLicenses[s]||{}).length,0),
+  raceResults:snapshot.races?Object.values(snapshot.races).reduce((n,r)=>n+(r.results||[]).length,0):0
+};
+
+const afterCounts={
+  drivers:drivers.length,
+  contracts:contracts.length,
+  transfers:transferRecords.length,
+  loans:loanAgreements.length,
+  finance:financeTransactions.length,
+  licenses:Object.keys(driverLicenses).reduce((n,s)=>n+Object.keys(driverLicenses[s]||{}).length,0),
+  raceResults:Object.values(races).reduce((n,r)=>n+(r.results||[]).length,0)
+};
    if(JSON.stringify(beforeCounts)!==JSON.stringify(afterCounts))throw new Error('Sicherheitsprüfung: Beim Umbenennen wurde eine Datenanzahl verändert.');
    const saveButtons=[...document.querySelectorAll('#modal-content button')];saveButtons.forEach(b=>b.disabled=true);
    save().then(ok=>{
