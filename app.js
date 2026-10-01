@@ -2886,8 +2886,27 @@ async function loginAdmin(){
    if(snapshot.owner_id){
      cloudOwnerId=snapshot.owner_id;cloudReady=true;
      if(snapshot.state&&typeof snapshot.state==='object'){
-       applyCloudState(snapshot.state);markCloudDataUpdatedAt(snapshot.updated_at||'');saveLocalCache(false,snapshot.updated_at||'');renderAll();
-     }
+  const localTs=localDataUpdatedAt();
+  const cloudTs=snapshot.updated_at||'';
+  const localMs=Date.parse(localTs);
+  const cloudMs=Date.parse(cloudTs);
+
+  if(
+    Number.isFinite(localMs)&&
+    Number.isFinite(cloudMs)&&
+    localMs>cloudMs&&
+    cloudUser&&
+    snapshot.owner_id===cloudUser.id
+  ){
+    console.warn('DoG RaceHub Cloud: Lokaler Stand ist neuer als die Cloud. Lokale Daten werden geschützt.');
+    await cloudSave();
+  }else{
+    applyCloudState(snapshot.state);
+    markCloudDataUpdatedAt(cloudTs);
+    saveLocalCache(false,cloudTs);
+    requestAnimationFrame(()=>renderAll());
+  }
+}
    }
  }catch(e){console.error('DoG RaceHub Cloud login load',e);toast('Cloud-Daten konnten nach der Anmeldung nicht gelesen werden.');return}
  cloudOwner=!!cloudUser&&!!cloudOwnerId&&cloudUser.id===cloudOwnerId;editor=cloudOwner;updateEditorUI();
