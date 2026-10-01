@@ -68,7 +68,7 @@
 
 
 /* v1.70 – DoG Logo-Farbwelt + Fahrervergleich */
-:root{--accent:#e3262e;--gold:#f0c75e;--line:#4a2528;--ok:#6fdf9a;--danger:#ff6478}
+:root{--accent:#d4af37;--gold:#f0c75e;--line:#4a2528;--ok:#6fdf9a;--danger:#ff6478}
 body{background:radial-gradient(circle at 70% 10%,#321417 0,#090b0e 43%,#050607 100%)}
 .brand-mark{background:linear-gradient(135deg,#111,#5b1116);border:1px solid #6f2026}
 .nav:hover,.nav.active{background:#291316}.nav.active{box-shadow:inset 3px 0 var(--accent)}
@@ -88,7 +88,7 @@ body{background:radial-gradient(circle at 70% 10%,#321417 0,#090b0e 43%,#050607 
 
 
 /* v1.71 – finale DoG Optik: Schwarz / Weiß / Rot + Fahrernummern */
-:root{--bg:#070707;--panel:#0e0e10;--panel2:#151517;--line:#3a2023;--text:#f5f5f5;--muted:#9b9b9f;--accent:#e3262e;--gold:#f0c75e;--danger:#ff4d57;--ok:#65d78b}
+:root{--bg:#070707;--panel:#0e0e10;--panel2:#151517;--line:#3a2023;--text:#f5f5f5;--muted:#9b9b9f;--accent:#d4af37;--gold:#f0c75e;--danger:#ff4d57;--ok:#65d78b}
 body{background:radial-gradient(circle at 75% 0%,#2a0c10 0,#0a0a0b 38%,#050505 100%)}
 .sidebar{background:rgba(5,5,6,.98);border-right:1px solid #2d1619}.brand-mark{background:linear-gradient(135deg,#101010,#310b0f);border:1px solid #6d1d23}.brand span{color:#777}
 .nav{color:#a9a9ad}.nav:hover,.nav.active{background:linear-gradient(90deg,#2a0d10,#12090a);color:#fff}.nav.active{box-shadow:inset 3px 0 var(--accent),0 0 18px rgba(227,38,46,.08)}
@@ -133,7 +133,7 @@ body{font-family:Inter,Segoe UI,Arial,sans-serif;background:radial-gradient(elli
 @media(max-width:760px){.sidebar{position:relative;width:100%;height:auto;min-height:0;flex-direction:row;align-items:center}.app{display:block}.brand{height:70px;width:90px}.brand-mark{width:70px;height:65px}.nav-group{display:none}.sidebar-foot{display:none}.main{margin-left:0;width:100%;padding:0 10px 20px}.racehub-page-hero{margin:0 -10px 12px;height:130px}.rh-hero-car{width:62%;right:-5%;bottom:-18px;opacity:.7}.driver-toolbar{grid-template-columns:1fr 1fr}.driver-toolbar .primary{grid-column:1/-1;width:100%}.market-wrap,.profile-sections{grid-template-columns:1fr}.profile-score-side{position:relative;right:auto;bottom:auto;margin-left:auto}.profile-main{width:42%}.profile-hero{min-height:210px}.profile-hero:after{width:80%}}
 
 /* v1.76 – Reference dashboard skin */
-:root{--rh-red:#e3262e;--rh-red2:#ff2936;--rh-bg:#060708;--rh-panel:#0e0f10;--rh-line:#3e4043}
+:root{--rh-red:#d4af37;--rh-red2:#ff2936;--rh-bg:#060708;--rh-panel:#0e0f10;--rh-line:#3e4043}
 html,body{background:#050607;min-height:100%}body{font-family:Inter,Segoe UI,Arial,sans-serif;background:radial-gradient(ellipse at 78% 0%,rgba(115,10,18,.2),transparent 34%),linear-gradient(135deg,#08090a,#0b0c0d 45%,#050607)}
 .sidebar{width:220px;padding:10px 8px 14px;background:linear-gradient(#090a0b,#060708);border-right:1px solid #292a2c;box-shadow:10px 0 35px rgba(0,0,0,.45)}
 .brand{height:166px;padding:0;justify-content:center}.brand-mark{width:130px;height:152px;background:transparent;border:0}.brand>div:nth-child(2){display:none}.nav-title{font-size:10px;color:#777}.nav{font-size:13px;padding:11px 13px;border-radius:7px;color:#c9c9cb}.nav.active{background:linear-gradient(90deg,#a8161f,#3e0f13);box-shadow:inset 3px 0 var(--rh-red2),0 0 20px rgba(227,38,46,.1)}.archive-nav{border-top:1px solid #252629;padding-top:8px}.season-box{display:none}.sidebar-foot{font-size:9px;color:#777;margin-top:auto}
@@ -155,7 +155,7 @@ html,body{background:#050607;min-height:100%}body{font-family:Inter,Segoe UI,Ari
 .profile-hero:after{right:1%!important;bottom:-8px!important;width:69%!important;height:225px!important;background-size:contain!important;opacity:.98!important;filter:drop-shadow(0 16px 12px rgba(0,0,0,.9))!important;z-index:1!important}
 .profile-main{width:43%!important;min-width:300px;position:relative;z-index:4;align-self:stretch;display:flex;align-items:flex-end;padding:0 0 4px!important}
 .profile-main:before{content:"FAHRERKARTE  ·  AKTIV";position:absolute;left:0;top:22px;color:#eee;font-size:10px;font-weight:800;letter-spacing:2.2px;font-style:italic}
-.profile-main>div:last-child{padding-bottom:4px}.profile-teamline{font-size:20px!important;color:#fff!important;font-weight:900!important;text-shadow:0 2px 10px #000}.profile-teamline:before{content:"";display:inline-block;width:4px;height:22px;margin-right:10px;background:#e3262e;vertical-align:-5px;box-shadow:0 0 12px rgba(227,38,46,.55)}
+.profile-main>div:last-child{padding-bottom:4px}.profile-teamline{font-size:20px!important;color:#fff!important;font-weight:900!important;text-shadow:0 2px 10px #000}.profile-teamline:before{content:"";display:inline-block;width:4px;height:22px;margin-right:10px;background:#d4af37;vertical-align:-5px;box-shadow:0 0 12px rgba(227,38,46,.55)}
 .profile-score-side{right:18px!important;bottom:17px!important;z-index:5!important;display:block!important}.profile-ratings{display:grid!important;grid-template-columns:repeat(5,58px)!important;gap:7px!important}.profile-ratings .rating{padding:9px 4px!important;background:rgba(8,9,10,.92)!important;border:1px solid #505255!important;border-radius:8px!important;box-shadow:0 6px 16px rgba(0,0,0,.35)}.profile-ratings .rating b{font-size:20px!important;color:#ff2936!important}.profile-ratings .rating span{font-size:8px!important;color:#aaa!important}
 /* Give the center of the hero to the car, while keeping text and ratings clear of it. */
 .profile-hero .profile-main{pointer-events:none}.profile-hero .profile-score-side{pointer-events:auto}
@@ -212,7 +212,7 @@ html,body{background:#050607;min-height:100%}body{font-family:Inter,Segoe UI,Ari
 .license-current,.license-next{border:1px solid #34363a;border-radius:10px;background:#090a0b;padding:13px}
 .license-current{display:flex;flex-direction:column;justify-content:center;min-height:150px}.license-current span,.license-next-head span{font-size:10px;color:#aaa}.license-current strong{font-size:42px;line-height:1.1;margin:8px 0}.license-current small{font-size:10px;color:#888}
 .license-next-head{display:flex;justify-content:space-between;gap:10px;align-items:center;margin-bottom:10px}.license-next-head b{font-size:10px;color:#fff}
-.license-choice{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px}.license-div{padding:10px;border:1px solid #3c3e42;border-radius:8px;background:#111214;color:#ddd;font-weight:800;cursor:pointer}.license-div:hover,.license-div.selected{border-color:#e3262e;background:linear-gradient(135deg,#3a0e12,#151011);box-shadow:inset 0 0 0 1px rgba(227,38,46,.35)}
+.license-choice{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px}.license-div{padding:10px;border:1px solid #3c3e42;border-radius:8px;background:#111214;color:#ddd;font-weight:800;cursor:pointer}.license-div:hover,.license-div.selected{border-color:#d4af37;background:linear-gradient(135deg,#3a0e12,#151011);box-shadow:inset 0 0 0 1px rgba(227,38,46,.35)}
 .license-status{display:grid;grid-template-columns:1fr auto;gap:6px 10px;border-top:1px solid #292b2d;padding-top:9px;font-size:10px}.license-status span{color:#999}.license-status b{color:#fff}.license-status strong{grid-column:1/-1;margin-top:3px;color:#fff;font-size:11px}
 @media(max-width:760px){.license-grid{grid-template-columns:1fr}.license-choice{grid-template-columns:1fr 1fr}.license-next-head{align-items:flex-start;flex-direction:column}}
 .modal textarea{width:100%;box-sizing:border-box;background:#0c0c0e;border:1px solid #44262a;color:#fff;border-radius:8px;padding:10px;font:inherit;resize:vertical}
@@ -509,13 +509,13 @@ html,body{background:#050607;min-height:100%}body{font-family:Inter,Segoe UI,Ari
 }
 
 .loan-toolbar select:hover{
-  border-color:#e3262e;
+  border-color:#d4af37;
 }
 
 .loan-toolbar select:focus{
   outline:none;
-  border-color:#e3262e;
-  box-shadow:0 0 0 2px rgba(227,38,46,.18);
+  border-color:#d4af37;
+  box-shadow:0 0 0 2px rgba(212,175,55,.18);
 }
 
 .loan-toolbar select option{
@@ -944,4 +944,745 @@ html,body{background:#050607;min-height:100%}body{font-family:Inter,Segoe UI,Ari
     width:100%;
     padding:12px 10px 20px;
   }
+}
+
+
+/* =========================================================
+   DoG RaceHub – COLOR PREVIEW V2
+   Premium Motorsport / Neon Racing Look
+   NUR OPTIK – keine JS-/Datenänderungen
+   ========================================================= */
+
+:root{
+  --rh-cyan:#19e8f5;
+  --rh-cyan2:#00a9c2;
+  --rh-red:#ff3048;
+  --rh-red2:#c91532;
+  --rh-gold:#ffd34d;
+  --rh-purple:#9b5cff;
+  --rh-green:#24e58a;
+  --rh-blue:#3d8cff;
+  --rh-bg:#040a0f;
+  --rh-panel:#0a171e;
+  --rh-panel2:#0d222b;
+  --rh-line:#1d4c5b;
+}
+
+/* ===== Gesamtfläche ===== */
+body{
+  background:
+    radial-gradient(circle at 12% 5%,rgba(25,232,245,.13),transparent 24%),
+    radial-gradient(circle at 92% 8%,rgba(155,92,255,.12),transparent 22%),
+    radial-gradient(circle at 50% 55%,rgba(0,169,194,.045),transparent 34%),
+    radial-gradient(circle at 80% 100%,rgba(255,48,72,.08),transparent 30%),
+    linear-gradient(135deg,#03080c,#07131a 45%,#04090e);
+}
+
+/* feines Racing-HUD-Muster */
+.main{
+  position:relative;
+}
+
+.main:before{
+  content:"";
+  position:fixed;
+  inset:0;
+  pointer-events:none;
+  z-index:-1;
+  opacity:.16;
+  background:
+    repeating-linear-gradient(135deg,
+      transparent 0,transparent 48px,
+      rgba(25,232,245,.035) 49px,
+      transparent 50px);
+}
+
+/* ===== Sidebar ===== */
+.sidebar{
+  background:
+    linear-gradient(180deg,rgba(3,9,14,.99),rgba(5,13,18,.97)),
+    radial-gradient(circle at 40% 75%,rgba(25,232,245,.12),transparent 32%);
+  border-right:1px solid rgba(25,232,245,.32);
+  box-shadow:10px 0 45px rgba(0,0,0,.5);
+}
+
+.brand{
+  padding-bottom:22px;
+}
+
+.brand-mark{
+  background:
+    radial-gradient(circle at 30% 20%,#28f3ff,#087584 58%,#062d35);
+  border:1px solid rgba(25,232,245,.75);
+  box-shadow:
+    0 0 18px rgba(25,232,245,.28),
+    inset 0 0 15px rgba(255,255,255,.06);
+}
+
+.brand strong{
+  text-shadow:0 0 18px rgba(25,232,245,.16);
+}
+
+.nav-title{
+  color:#66858f;
+}
+
+.nav-title b{
+  color:var(--rh-cyan);
+  text-shadow:0 0 12px rgba(25,232,245,.25);
+}
+
+.nav{
+  position:relative;
+  overflow:hidden;
+  transition:.18s ease;
+  border:1px solid transparent;
+}
+
+.nav:after{
+  content:"";
+  position:absolute;
+  left:-100%;
+  top:0;
+  width:70%;
+  height:100%;
+  background:linear-gradient(90deg,transparent,rgba(255,255,255,.08),transparent);
+  transition:.35s ease;
+}
+
+.nav:hover:after,
+.nav.active:after{
+  left:130%;
+}
+
+.nav:hover{
+  color:#fff;
+  background:linear-gradient(90deg,rgba(25,232,245,.16),rgba(25,232,245,.025));
+  border-color:rgba(25,232,245,.15);
+  box-shadow:inset 3px 0 var(--rh-cyan),0 0 20px rgba(25,232,245,.07);
+  transform:translateX(2px);
+}
+
+.nav.active{
+  color:#fff;
+  background:
+    linear-gradient(90deg,rgba(25,232,245,.23),rgba(25,232,245,.045));
+  border-color:rgba(25,232,245,.25);
+  box-shadow:
+    inset 4px 0 var(--rh-cyan),
+    0 0 25px rgba(25,232,245,.10);
+}
+
+.archive-nav{
+  border-top:1px solid rgba(25,232,245,.10);
+  padding-top:8px;
+}
+
+.season-box{
+  background:
+    radial-gradient(circle at 90% 10%,rgba(255,211,77,.11),transparent 35%),
+    linear-gradient(145deg,#0c1e27,#071117);
+  border-color:rgba(255,211,77,.38);
+  box-shadow:0 0 25px rgba(255,211,77,.06);
+}
+
+.season-box small{
+  color:var(--rh-gold);
+}
+
+/* ===== Topbar ===== */
+.topbar{
+  position:relative;
+  padding:4px 2px 14px;
+}
+
+.topbar:after{
+  content:"";
+  position:absolute;
+  left:0;
+  right:0;
+  bottom:0;
+  height:2px;
+  background:linear-gradient(90deg,
+    transparent,
+    var(--rh-cyan) 18%,
+    var(--rh-red) 52%,
+    var(--rh-purple) 78%,
+    transparent);
+  opacity:.65;
+  box-shadow:0 0 14px rgba(25,232,245,.18);
+}
+
+.topbar h1{
+  text-transform:uppercase;
+  letter-spacing:.4px;
+  text-shadow:0 0 20px rgba(255,255,255,.06);
+}
+
+.eyebrow{
+  color:var(--rh-cyan);
+  text-shadow:0 0 15px rgba(25,232,245,.25);
+}
+
+/* ===== Hero ===== */
+.hero{
+  min-height:145px;
+  position:relative;
+  overflow:hidden;
+  border-color:rgba(25,232,245,.45);
+  background:
+    radial-gradient(circle at 84% 45%,rgba(25,232,245,.20),transparent 25%),
+    radial-gradient(circle at 10% 100%,rgba(255,48,72,.12),transparent 28%),
+    linear-gradient(115deg,#0c2732,#07131a 60%,#09151d);
+  box-shadow:
+    0 20px 55px rgba(0,0,0,.38),
+    0 0 30px rgba(25,232,245,.07);
+}
+
+.hero:before{
+  content:"";
+  position:absolute;
+  width:420px;
+  height:160px;
+  right:-80px;
+  top:-35px;
+  background:linear-gradient(115deg,transparent,rgba(25,232,245,.10),transparent);
+  transform:skewX(-25deg);
+}
+
+.hero:after{
+  content:"";
+  position:absolute;
+  inset:0;
+  pointer-events:none;
+  background:
+    repeating-linear-gradient(135deg,
+      transparent 0,transparent 35px,
+      rgba(255,255,255,.018) 36px,
+      transparent 37px);
+}
+
+.hero-badge{
+  position:relative;
+  z-index:1;
+  font-size:72px;
+  filter:drop-shadow(0 0 20px rgba(255,211,77,.25));
+}
+
+/* ===== Stat-Karten: bewusst bunt ===== */
+.stats-grid{
+  gap:11px;
+}
+
+.stats-grid .stat{
+  position:relative;
+  overflow:hidden;
+  min-height:92px;
+  background:linear-gradient(145deg,#0e252f,#08141b);
+  border-color:rgba(25,232,245,.35);
+  box-shadow:0 12px 30px rgba(0,0,0,.28);
+  transition:.18s ease;
+}
+
+.stats-grid .stat:before{
+  content:"";
+  position:absolute;
+  width:85px;
+  height:85px;
+  right:-28px;
+  top:-30px;
+  border-radius:50%;
+  background:rgba(25,232,245,.12);
+  filter:blur(2px);
+}
+
+.stats-grid .stat:nth-child(1){
+  border-color:rgba(25,232,245,.60);
+  box-shadow:0 0 22px rgba(25,232,245,.07);
+}
+
+.stats-grid .stat:nth-child(2){
+  border-color:rgba(255,48,72,.58);
+  box-shadow:0 0 22px rgba(255,48,72,.06);
+}
+
+.stats-grid .stat:nth-child(2):before{
+  background:rgba(255,48,72,.12);
+}
+
+.stats-grid .stat:nth-child(3){
+  border-color:rgba(255,211,77,.62);
+  box-shadow:0 0 22px rgba(255,211,77,.06);
+}
+
+.stats-grid .stat:nth-child(3):before{
+  background:rgba(255,211,77,.12);
+}
+
+.stats-grid .stat:nth-child(4){
+  border-color:rgba(155,92,255,.60);
+  box-shadow:0 0 22px rgba(155,92,255,.06);
+}
+
+.stats-grid .stat:nth-child(4):before{
+  background:rgba(155,92,255,.12);
+}
+
+.stats-grid .stat:hover{
+  transform:translateY(-2px);
+}
+
+/* ===== Panels ===== */
+.panel,
+.table-panel,
+.team-card,
+.profile-card,
+.race-card{
+  background:
+    linear-gradient(145deg,rgba(13,31,41,.97),rgba(6,14,20,.98));
+  border-color:rgba(25,232,245,.28);
+  box-shadow:0 13px 35px rgba(0,0,0,.28);
+}
+
+.panel-head{
+  border-bottom:1px solid rgba(25,232,245,.09);
+  padding-bottom:9px;
+}
+
+.panel-head h3,
+.section-head h3{
+  text-shadow:0 0 14px rgba(25,232,245,.08);
+}
+
+.panel:hover,
+.team-card:hover,
+.race-card:hover{
+  border-color:rgba(25,232,245,.48);
+  box-shadow:
+    0 15px 40px rgba(0,0,0,.34),
+    0 0 25px rgba(25,232,245,.06);
+}
+
+/* ===== DOTD ===== */
+.dotd-grid{
+  gap:12px;
+}
+
+.dotd-card{
+  position:relative;
+  overflow:hidden;
+}
+
+.dotd-card:before{
+  content:"";
+  position:absolute;
+  top:0;
+  left:0;
+  width:100%;
+  height:3px;
+  background:linear-gradient(90deg,var(--rh-gold),var(--rh-cyan));
+  box-shadow:0 0 15px rgba(255,211,77,.25);
+}
+
+.dotd-badge{
+  color:var(--rh-gold);
+  border-color:rgba(255,211,77,.60);
+  background:rgba(255,211,77,.06);
+  box-shadow:0 0 18px rgba(255,211,77,.08);
+}
+
+.dotd-main>b{
+  color:var(--rh-cyan);
+  text-shadow:0 0 15px rgba(25,232,245,.20);
+}
+
+.dotd-stats span{
+  background:linear-gradient(145deg,#0a1d25,#071219);
+  border-color:rgba(25,232,245,.16);
+}
+
+/* ===== Marktbewegungen ===== */
+.market-movement-grid{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:12px;
+  margin:12px 0;
+}
+
+.market-mover-card{
+  position:relative;
+  overflow:hidden;
+}
+
+.market-mover-card:first-child{
+  border-color:rgba(36,229,138,.38);
+}
+
+.market-mover-card:first-child:before{
+  content:"";
+  position:absolute;
+  left:0;
+  top:0;
+  bottom:0;
+  width:3px;
+  background:var(--rh-green);
+  box-shadow:0 0 16px rgba(36,229,138,.25);
+}
+
+.market-mover-card:nth-child(2){
+  border-color:rgba(255,48,72,.38);
+}
+
+.market-mover-card:nth-child(2):before{
+  content:"";
+  position:absolute;
+  left:0;
+  top:0;
+  bottom:0;
+  width:3px;
+  background:var(--rh-red);
+  box-shadow:0 0 16px rgba(255,48,72,.25);
+}
+
+.market-mover-delta.up{
+  color:var(--rh-green);
+  text-shadow:0 0 12px rgba(36,229,138,.20);
+}
+
+.market-mover-delta.down{
+  color:var(--rh-red);
+  text-shadow:0 0 12px rgba(255,48,72,.20);
+}
+
+.market-mover-main strong{
+  font-size:18px;
+}
+
+/* ===== Schnellzugriff – fünf Farben ===== */
+.quick-grid{
+  gap:10px;
+}
+
+.quick-grid button{
+  position:relative;
+  overflow:hidden;
+  min-height:82px;
+  background:linear-gradient(145deg,#0c2029,#071219);
+  transition:.18s ease;
+}
+
+.quick-grid button:nth-child(1){
+  border-color:rgba(255,48,72,.65);
+  box-shadow:inset 0 0 25px rgba(255,48,72,.04);
+}
+
+.quick-grid button:nth-child(2){
+  border-color:rgba(25,232,245,.65);
+  box-shadow:inset 0 0 25px rgba(25,232,245,.04);
+}
+
+.quick-grid button:nth-child(3){
+  border-color:rgba(255,211,77,.65);
+  box-shadow:inset 0 0 25px rgba(255,211,77,.04);
+}
+
+.quick-grid button:nth-child(4){
+  border-color:rgba(155,92,255,.65);
+  box-shadow:inset 0 0 25px rgba(155,92,255,.04);
+}
+
+.quick-grid button:nth-child(5){
+  border-color:rgba(36,229,138,.65);
+  box-shadow:inset 0 0 25px rgba(36,229,138,.04);
+}
+
+.quick-grid button:hover{
+  transform:translateY(-3px);
+  box-shadow:0 12px 28px rgba(0,0,0,.35);
+}
+
+/* ===== Formulare ===== */
+.div-select,
+.race-controls select,
+.driver-overview select,
+.race-row input,
+.race-row select,
+.modal input,
+.modal select{
+  background:#061118;
+  border-color:rgba(25,232,245,.28);
+}
+
+.div-select:focus,
+.race-controls select:focus,
+.driver-overview select:focus,
+.race-row input:focus,
+.race-row select:focus,
+.modal input:focus,
+.modal select:focus{
+  outline:none;
+  border-color:var(--rh-cyan);
+  box-shadow:0 0 0 2px rgba(25,232,245,.10),0 0 16px rgba(25,232,245,.08);
+}
+
+/* ===== Buttons ===== */
+.primary{
+  background:linear-gradient(135deg,var(--rh-red2),var(--rh-red));
+  border-color:#ff5367;
+  box-shadow:0 0 20px rgba(255,48,72,.14);
+}
+
+.primary:hover{
+  box-shadow:0 0 28px rgba(255,48,72,.25);
+  transform:translateY(-1px);
+}
+
+.edit-btn,
+.ghost{
+  background:linear-gradient(135deg,#102b35,#07151c);
+  border-color:rgba(25,232,245,.35);
+}
+
+.edit-btn:hover,
+.ghost:hover{
+  border-color:var(--rh-cyan);
+  box-shadow:0 0 20px rgba(25,232,245,.13);
+}
+
+/* ===== Fahrer / Profile ===== */
+.profile-hero{
+  background:
+    radial-gradient(circle at 90% 30%,rgba(25,232,245,.15),transparent 25%),
+    radial-gradient(circle at 10% 100%,rgba(155,92,255,.08),transparent 30%),
+    linear-gradient(135deg,#0c222b,#071219);
+  border-color:rgba(25,232,245,.38);
+}
+
+.avatar{
+  background:linear-gradient(135deg,#124653,#08171d);
+  border-color:rgba(25,232,245,.45);
+  box-shadow:0 0 22px rgba(25,232,245,.10);
+}
+
+.current-rating b,
+.rating b{
+  color:var(--rh-cyan);
+}
+
+/* ===== Teams ===== */
+.team-card{
+  position:relative;
+  overflow:hidden;
+}
+
+.team-card:before{
+  content:"";
+  position:absolute;
+  left:0;
+  top:0;
+  bottom:0;
+  width:3px;
+  background:linear-gradient(180deg,var(--rh-cyan),var(--rh-purple));
+}
+
+.team-chief{
+  color:var(--rh-gold);
+}
+
+.division-title{
+  color:var(--rh-cyan);
+}
+
+/* ===== Tabellen / WM ===== */
+.standings th{
+  color:#83edf4;
+}
+
+.standings tr:hover td{
+  background:rgba(25,232,245,.035);
+}
+
+.rank{
+  color:var(--rh-cyan);
+}
+
+.podium-p1{
+  color:var(--rh-gold);
+  text-shadow:0 0 13px rgba(255,211,77,.22);
+}
+
+.podium-p2{
+  color:#e2e8eb;
+}
+
+.podium-p3{
+  color:#e29a72;
+}
+
+/* ===== Marktwerte ===== */
+.market-current strong{
+  color:var(--rh-gold);
+}
+
+.mv-top-driver{
+  border-color:rgba(25,232,245,.20);
+  background:linear-gradient(145deg,#0d222b,#071219);
+}
+
+.mv-top-1{
+  border-color:rgba(255,211,77,.55);
+  box-shadow:0 0 20px rgba(255,211,77,.07);
+}
+
+.mv-top-2{
+  border-color:rgba(205,215,222,.35);
+}
+
+.mv-top-3{
+  border-color:rgba(225,145,100,.40);
+}
+
+.mv-top-rank{
+  color:var(--rh-gold);
+}
+
+/* ===== Archiv ===== */
+.archive-card{
+  background:linear-gradient(145deg,#0d222b,#071219);
+  border-color:rgba(25,232,245,.26);
+}
+
+/* ===== Modal ===== */
+.modal-card{
+  background:
+    radial-gradient(circle at 85% 0%,rgba(155,92,255,.10),transparent 25%),
+    radial-gradient(circle at 15% 100%,rgba(25,232,245,.07),transparent 28%),
+    #07131a;
+  border-color:rgba(25,232,245,.42);
+  box-shadow:0 25px 85px rgba(0,0,0,.65);
+}
+
+/* ===== Mobile ===== */
+@media(max-width:760px){
+  .market-movement-grid{
+    grid-template-columns:1fr;
+  }
+
+  .hero{
+    min-height:125px;
+  }
+
+  .stats-grid{
+    grid-template-columns:1fr 1fr;
+  }
+
+  .panel,.table-panel,.team-card,.profile-card,.race-card{
+    box-shadow:0 8px 25px rgba(0,0,0,.28);
+  }
+}
+
+
+/* DoG RaceHub v2.51.0 – Rennkalender */
+.dashboard-race-grid{margin:15px 0;background:rgba(11,26,34,.9);border:1px solid #3c2427;border-radius:14px;padding:14px}
+.dashboard-calendar-head{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:10px}
+.dashboard-calendar-head h3{margin:0;font-size:17px}.dashboard-calendar-head p{margin:4px 0 0;color:var(--muted);font-size:11px}
+.dashboard-calendar-list{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px}
+.dashboard-race-item{appearance:none;border:1px solid #2b3033;background:#0b0c0e;color:#fff;border-radius:10px;padding:10px;text-align:left;cursor:pointer;display:grid;grid-template-columns:auto auto;gap:3px 7px;min-width:0}
+.dashboard-race-item:hover{border-color:var(--accent);transform:translateY(-1px)}
+.dashboard-race-item.next{border-color:#b51f29;background:linear-gradient(135deg,#211013,#0d0e10);box-shadow:0 0 0 1px rgba(227,38,46,.12)}
+.dashboard-race-round{grid-column:1/-1;font-size:8px;color:var(--muted);letter-spacing:.08em;font-weight:800}
+.dashboard-race-country{font-size:19px;line-height:1}.dashboard-race-name{font-size:12px;font-weight:800;align-self:center;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.dashboard-race-date{grid-column:1/-1;font-size:10px;color:#c6c6c8;margin-top:2px}
+.dashboard-race-status{grid-column:1/-1;font-size:8px;color:var(--muted);margin-top:2px;font-weight:800}
+.dashboard-race-item.next .dashboard-race-status{color:var(--accent)}
+.full-calendar-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.calendar-race-card{background:rgba(11,26,34,.9);border:1px solid #3c2427;border-radius:14px;padding:15px;min-height:112px}
+.calendar-race-card.next{border-color:#b51f29;box-shadow:0 0 0 1px rgba(227,38,46,.12)}
+.calendar-race-card.done{border-color:#31553f}
+.calendar-race-card.past{opacity:.72}
+.calendar-race-top{display:flex;justify-content:space-between;gap:10px;align-items:center}
+.calendar-race-round{font-size:9px;color:var(--muted);letter-spacing:.08em;font-weight:900}
+.calendar-race-status{font-size:8px;color:var(--muted);font-weight:900}
+.calendar-race-card.next .calendar-race-status{color:var(--accent)}
+.calendar-race-card.done .calendar-race-status{color:var(--ok)}
+.calendar-race-main{display:flex;align-items:center;gap:12px;margin-top:16px}
+.calendar-race-flag{font-size:34px;line-height:1}
+.calendar-race-main h3{margin:0;font-size:18px}.calendar-race-main p{margin:4px 0 0;color:var(--muted);font-size:11px}
+@media(max-width:1000px){.dashboard-calendar-list{grid-template-columns:repeat(5,minmax(120px,1fr));overflow-x:auto}.dashboard-race-item{min-width:120px}.full-calendar-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:700px){.dashboard-calendar-head{align-items:flex-start;flex-direction:column}.dashboard-calendar-list{grid-template-columns:repeat(5,145px);overflow-x:auto;padding-bottom:3px}.dashboard-race-item{min-height:96px}.full-calendar-grid{grid-template-columns:1fr}.calendar-race-card{min-height:100px}}
+
+
+/* DoG RaceHub – Next Race Highlight v2 */
+.dashboard-race-item.next {
+  position: relative;
+  overflow: visible;
+  border: 1px solid #d4af37 !important;
+  background:
+    radial-gradient(circle at 50% 0%, rgba(227,38,46,.22), transparent 65%),
+    linear-gradient(180deg, rgba(48,12,16,.98), rgba(13,14,16,.99)) !important;
+  box-shadow:
+    0 0 0 1px rgba(212,175,55,.20),
+    0 0 24px rgba(212,175,55,.34),
+    inset 0 0 26px rgba(212,175,55,.10) !important;
+  transform: translateY(-3px);
+}
+
+.dashboard-race-item.next::before {
+  content: "NÄCHSTES RENNEN";
+  position: absolute;
+  top: -11px;
+  left: 10px;
+  z-index: 3;
+  padding: 4px 9px;
+  border-radius: 999px;
+  background: #d4af37;
+  color: #111214;
+  font-size: 9px;
+  line-height: 1;
+  font-weight: 900;
+  letter-spacing: .8px;
+  box-shadow: 0 4px 13px rgba(212,175,55,.40);
+}
+
+.dashboard-race-item.next .dashboard-race-round,
+.dashboard-race-item.next .dashboard-race-date {
+  color: #ff6970 !important;
+  font-weight: 900;
+}
+
+.dashboard-race-item.next .dashboard-race-name {
+  color: #fff !important;
+  font-size: 16px;
+  font-weight: 900;
+}
+
+.dashboard-race-item.next .dashboard-race-country {
+  filter: drop-shadow(0 0 7px rgba(255,255,255,.30));
+  transform: scale(1.12);
+}
+
+.dashboard-race-item.next .dashboard-race-status {
+  color: #fff !important;
+  background: rgba(212,175,55,.18);
+  border-color: rgba(212,175,55,.45);
+  font-weight: 900;
+}
+
+@media (max-width:760px) {
+  .dashboard-race-item.next {
+    transform: none;
+  }
+}
+
+/* Full calendar: same visual language for the next race */
+.calendar-race-card.next {
+  position: relative;
+  border-color: #d4af37 !important;
+  background:
+    radial-gradient(circle at 50% 0%, rgba(212,175,55,.18), transparent 65%),
+    linear-gradient(180deg, rgba(42,11,15,.98), rgba(13,14,16,.99)) !important;
+  box-shadow:
+    0 0 0 1px rgba(227,38,46,.16),
+    0 0 22px rgba(227,38,46,.28),
+    inset 0 0 24px rgba(227,38,46,.08) !important;
 }
