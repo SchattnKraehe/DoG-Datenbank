@@ -1686,3 +1686,58 @@ body{
     0 0 22px rgba(227,38,46,.28),
     inset 0 0 24px rgba(227,38,46,.08) !important;
 }
+
+
+/* DoG RaceHub – Gold Accent System */
+/* Gold is used as a premium accent, while DoG red remains the primary action color. */
+:root {
+  --dog-gold: #d4af37;
+  --dog-gold-bright: #f0cf5a;
+  --dog-gold-soft: rgba(212,175,55,.14);
+  --dog-gold-border: rgba(212,175,55,.42);
+  --dog-gold-glow: rgba(212,175,55,.24);
+}
+
+/* Dashboard: important highlights */
+#dashboard .panel-head h3,
+#dashboard .dashboard-stat b,
+#dashboard .dashboard-stat strong {
+  color: #fff;
+}
+
+#dashboard .dashboard-race-item.next {
+  border-color: var(--dog-gold) !important;
+  box-shadow:
+    0 0 0 1px rgba(212,175,55,.20),
+    0 0 24px var(--dog-gold-glow),
+    inset 0 0 26px var(--dog-gold-soft) !important;
+}
+
+/* Driver World Championship / Constructor World Championship */
+#driver-wm .rank,
+#constructor-wm .rank,
+#wm .rank,
+#kwm .rank {
+  color: var(--dog-gold);
+}
+
+#driver-wm .podium-p1,
+#constructor-wm .podium-p1,
+#wm .podium-p1,
+#kwm .podium-p1 {
+  color: var(--dog-gold-bright);
+  text-shadow: 0 0 10px rgba(212,175,55,.20);
+}
+
+/* Generic first-place / champion accents used by existing standings cards. */
+.standings .podium-p1,
+.standings tr:first-of-type .rank {
+  color: var(--dog-gold);
+}
+
+.wm-block-head h3,
+.section-head h3 {
+  text-shadow: 0 0 12px rgba(212,175,55,.06);
+}
+
+/* Keep buttons/actions in the existing DoG red style. Gold is an accent, not a replacement. */
