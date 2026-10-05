@@ -1741,3 +1741,6 @@ body{
 }
 
 /* Keep buttons/actions in the existing DoG red style. Gold is an accent, not a replacement. */
+
+/* DoG RaceHub v2.52 - Strafen */
+.penalty-info-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:0 0 14px}.penalty-info-grid>div{padding:12px;background:#0b1a22;border:1px solid #21404c;border-radius:10px}.penalty-info-grid b{display:block;color:#d4af37;font-size:15px}.penalty-info-grid span{display:block;color:#8fa8b1;font-size:10px;margin-top:3px}.penalty-pp{color:#ffba6d}.penalty-wm{color:#ff6478}.penalty-checks{display:flex;flex-direction:column;gap:6px}.penalty-check{display:grid;grid-template-columns:16px auto;align-items:center;column-gap:5px;font-size:10px;color:#bfc8cc}.penalty-check input{accent-color:#d4af37}.penalty-check.locked{opacity:.38}.penalty-hint{grid-column:2;color:#ffba6d;font-size:9px}.penalty-done{grid-column:2;color:#55df9a;font-size:9px}.penalty-table td{vertical-align:top}.edit-grid .e-pp,.edit-grid .e-wm-deduction{border-color:#695b2b}.race-row{grid-template-columns:48px 1.35fr 1.4fr 60px 60px 125px 105px 90px 170px}.race-row.head{min-width:920px}@media(max-width:800px){.penalty-info-grid{grid-template-columns:1fr}.penalty-table{min-width:920px}}

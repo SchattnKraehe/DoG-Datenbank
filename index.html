@@ -2,7 +2,7 @@
 <html lang="de">
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>DoG RaceHub</title><link rel="stylesheet" href="./style.css?v=2.51.0"><link rel="manifest" href="manifest.webmanifest"><meta name="theme-color" content="#8f1820"><meta name="description" content="DoG RaceHub – F1 League Manager for drivers, teams, races and championships."><meta name="mobile-web-app-capable" content="yes"><link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png"><link rel="icon" type="image/png" sizes="64x64" href="favicon-64.png"><link rel="apple-touch-icon" sizes="180x180" href="icon-180.png">
+<title>DoG RaceHub</title><link rel="stylesheet" href="./style.css?v=2.52.0"><link rel="manifest" href="manifest.webmanifest"><meta name="theme-color" content="#8f1820"><meta name="description" content="DoG RaceHub – F1 League Manager for drivers, teams, races and championships."><meta name="mobile-web-app-capable" content="yes"><link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png"><link rel="icon" type="image/png" sizes="64x64" href="favicon-64.png"><link rel="apple-touch-icon" sizes="180x180" href="icon-180.png">
 </head>
 <body>
 <div id="toast"></div>
@@ -19,6 +19,7 @@
     <button class="nav" data-view="wm">🏆 <span>Fahrer-WM</span></button>
   <button class="nav" data-view="kwm">◆ <span>KWM</span></button>
   <button class="nav" data-view="loans">🤝 <span>Fahrer-Leihen</span></button>
+  <button class="nav" data-view="penalties">⚠️ <span>Strafen</span></button>
   <button class="nav" data-view="calendar">📅 <span>Rennkalender</span></button>
   <button class="nav" data-view="licenses">🎫 <span>Lizenzen</span></button>
   </div>
@@ -42,6 +43,13 @@
 </section>
 
 <section id="drivers" class="view"><div class="racehub-page-hero"><div class="rh-hero-copy"><div class="eyebrow">DOG RACEHUB · DRIVERS</div><h2>FAHRER</h2><p>Eine kompakte, vollständige Übersicht aller Fahrer.</p></div><div class="rh-hero-actions"><span class="pill">▣ SAISON 02/26</span><span class="status-dot">● System bereit</span></div><div class="rh-hero-car"></div></div><div class="driver-toolbar"><div class="driver-search-wrap">⌕<input id="driver-search" placeholder="Fahrer suchen ..." oninput="filterDriverSelect()"></div><label class="driver-team-filter">Team <select id="driver-team-filter" onchange="filterDriverSelect()"><option value="">Alle</option></select></label><button class="primary" onclick="openAddDriver()">＋ Fahrer hinzufügen</button></div><div class="driver-overview"><label class="legacy-driver-select">Fahrer auswählen<select id="driver-select" onchange="openDriver(this.value)"></select></label><div id="driver-profile"></div></div></section>
+<section id="penalties" class="view">
+  <div class="section-head">
+    <div><h3>⚠️ Strafen</h3><p>PP, unabhängiger WM-Abzug, Budget-Abzug und offene Sperren.</p></div>
+    <div class="selector-row"><select id="penalty-season" class="div-select" onchange="renderPenalties()"></select><select id="penalty-div" class="div-select" onchange="renderPenalties()"><option>Div 1</option><option selected>Div 2</option></select></div>
+  </div>
+  <div id="penalties-table"></div>
+</section>
 <section id="loans" class="view">
   <div class="section-head loan-center-head">
     <div>
@@ -81,7 +89,7 @@
 <section id="archive" class="view"><div class="section-head"><div><h3>Saisonarchiv</h3><p>Historische Rennstände und Regelversionen der DoG-Saisons.</p></div></div><div class="archive-card active-season"><div><b>02/26</b><small>Offiziell · 1. Saison</small></div><span>Div 1 &amp; Div 2</span><i>aktiv</i></div></section>
 </main></div>
 <div id="modal" class="modal"><div class="modal-card" id="modal-content"></div></div>
-<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="./config.js?v=2.11"></script><script src="./app.js?v=2.51.0"></script><script src="./flaggen.js?v=1.0"></script><script>/* v2.10: Text nodes do not have Element.dataset; provide a safe per-node store for the language helper. */(()=>{const store=new WeakMap();const d=Object.getOwnPropertyDescriptor(Node.prototype,"dataset");if(!d){Object.defineProperty(Node.prototype,"dataset",{configurable:true,get(){if(this.nodeType!==3)return undefined;let x=store.get(this);if(!x){x={};store.set(this,x)}return x;}})}})();</script><script src="./lang.js?v=2.11"></script><script>
+<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="./config.js?v=2.11"></script><script src="./app.js?v=2.52.0"></script><script src="./flaggen.js?v=1.0"></script><script>/* v2.10: Text nodes do not have Element.dataset; provide a safe per-node store for the language helper. */(()=>{const store=new WeakMap();const d=Object.getOwnPropertyDescriptor(Node.prototype,"dataset");if(!d){Object.defineProperty(Node.prototype,"dataset",{configurable:true,get(){if(this.nodeType!==3)return undefined;let x=store.get(this);if(!x){x={};store.set(this,x)}return x;}})}})();</script><script src="./lang.js?v=2.11"></script><script>
 let deferredInstallPrompt=null;
 window.addEventListener("beforeinstallprompt",e=>{e.preventDefault();deferredInstallPrompt=e;const b=document.getElementById("install-app");if(b)b.style.display="inline-flex"});
 window.addEventListener("appinstalled",()=>{deferredInstallPrompt=null;const b=document.getElementById("install-app");if(b)b.style.display="none"});
