@@ -1553,7 +1553,21 @@ function saveDriverEditor(oldName){
      sponsorKeys:Object.keys(sponsorPayments).length,licenses:Object.keys(driverLicenses).reduce((n,s)=>n+Object.keys(driverLicenses[s]||{}).length,0),
      raceResults:Object.values(races).reduce((n,r)=>n+(r.results||[]).length,0)
    };
-   if(JSON.stringify(beforeCounts)!==JSON.stringify(afterCounts))throw new Error('Sicherheitsprüfung: Beim Umbenennen wurde eine Datenanzahl verändert.');
+   // Sponsoränderungen dürfen die erwarteten Sponsor-/Finanzbuchungen verändern.
+   // Alle anderen Datenmengen bleiben weiterhin strikt geschützt.
+   const sponsorSelectionChanged=String(sponsorName||'')!==String(oldMeta.sponsorInfo?.sponsor||'');
+   const sponsorDelta=afterCounts.sponsorKeys-beforeCounts.sponsorKeys;
+   const financeDelta=afterCounts.finance-beforeCounts.finance;
+   const safeCounts=(
+     beforeCounts.drivers===afterCounts.drivers&&
+     beforeCounts.contracts===afterCounts.contracts&&
+     beforeCounts.transfers===afterCounts.transfers&&
+     beforeCounts.loans===afterCounts.loans&&
+     beforeCounts.licenses===afterCounts.licenses&&
+     beforeCounts.raceResults===afterCounts.raceResults&&
+     (!sponsorSelectionChanged || financeDelta===sponsorDelta)
+   );
+   if(!safeCounts)throw new Error('Sicherheitsprüfung: Beim Umbenennen wurde eine unerwartete Datenanzahl verändert.');
    const saveButtons=[...document.querySelectorAll('#modal-content button')];saveButtons.forEach(b=>b.disabled=true);
    save().then(ok=>{
      saveButtons.forEach(b=>b.disabled=false);
