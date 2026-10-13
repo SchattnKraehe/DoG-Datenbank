@@ -2135,7 +2135,7 @@ function syncLoanTransactions(){
  financeTransactions=financeTransactions.filter(t=>t.type!=='replacement_loan'&&t.type!=='replacement_loan_income');
  loanAgreements.filter(l=>l.status!=='Vorläufig'&&Number(l.fee)>0).forEach(l=>{
    const fee=Math.abs(Number(l.fee));
-   {const tx=financeTxApplyOverride({id:`loan_${l.id}`,season:l.season,team:l.borrowerTeam,driver:l.driver,description:`Ersatzfahrer-Leihe · ${l.driver}${l.sourceTeam?' von '+l.sourceTeam:''}`,type:'replacement_loan',amount:-fee,date:l.createdAt||new Date().toISOString(),loanId:l.id});if(tx)financeTransactions.push(tx);}
+   {const tx=financeTxApplyOverride({id:`loan_${l.id}`,season:l.season,team:l.borrowerTeam,driver:'',description:`Ersatzfahrer-Leihe · ${l.driver}${l.sourceTeam?' von '+l.sourceTeam:''}`,type:'replacement_loan',amount:-fee,date:l.createdAt||new Date().toISOString(),loanId:l.id});if(tx)financeTransactions.push(tx);}
    {const tx=financeTxApplyOverride({id:`loan_income_${l.id}`,season:l.season,team:'',driver:l.driver,description:`Ersatzfahrer-Leihe erhalten · ${l.borrowerTeam}`,type:'replacement_loan_income',amount:fee,date:l.createdAt||new Date().toISOString(),loanId:l.id});if(tx)financeTransactions.push(tx);}
  });
 }
