@@ -656,7 +656,7 @@ function renderMarketValues(){
      ${division('Div 2')}
    </div>`;
 }
-function showView(id){document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));const target=document.getElementById(id);if(!target)return;target.classList.add('active');document.querySelectorAll('.nav').forEach(n=>n.classList.toggle('active',n.dataset.view===id));document.getElementById('page-title').textContent={dashboard:'Dashboard',drivers:'Fahrer',loans:'Fahrer-Leihen',marketvalues:'Marktwerte',compare:'Vergleich',teams:'Teams',races:'Rennen',wm:'Fahrer-WM',kwm:'KWM',calendar:'Rennkalender',licenses:'Lizenzen',archive:'Archiv',penalties:'Strafen'}[id]||'DoG RaceHub';try{if(id==='drivers')initDriverOverview();if(id==='loans')renderLoanCenter('drivers');if(id==='penalties')renderPenalties();if(id==='marketvalues')renderMarketValues();if(id==='compare')renderCompare();if(id==='teams')renderTeams();if(id==='races')initRaceSelectors();if(id==='wm')renderWM();if(id==='kwm')renderKWM();if(id==='calendar')renderRaceCalendar();if(id==='licenses')renderLicenses();if(id==='dashboard')renderDashboard();if(id==='archive')renderArchive();updateStats()}catch(e){console.error('showView',e)}}
+function showView(id){document.querySelectorAll('.view').forEach(v=>{v.classList.remove('active');v.style.display='none'});const target=document.getElementById(id);if(!target)return;target.classList.add('active');target.style.display='block';document.querySelectorAll('.nav').forEach(n=>n.classList.toggle('active',n.dataset.view===id));document.getElementById('page-title').textContent={dashboard:'Dashboard',drivers:'Fahrer',loans:'Fahrer-Leihen',marketvalues:'Marktwerte',compare:'Vergleich',teams:'Teams',races:'Rennen',wm:'Fahrer-WM',kwm:'KWM',calendar:'Rennkalender',licenses:'Lizenzen',archive:'Archiv',penalties:'Strafen'}[id]||'DoG RaceHub';try{if(id==='drivers')initDriverOverview();if(id==='loans')renderLoanCenter('drivers');if(id==='penalties')renderPenalties();if(id==='marketvalues')renderMarketValues();if(id==='compare')renderCompare();if(id==='teams')renderTeams();if(id==='races')initRaceSelectors();if(id==='wm')renderWM();if(id==='kwm')renderKWM();if(id==='calendar')renderRaceCalendar();if(id==='licenses')renderLicenses();if(id==='dashboard')renderDashboard();if(id==='archive')renderArchive();updateStats()}catch(e){console.error('showView',e)}}
 document.querySelectorAll('.nav').forEach(n=>n.addEventListener('click',()=>showView(n.dataset.view)));
 function updateStats(){document.getElementById('stat-drivers').textContent=drivers.filter(n=>getStatus(n)==='Stammfahrer').length;document.getElementById('stat-races').textContent=new Set(raceList().map(r=>r.track)).size}
 function initDriverOverview(){const sel=document.getElementById('driver-select');if(!sel)return;const current=sel.value;sel.innerHTML=drivers.filter(n=>getStatus(n)!=='Nicht verfügbar').sort((a,b)=>a.localeCompare(b,'de')).map(n=>`<option value="${esc(n)}">${driverNumber(n)?'#'+driverNumber(n)+' · ':''}${esc(n)} · ${esc(getStatus(n))}</option>`).join('');if(current&&drivers.includes(current)&&getStatus(current)!=='Nicht verfügbar')sel.value=current;else if(sel.options.length)sel.selectedIndex=0;openDriver(sel.value)}
@@ -1043,12 +1043,16 @@ function renderMarketMovers(){
  el.innerHTML=card('Höchster Marktwert-Anstieg','⬆️',m.rise,true)+card('Höchster Marktwert-Abstieg','⬇️',m.fall,false);
 }
 function dotdForDivision(div){
+  // Die Rundennummer ist innerhalb der Saison maßgeblich. Ein nachträglich
+  // geändertes/abweichendes Renn-Datum darf Runde 3 nicht wieder hinter Runde 2 sortieren.
   const race=raceChronological()
     .filter(r=>String(r.division||'')===String(div||'') && Array.isArray(r.results) && r.results.length>0)
     .sort((a,b)=>{
+      const na=Number(a.number||a.round||0), nb=Number(b.number||b.round||0);
+      if(na>0 && nb>0 && na!==nb) return na-nb;
       const sa=String(a.raceDate||''), sb=String(b.raceDate||'');
       if(sa && sb && sa!==sb) return sa.localeCompare(sb);
-      return Number(a.number||a.round||0)-Number(b.number||b.round||0);
+      return na-nb;
     }).at(-1)||null;
   if(!race)return null;
   const driver=normDriver(race.highlights?.dotd||'');
@@ -1057,7 +1061,6 @@ function dotdForDivision(div){
   if(!row)return null;
   return {race,driver};
 }
-
 
 /* DoG RaceHub v2.51.0 – kompakter Dashboard-Rennkalender + vollständiger Rennkalender */
 const DOG_SEASON_CALENDAR = [
@@ -1074,6 +1077,36 @@ const DOG_SEASON_CALENDAR = [
   {round:11,track:'Abu Dhabi',country:'🇦🇪',date:'2026-12-02'},
   {round:12,track:'Japan',country:'🇯🇵',date:'2026-12-09'}
 ];
+
+/* v2.54.31 – echte Streckenmotive automatisch anhand des nächsten Rennens */
+const DOG_TRACK_BACKDROP_IMAGES = [
+ {match:/aserbaidschan|baku|azerbaijan/,url:'./track-australien.webp'},
+ {match:/usa|united states|texas|austin/,url:'./track-australien.webp'},
+ {match:/niederlande|netherlands|zandvoort/,url:'./track-australien.webp'},
+ {match:/australien|australia|melbourne|albert park/,url:'./track-australien.webp'},
+ {match:/kanada|canada|montreal|montréal|gilles villeneuve/,url:'./track-kanada.webp'},
+ {match:/ungarn|hungary|hungaroring/,url:'./track-ungarn.webp'},
+ {match:/katalonien|catalunya|barcelona|spanien|spain/,url:'./track-katalonien.webp'},
+ {match:/china|shanghai|shanghai international/,url:'./track-china.webp'},
+ {match:/bahrain|sakhir/,url:'./track-bahrain.webp'},
+ {match:/österreich|osterreich|austria|red bull ring|spielberg/,url:'./track-oesterreich.webp'},
+ {match:/abu dhabi|yas marina|vereinigte arabische emirate|uae/,url:'./track-abu-dhabi.webp'},
+ {match:/japan|suzuka/,url:'./track-japan.webp'}
+];
+function dogApplyTrackBackdrop(){
+ const today=new Date();today.setHours(0,0,0,0);
+ const list=DOG_SEASON_CALENDAR.map(dogCalendarRaceData);
+ const next=list.find(r=>{const d=dogCalendarDate(r);return d&&d>=today&&!r.completed})||list.find(r=>!r.completed)||list[list.length-1];
+ if(!next)return;
+ const trackKey=String(next.track||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
+ const countryKey=String(next.country||'').toLowerCase();
+ const match=DOG_TRACK_BACKDROP_IMAGES.find(item=>item.match.test(trackKey+' '+countryKey));
+ const background=match?match.url:'./track-australien.webp';
+ document.documentElement.style.setProperty('--dog-track-background',`url("${background}")`);
+ document.documentElement.dataset.trackBackdrop=match?String(next.track||'').toLowerCase().replace(/[^a-z0-9]+/g,'-'):'fallback';
+ document.body.dataset.nextTrack=next.track;
+ document.body.dataset.nextRound=String(next.round);
+}
 
 function dogCalendarRaceData(item){
   const season=seasonState.current||'02/26';
@@ -1150,17 +1183,144 @@ function renderRaceCalendar(){
   }</div>`;
 }
 
+function dashLastRace(div,season=seasonState.current||'02/26'){
+ const rows=seasonRaceList(season).filter(r=>String(r.division)===String(div)&&Array.isArray(r.results)&&r.results.length);
+ return rows.sort((a,b)=>{
+   const da=String(a.raceDate||''),db=String(b.raceDate||'');
+   if(da&&db&&da!==db)return da.localeCompare(db);
+   return Number(a.number||a.round||0)-Number(b.number||b.round||0);
+ }).at(-1)||null;
+}
+function dashMarketRows(){
+ const rows=[];
+ [...new Set(drivers.map(normDriver).filter(Boolean))].forEach(name=>{
+   const c=calcDriver(name),h=getMarketHistory(name,c.mw);
+   if(h.length<2)return;
+   const prev=Number(h[h.length-2]?.value),current=Number(h[h.length-1]?.value);
+   if(!Number.isFinite(prev)||!Number.isFinite(current))return;
+   rows.push({name,prev,current,delta:current-prev,label:h[h.length-1]?.label||''});
+ });
+ return rows.sort((a,b)=>Math.abs(b.delta)-Math.abs(a.delta)).slice(0,5);
+}
+function dashPodium(r){
+ return (r?.results||[]).slice(0,3).map((x,i)=>({pos:i+1,name:normDriver(x.name),team:x.team||'',points:pointsForPosition(i+1,statusOfResult(x))}));
+}
+function dashRaceDate(r){
+ const d=r?.raceDate?new Date(r.raceDate+'T12:00:00'):null;
+ return d&&!Number.isNaN(d.getTime())?d.toLocaleDateString('de-DE',{day:'2-digit',month:'2-digit',year:'numeric'}):'Datum offen';
+}
+function dashTeamCar(team){return standingsCar(team)}
+function dashVictoryArt(team){
+ const t=String(team||'').toLowerCase();
+ if(t.includes('mercedes')) return 'victory-mercedes.webp';
+ if(t.includes('red bull')||t.includes('redbull')) return 'victory-redbull.webp';
+ if(t.includes('mclaren')) return 'victory-mclaren.webp';
+ if(t.includes('ferrari')) return 'victory-ferrari.webp';
+ if(t.includes('alpine')) return 'victory-alpine.webp';
+ if(t.includes('haas')) return 'victory-haas.webp';
+ if(t.includes('visa')) return 'victory-visa.webp';
+ if(t.includes('audi')) return 'victory-audi.webp';
+ if(t.includes('williams')) return 'victory-williams.webp';
+ if(t.includes('cadillac')) return 'victory-cadillac.webp';
+ if(t.includes('aston martin')||t.includes('astonmartin')) return 'victory-astonmartin.webp';
+ return '';
+}
+function dashRenderCountdown(next){
+ const el=document.getElementById('dash-countdown'),label=document.getElementById('dash-next-label');
+ if(!el||!label)return;
+ if(window.__dashCountdownTimer){clearInterval(window.__dashCountdownTimer);window.__dashCountdownTimer=null}
+ if(!next){el.textContent='-- : -- : -- : --';label.textContent='Kein kommendes Rennen';return}
+ const target=new Date(String(next.date)+'T20:00:00');
+ const tick=()=>{
+   const diff=Math.max(0,target.getTime()-Date.now());
+   const total=Math.floor(diff/1000),d=Math.floor(total/86400),h=Math.floor(total%86400/3600),m=Math.floor(total%3600/60),sec=total%60;
+   el.textContent=[d,h,m,sec].map((v,i)=>i===0?String(v).padStart(2,'0'):String(v).padStart(2,'0')).join(' : ');
+   label.textContent=`${next.country} ${next.track} · ${dogCalendarLabel(next)} · 20:00 Uhr`;
+ };
+ tick();window.__dashCountdownTimer=setInterval(tick,1000);
+}
 function renderDashboard(){
- renderDashboardRaceCalendar();
- const cards=['Div 1','Div 2'].map(div=>{
-   const ds=dotdForDivision(div);
-   if(!ds)return `<div class="panel dotd-card"><div class="panel-head"><div><h3>⭐ Fahrer des Tages · ${div}</h3><p>Noch kein erfasstes Rennen</p></div></div><div class="empty-race">Für ${div} liegt noch kein Rennergebnis vor.</div></div>`;
-   const r=ds.race,row=r.results.find(x=>normDriver(x.name)===normDriver(ds.driver));
-   const pos=row?r.results.indexOf(row)+1:0;
-   return `<div class="panel dotd-card"><div class="panel-head"><div><h3>⭐ Fahrer des Tages · ${div}</h3><p>${esc(r.track)} · Rennen ${r.number}</p></div><span class="dotd-badge">FdT</span></div><div class="dotd-main"><div><strong>${esc(normDriver(ds.driver))}</strong><span>${esc(row?.team||'')}</span></div><b>${row?pointsForPosition(pos,statusOfResult(row)):0} Pkt.</b></div><div class="dotd-stats"><span>Pos. <b>${pos||'—'}</b></span><span>Grid <b>${row?.grid??'—'}</b></span><span>Delta <b>${row?(Number(row.grid)||0)>0?((Number(row.grid)||0)-pos>0?'+'+((Number(row.grid)||0)-pos):((Number(row.grid)||0)-pos)):'—':'—'}</b></span><span>Zeit <b>${esc(row?.time||'—')}</b></span></div></div>`;
- }).join('');
- document.getElementById('dotd-dashboard').innerHTML=cards;
- renderMarketMovers();
+ dogApplyTrackBackdrop();
+ const season=seasonState.current||'02/26';
+ const list=DOG_SEASON_CALENDAR.map(dogCalendarRaceData);
+ const today=new Date();today.setHours(0,0,0,0);
+ const next=list.find(r=>{const d=dogCalendarDate(r);return d&&d>=today&&!r.completed})||null;
+ const nextHost=document.getElementById('dash-next-race');
+ if(nextHost){
+   nextHost.innerHTML=next?`<div class="rc-next-inner"><div class="rc-next-flag">${next.country}</div><div class="rc-next-copy"><div class="eyebrow">NÄCHSTES RENNEN</div><h3>${esc(next.track)}</h3><p>${esc(next.country)} · ${esc(dogCalendarLabel(next))} · 20:00 Uhr</p></div><div class="rc-next-round">R${next.round}<small>SAISON ${esc(season)}</small></div><div class="rc-inline-countdown"><small>START NÄCHSTES RENNEN IN</small><strong id="dash-countdown">-- : -- : -- : --</strong><span id="dash-next-label">Wird geladen …</span></div></div>`:`<div class="empty-race">Kein kommendes Rennen im Rennkalender.</div>`;
+ }
+ dashRenderCountdown(next);
+ const lastHost=document.getElementById('dash-last-races');
+ if(lastHost){
+   const cards=['Div 1','Div 2'].map(div=>{
+     const r=dashLastRace(div,season),p=dashPodium(r),winner=p[0];
+     const art=winner?dashVictoryArt(winner.team):'';
+     const d=dotdForDivision(div);
+     const drow=d?(d.race.results||[]).find(x=>normDriver(x.name)===normDriver(d.driver)):null;
+     const dteam=drow?.team||driverTeam(d?.driver||'')||'';
+     const dt=String(dteam).toLowerCase();
+     const dotdArt=dt.includes('mercedes')?'dotd-mercedes.webp':dt.includes('visa')?'dotd-visa.webp':(dt.includes('red bull')||dt.includes('redbull'))?'dotd-redbull.webp':dt.includes('mclaren')?'dotd-mclaren.webp':dt.includes('ferrari')?'dotd-ferrari.webp':dt.includes('alpine')?'dotd-alpine.webp':dt.includes('audi')?'dotd-audi.webp':dt.includes('haas')?'dotd-haas.webp':dt.includes('williams')?'dotd-williams.webp':dt.includes('cadillac')?'dotd-cadillac.webp':(dt.includes('aston martin')||dt.includes('astonmartin'))?'dotd-astonmartin.webp':'';
+     const winnerPanel=winner?`${art?`<div class="rc-winner-art-wrap"><img class="rc-winner-art" src="${art}" alt="Siegerpose ${esc(winner.team)}" loading="lazy" onerror="this.parentElement.style.display='none'"><div class="rc-winner-overlay"><span>🏆 RENNSIEGER</span><strong>${esc(winner.name)}</strong><small>${esc(winner.team)}</small></div></div>`:`<div class="rc-winner"><div class="rc-trophy">🥇</div><div class="rc-winner-copy"><span>RENNSIEGER</span><strong>${esc(winner.name)}</strong><small>${esc(winner.team)}</small></div></div>`}<div class="rc-podium">${p.slice(1).map(x=>`<div><b>P${x.pos}</b><span>${esc(x.name)}</span><small>${esc(x.team)}</small></div>`).join('')}</div>`:'<div class="empty-race">Noch kein Rennsieger erfasst.</div>';
+     const dotdPanel=d?`<aside class="rc-race-dotd ${div==='Div 1'?'rc-race-dotd-div1':''}"><div class="rc-race-dotd-title">⭐ FAHRER DES TAGES</div>${dotdArt?`<div class="rc-race-dotd-art"><img src="${dotdArt}" alt="${esc(dteam)} Fahrer des Tages" loading="lazy"></div>`:''}<div class="rc-race-dotd-name">${esc(d.driver)}</div><div class="rc-race-dotd-team">${esc(dteam||d.race.track)}</div></aside>`:`<aside class="rc-race-dotd ${div==='Div 1'?'rc-race-dotd-div1':''}"><div class="rc-race-dotd-title">⭐ FAHRER DES TAGES</div><div class="rc-race-dotd-empty">Noch nicht erfasst</div></aside>`;
+     return `<div class="rc-winner-block"><div class="rc-section-kicker">LETZTES RENNEN · ${esc(div)}</div><div class="rc-race-name">${r?esc(r.track):'Noch kein Ergebnis'}</div><div class="rc-race-date">${r?dashRaceDate(r):'—'}</div><div class="rc-race-feature-grid"><div class="rc-race-winner-column">${winnerPanel}</div>${dotdPanel}</div></div>`;
+   }).join('');
+   lastHost.innerHTML=`<div class="rc-panel-head"><div><h3>🏆 LETZTES RENNEN</h3><p>Rennsieger und Podium beider Divisionen</p></div><button class="mini-link" onclick="showView('races')">Alle Ergebnisse →</button></div><div class="rc-winner-grid">${cards}</div>`;
+ }
+ const regHost=document.getElementById('dash-registration');
+ if(regHost){
+   const roster=(div)=>drivers.filter(n=>currentDivision(n)===div&&getStatus(n)==='Stammfahrer').sort((a,b)=>normDriver(a).localeCompare(normDriver(b),'de')).slice(0,10);
+   const block=(div)=>`<div class="rc-reg-block"><div class="rc-reg-title"><span>${div}</span><small>Discord folgt in Schritt 7</small></div>${roster(div).length?roster(div).map(n=>`<div class="rc-reg-row"><b>${esc(normDriver(n))}</b><span>${esc(driverTeam(n)||'—')}</span><i>●</i></div>`).join(''):'<div class="muted">Noch keine Fahrer hinterlegt.</div>'}</div>`;
+   regHost.innerHTML=`<div class="rc-panel-head"><div><h3>📋 RENNANMELDUNG</h3><p>Vorbereitung für die spätere automatische Discord-Anbindung</p></div><span class="rc-live">BEREIT</span></div>${block('Div 1')}${block('Div 2')}`;
+ }
+ const wmHost=document.getElementById('dash-wm');
+ if(wmHost){
+   const blocks=['Div 1','Div 2'].map(function(div){
+     const rows=standings(div,season).slice(0,5);
+     const body=rows.map(function(r,i){return `<div class="rc-table-row"><b>${i+1}</b><span>${esc(r.name)}</span><small>${esc(r.team)}</small><strong>${r.points}</strong></div>`;}).join('');
+     return `<div class="rc-compact-block"><div class="rc-subtitle">FAHRER-WM · ${div}</div>${body||'<div class="muted">Keine Ergebnisse</div>'}</div>`;
+   }).join('');
+   wmHost.innerHTML=`<div class="rc-panel-head rc-link-only"><button class="mini-link" onclick="showView('wm')">Komplette WM →</button></div>${blocks}`;
+ }
+ const kwmHost=document.getElementById('dash-kwm');
+ if(kwmHost){
+   const blocks=['Div 1','Div 2'].map(function(div){
+     const rows=kwmRows(div,season).slice(0,5);
+     const body=rows.map(function(r,i){return `<div class="rc-table-row"><b>${i+1}</b><span>${esc(r.team)}</span><small>${r.wins} Siege · ${r.podiums} Podien</small><strong>${r.points}</strong></div>`;}).join('');
+     return `<div class="rc-compact-block"><div class="rc-subtitle">KWM · ${div}</div>${body||'<div class="muted">Keine Ergebnisse</div>'}</div>`;
+   }).join('');
+   kwmHost.innerHTML=`<div class="rc-panel-head rc-link-only"><button class="mini-link" onclick="showView('kwm')">Komplette KWM →</button></div>${blocks}`;
+ }
+ const marketHost=document.getElementById('dash-market');
+ if(marketHost){const rows=dashMarketRows();marketHost.innerHTML=`<div class="rc-panel-head"><div><h3>💰 MARKTWERT</h3><p>Höchste Bewegungen seit dem letzten Rennstand</p></div><button class="mini-link" onclick="showView('marketvalues')">Marktwerte →</button></div>${rows.length?rows.map((x,i)=>`<div class="rc-market-row"><b>${i+1}</b><span>${esc(x.name)}</span><small>${money(x.current)}</small><strong class="${x.delta>=0?'up':'down'}">${x.delta>=0?'+':''}${money(x.delta)}</strong></div>`).join(''):'<div class="muted">Noch keine Marktwertbewegungen vorhanden.</div>'}`;}
+ const calHost=document.getElementById('dash-calendar');
+ if(calHost){const upcoming=list.filter(r=>{const d=dogCalendarDate(r);return d&&d>=today}).slice(0,5);calHost.innerHTML=`<div class="rc-panel-head rc-link-only"><button class="mini-link" onclick="showView('calendar')">Kompletter Kalender →</button></div>${upcoming.map(r=>`<div class="rc-calendar-row"><b>R${r.round}</b><span>${r.country}</span><strong>${esc(r.track)}</strong><small>${dogCalendarLabel(r)}</small></div>`).join('')}`;}
+ const dotdHost=document.getElementById('dash-dotd');
+ if(dotdHost){
+   const dotdArt=(team)=>{
+     const t=String(team||'').toLowerCase();
+     if(t.includes('mercedes')) return 'dotd-mercedes.webp';
+     if(t.includes('visa')) return 'dotd-visa.webp';
+     if(t.includes('red bull') || t.includes('redbull')) return 'dotd-redbull.webp';
+     if(t.includes('mclaren')) return 'dotd-mclaren.webp';
+     if(t.includes('ferrari')) return 'dotd-ferrari.webp';
+     if(t.includes('alpine')) return 'dotd-alpine.webp';
+     if(t.includes('audi')) return 'dotd-audi.webp';
+     if(t.includes('haas')) return 'dotd-haas.webp';
+     if(t.includes('williams')) return 'dotd-williams.webp';
+     if(t.includes('cadillac')) return 'dotd-cadillac.webp';
+     if(t.includes('aston martin') || t.includes('astonmartin')) return 'dotd-astonmartin.webp';
+     return '';
+   };
+   const blocks=['Div 1','Div 2'].map(div=>{
+     const d=dotdForDivision(div);
+     if(!d) return `<div class="rc-dotd-block"><span>${div}</span><strong>—</strong><small>Noch nicht erfasst</small></div>`;
+     const row=(d.race.results||[]).find(x=>normDriver(x.name)===normDriver(d.driver));
+     const team=row?.team||driverTeam(d.driver)||'';
+     const art=dotdArt(team);
+     return `<div class="rc-dotd-block ${art?'has-art':''}">${art?`<div class="rc-dotd-art"><img src="${art}" alt="${esc(team)} Fahrer des Tages" loading="lazy"></div>`:''}<div class="rc-dotd-content"><span>${div}</span><strong>${esc(d.driver)}</strong><small>${esc(d.race.track)} · Fahrer des Tages${team?` · ${esc(team)}`:''}</small></div></div>`;
+   }).join('');
+   dotdHost.innerHTML=`<div class="rc-panel-head"><div><h3>⭐ FAHRER DES TAGES</h3><p>Der aktuelle Fahrer des Tages aus dem letzten Rennen</p></div></div><div class="rc-dotd-grid">${blocks}</div>`;
+ }
 }
 function renderTeams(){
  document.getElementById('team-list').innerHTML=teams.map(t=>`<div class="team-card"><div class="team-head"><img class="team-car-mini" src="${teamCar(t.name)}" onerror="this.style.display='none'"><div><div class="team-name">${esc(t.name)}</div><div class="team-chief">Teamchef: ${esc(t.chief||'ohne Teamchef')}</div></div><div class="team-card-actions"><button class="team-edit-btn" onclick="openTeamContracts('${esc(t.name)}')">📋 Teamzentrale</button><button class="team-edit-btn" onclick="openTeamEditor('${esc(t.name)}')">✏️</button></div></div><div class="division"><div class="division-title">DIVISION 1</div><div class="drivers-two">${slot(t.d1[0])}${slot(t.d1[1])}</div></div><div class="division"><div class="division-title">DIVISION 2</div><div class="drivers-two">${slot(t.d2[0])}${slot(t.d2[1])}</div></div></div>`).join('');
@@ -2908,7 +3068,35 @@ function driverProfileImage(name){
  }
  return '♙';
 }
-function openDriver(name){if(!name)return;const c=calcDriver(name),s=driverRaceStats(name),history=getMarketHistory(name,c.mw),team=driverTeam(name)||'Free Agent',vehicles=driverVehicleHistory(name),finishRate=s.races?((s.races-s.dnf-s.dsq)/s.races*100):0;document.getElementById('driver-profile').innerHTML=`<div class="profile-card"><div class="profile-headline"><div><div class="eyebrow">FAHRERAKTE · AKTUELLER STAND</div><div class="profile-name">${esc(normDriver(name))} ${driverFlag(name)?`<img class="driver-flag" src="${driverFlag(name)}" alt="${esc(nationalityInfo(name)?.name||'Nationalität')}" title="${esc(nationalityInfo(name)?.name||'Nationalität')}">`:nationalityInfo(name)?`<span class="driver-nationality-fallback" title="${esc(nationalityInfo(name).name)}">${nationalityInfo(name).emoji}</span>`:''} ${driverNumber(name)?`<span class="driver-number-badge">#${driverNumber(name)}</span>`:''}</div><div class="profile-sub">${nationalityLabel(name)?esc(nationalityLabel(name))+' · ':''}${esc(team)} · ${esc(currentDivision(name))} · ${esc(getStatus(name))} · ${driverRoleLabel(name)}</div></div><div class="profile-select"><button class="ghost mini-edit" onclick="openDriverFinance('${esc(name)}')">💰 Finanzen</button><button class="ghost mini-edit" onclick="openDriverContracts('${esc(name)}')">📄 Vertrag</button></div><button class="ghost mini-edit" onclick="openDriverEditor('${esc(name)}')">✏️ Bearbeiten</button></div><div class="profile-hero"><img class="profile-team-car-image" src="${esc(driverStatusImage(name))}" alt="${esc(team)} Fahrzeug"><div class="profile-main"><div class="avatar driver-avatar">${driverProfileImage(name)}</div><div><div class="profile-teamline">${esc(team)}</div><div class="profile-car-inline"><img src="${driverStatusImage(name)}" onerror="this.style.display='none'"><span>aktuelles Fahrzeug</span></div></div></div><div class="profile-score-side"><div class="current-rating"><span>OVA · GESAMT</span><b>${c.ova}</b></div><div class="profile-ratings">${[['REN',c.ren],['PER',c.per],['TEM',c.tem],['AMK',c.amk],['ERF',c.erf]].map(x=>`<div class="rating"><span>${x[0]}</span><b>${x[1]}</b></div>`).join('')}</div></div></div><div class="market-wrap"><div><h3>📈 Marktwert-Entwicklung</h3><div class="chart">${marketChart(history)}</div></div><div class="market-current"><span>Aktueller Marktwert</span><strong>${money(c.mw)}</strong><div class="history-list">${history.map(h=>`<div>${esc(h.label)}: ${money(h.value)}</div>`).join('')}</div></div></div>${renderDriverLicenseCard(name)}<div class="profile-sections"><div class="profile-section"><h3>Erfolge</h3>${metric('Siege',s.wins)}${metric('Podien',s.podiums)}${metric('P4–P6',validCount(name,4,6))}${metric('P7–P10',validCount(name,7,10))}${metric('P11–P15',validCount(name,11,15))}</div><div class="profile-section"><h3>Rennleistung</h3>${metric('Positionsgewinne',s.gained)}${metric('Positionsverluste',s.lost)}${metric('Fahrer des Tages',countHighlight(name,'dotd'))}${metric('Meiste Überholmanöver',countHighlight(name,'overtakes'))}${metric('Start / Ziel gleich',s.same)}${metric('Ø Platzierung',s.avgPos?s.avgPos.toFixed(1).replace('.',','):'—')}</div><div class="profile-section"><h3>Zuverlässigkeit</h3>${metric('Rennen',s.races)}${metric('DNF',s.dnf)}${metric('DSQ',s.dsq)}${metric('TL',s.tl)}${metric('Nachträgliche Strafen',s.postPenalty)}${metric('Zielankunftsquote',finishRate.toFixed(2).replace('.',',')+'%')}</div></div><div class="profile-sections"><div class="profile-section"><h3>Qualifying</h3>${metric('Poles','—')}${metric('Top 3 Quali','—')}${metric('Ø Startposition',s.avgGrid?s.avgGrid.toFixed(1).replace('.',','):'—')}</div><div class="profile-section"><h3>Fahrerprofil</h3>${metric('Karrierephase',careerPhase(s.races))}${metric('DNA',driverDNA(c))}${metric('Stärke',strength(c))}</div><div class="profile-section vehicle-section"><h3>Gefahrene Fahrzeuge</h3><div class="vehicle-history">${vehicles.length?vehicles.map(v=>`<div class="vehicle-chip"><img src="${driverCar(v.team)}"><span>${esc(v.team)}</span><b>${v.count}×</b></div>`).join(''):'<span class="muted">Noch keine Renndaten</span>'}</div></div></div><div class="profile-section race-history-section"><div class="section-inline"><h3>🏁 Rennhistorie &amp; Strecken</h3></div>${renderDriverRaceHistory(name)}</div><div class="profile-section contract-section"><div class="section-inline"><h3>📋 Verträge &amp; Teamhistorie</h3>${isEditor()?`<button class="ghost mini-edit" onclick="openContractEditor('${esc(name)}')">➕ Vertrag</button>`:''}</div><div class="contract-history">${contractHistory(name).length?contractHistory(name).map(c=>{const isContract=c.source==='contract';return `<div class="contract-row"><span><b>${esc(c.season||'—')}</b> · ${esc(c.team||'—')}</span><span>${esc(c.division||'—')}</span><span>${isContract?'Vertrag gespeichert':'Rennhistorie'}</span><span>${c.salary||c.value?esc(c.salary||c.value):'—'}</span>${isContract&&isEditor()?`<button class="mini-link" onclick="openContractEditor('${esc(c.driver)}','${esc(c.id)}')">✏️ Ansehen / Bearbeiten</button><button class="mini-link" onclick="deleteContract('${esc(c.id)}')">Löschen</button>`:''}</div>`;}).join(''):'<span class="muted">Noch keine Vertrags-/Teamhistorie vorhanden.</span>'}</div></div></div></div>`}
+function driverRecordStats(name){
+ const n=normDriver(name);
+ const participated=Object.values(races||{}).filter(r=>(r.results||[]).some(x=>normDriver(x.name)===n)).sort((a,b)=>{
+   const da=String(a.raceDate||'9999-12-31'), db=String(b.raceDate||'9999-12-31');
+   if(da!==db)return da.localeCompare(db);
+   const sa=String(seasonOfRace(a)||'').match(/^(\d+)\/(\d+)$/), sb=String(seasonOfRace(b)||'').match(/^(\d+)\/(\d+)$/);
+   const ka=sa?(Number(sa[2])*100+Number(sa[1])):0, kb=sb?(Number(sb[2])*100+Number(sb[1])):0;
+   return ka-kb || Number(a.number||a.round||0)-Number(b.number||b.round||0) || String(a.division||'').localeCompare(String(b.division||''),'de');
+ });
+ let grandSlams=0,biggestGain=0,longestWins=0,longestPodiums=0,poles=0,qualiTop3=0,wins=0,podiums=0;
+ for(const r of participated){
+   const x=(r.results||[]).find(y=>normDriver(y.name)===n); if(!x)continue;
+   const pos=(r.results||[]).indexOf(x)+1, status=statusOfResult(x), valid=status==='RESULT';
+   const grid=Number(x.grid)||0;
+   if(grid===1)poles++;
+   if(grid>=1&&grid<=3)qualiTop3++;
+   if(valid&&grid>pos)biggestGain=Math.max(biggestGain,grid-pos);
+   const fastest=normDriver(r.highlights?.fastest||'')===n;
+   if(valid&&pos===1&&grid===1&&fastest)grandSlams++;
+   if(valid&&pos===1){wins++;longestWins=Math.max(longestWins,wins)}else wins=0;
+   if(valid&&pos<=3){podiums++;longestPodiums=Math.max(longestPodiums,podiums)}else podiums=0;
+ }
+ return {grandSlams,biggestGain,longestWins,longestPodiums,poles,qualiTop3};
+}
+function renderDriverRecords(name){
+ const r=driverRecordStats(name);
+ return `<div class="profile-section driver-records-section"><h3>🏆 Rekorde</h3>${metric('Grand Slam',r.grandSlams+'×')}${metric('Größter Positionsgewinn',r.biggestGain?'+'+r.biggestGain+' Plätze':'—')}${metric('Längste Siegesserie',r.longestWins+' Rennen')}${metric('Längste Podien-Serie',r.longestPodiums+' Rennen')}</div>`;
+}
+function openDriver(name){if(!name)return;const c=calcDriver(name),s=driverRaceStats(name),history=getMarketHistory(name,c.mw),team=driverTeam(name)||'Free Agent',vehicles=driverVehicleHistory(name),finishRate=s.races?((s.races-s.dnf-s.dsq)/s.races*100):0;document.getElementById('driver-profile').innerHTML=`<div class="profile-card"><div class="profile-headline"><div><div class="eyebrow">FAHRERAKTE · AKTUELLER STAND</div><div class="profile-name">${esc(normDriver(name))} ${driverFlag(name)?`<img class="driver-flag" src="${driverFlag(name)}" alt="${esc(nationalityInfo(name)?.name||'Nationalität')}" title="${esc(nationalityInfo(name)?.name||'Nationalität')}">`:nationalityInfo(name)?`<span class="driver-nationality-fallback" title="${esc(nationalityInfo(name).name)}">${nationalityInfo(name).emoji}</span>`:''} ${driverNumber(name)?`<span class="driver-number-badge">#${driverNumber(name)}</span>`:''}</div><div class="profile-sub">${nationalityLabel(name)?esc(nationalityLabel(name))+' · ':''}${esc(team)} · ${esc(currentDivision(name))} · ${esc(getStatus(name))} · ${driverRoleLabel(name)}</div></div><div class="profile-select"><button class="ghost mini-edit" onclick="openDriverFinance('${esc(name)}')">💰 Finanzen</button><button class="ghost mini-edit" onclick="openDriverContracts('${esc(name)}')">📄 Vertrag</button></div><button class="ghost mini-edit" onclick="openDriverEditor('${esc(name)}')">✏️ Bearbeiten</button></div><div class="profile-hero"><img class="profile-team-car-image" src="${esc(driverStatusImage(name))}" alt="${esc(team)} Fahrzeug"><div class="profile-main"><div class="avatar driver-avatar">${driverProfileImage(name)}</div><div><div class="profile-teamline">${esc(team)}</div><div class="profile-car-inline"><img src="${driverStatusImage(name)}" onerror="this.style.display='none'"><span>aktuelles Fahrzeug</span></div></div></div><div class="profile-score-side"><div class="current-rating"><span>OVA · GESAMT</span><b>${c.ova}</b></div><div class="profile-ratings">${[['REN',c.ren],['PER',c.per],['TEM',c.tem],['AMK',c.amk],['ERF',c.erf]].map(x=>`<div class="rating"><span>${x[0]}</span><b>${x[1]}</b></div>`).join('')}</div></div></div><div class="profile-sections profile-overview-grid">${renderDriverRecords(name)}<div class="profile-section"><h3>Erfolge</h3>${metric('Siege',s.wins)}${metric('Podien',s.podiums)}${metric('P4–P6',validCount(name,4,6))}${metric('P7–P10',validCount(name,7,10))}${metric('P11–P15',validCount(name,11,15))}</div><div class="profile-section"><h3>Rennleistung</h3>${metric('Positionsgewinne',s.gained)}${metric('Positionsverluste',s.lost)}${metric('Fahrer des Tages',countHighlight(name,'dotd'))}${metric('Meiste Überholmanöver',countHighlight(name,'overtakes'))}${metric('Start / Ziel gleich',s.same)}${metric('Ø Platzierung',s.avgPos?s.avgPos.toFixed(1).replace('.',','):'—')}</div><div class="profile-section"><h3>Zuverlässigkeit</h3>${metric('Rennen',s.races)}${metric('DNF',s.dnf)}${metric('DSQ',s.dsq)}${metric('TL',s.tl)}${metric('Nachträgliche Strafen',s.postPenalty)}${metric('Zielankunftsquote',finishRate.toFixed(2).replace('.',',')+'%')}</div><div class="profile-section market-current"><span>Aktueller Marktwert</span><strong>${money(c.mw)}</strong><div class="history-list">${history.map(h=>`<div>${esc(h.label)}: ${money(h.value)}</div>`).join('')}</div></div></div><div class="profile-sections"><div class="profile-section"><h3>Qualifying</h3>${metric('Poles',driverRecordStats(name).poles+'×')}${metric('Top 3 Quali',driverRecordStats(name).qualiTop3+'×')}${metric('Ø Startposition',s.avgGrid?s.avgGrid.toFixed(1).replace('.',','):'—')}</div><div class="profile-section"><h3>Fahrerprofil</h3>${metric('Karrierephase',careerPhase(s.races))}${metric('DNA',driverDNA(c))}${metric('Stärke',strength(c))}</div><div class="profile-section vehicle-section"><h3>Gefahrene Fahrzeuge</h3><div class="vehicle-history">${vehicles.length?vehicles.map(v=>`<div class="vehicle-chip"><img src="${driverCar(v.team)}"><span>${esc(v.team)}</span><b>${v.count}×</b></div>`).join(''):'<span class="muted">Noch keine Renndaten</span>'}</div></div></div><div class="profile-section race-history-section"><div class="section-inline"><h3>🏁 Rennhistorie &amp; Strecken</h3></div>${renderDriverRaceHistory(name)}</div><div class="market-wrap market-chart-only"><div><h3>📈 Marktwert-Entwicklung</h3><div class="chart">${marketChart(history)}</div></div></div>${renderDriverLicenseCard(name)}<div class="profile-section contract-section"><div class="section-inline"><h3>📋 Verträge &amp; Teamhistorie</h3>${isEditor()?`<button class="ghost mini-edit" onclick="openContractEditor('${esc(name)}')">➕ Vertrag</button>`:''}</div><div class="contract-history">${contractHistory(name).length?contractHistory(name).map(c=>{const isContract=c.source==='contract';return `<div class="contract-row"><span><b>${esc(c.season||'—')}</b> · ${esc(c.team||'—')}</span><span>${esc(c.division||'—')}</span><span>${isContract?'Vertrag gespeichert':'Rennhistorie'}</span><span>${c.salary||c.value?esc(c.salary||c.value):'—'}</span>${isContract&&isEditor()?`<button class="mini-link" onclick="openContractEditor('${esc(c.driver)}','${esc(c.id)}')">✏️ Ansehen / Bearbeiten</button><button class="mini-link" onclick="deleteContract('${esc(c.id)}')">Löschen</button>`:''}</div>`;}).join(''):'<span class="muted">Noch keine Vertrags-/Teamhistorie vorhanden.</span>'}</div></div></div></div>`}
 function metric(label,value){return `<div class="metric-row"><span>${esc(label)}</span><b>${esc(value)}</b></div>`}
 function validCount(name,min,max){return raceList().flatMap(r=>r.results.map((x,i)=>normDriver(x.name)===normDriver(name)?i+1:null)).filter(p=>p&&p>=min&&p<=max).length}
 function countHighlight(name,key){return raceList().filter(r=>normDriver(r.highlights?.[key]||'')===normDriver(name)).length}
@@ -3777,3 +3965,5 @@ function openRaceEdit(id){
   document.getElementById('modal-content').innerHTML=`<div class="modal-head"><div><h2>${esc(r.track)} · Rennen ${r.number}</h2><p class="race-edit-note">Ergebnisdaten, Zeitstrafen, PP und WM-Abzug können pro Fahrer korrigiert werden. PP werden nach dem Speichern separat als Strafzahlung bestätigt.</p></div><button onclick="closeModal()">×</button></div><div id="edit-rows">${(r.results||[]).map((x,i)=>editRow(x,i,r.id)).join('')}</div><div class="modal-actions"><button class="ghost" onclick="addRaceEditRow()">➕ Fahrer hinzufügen</button><button class="ghost" onclick="closeModal()">Abbrechen</button><button class="primary" onclick="saveRaceEdit('${esc(r.id)}')">Änderungen speichern</button></div>`;
   openModal();
 }
+
+;try{if(typeof dogApplyTrackBackdrop==='function')dogApplyTrackBackdrop()}catch(e){console.warn("Track backdrop",e)}

@@ -1,8 +1,8 @@
-﻿<!doctype html>
+<!doctype html>
 <html lang="de">
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>DoG RaceHub</title><link rel="stylesheet" href="./style.css?v=2.52.0"><link rel="manifest" href="manifest.webmanifest"><meta name="theme-color" content="#8f1820"><meta name="description" content="DoG RaceHub – F1 League Manager for drivers, teams, races and championships."><meta name="mobile-web-app-capable" content="yes"><link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png"><link rel="icon" type="image/png" sizes="64x64" href="favicon-64.png"><link rel="apple-touch-icon" sizes="180x180" href="icon-180.png">
+<title>DoG RaceHub</title><link rel="stylesheet" href="./style.css?v=2.54.31"><link rel="manifest" href="manifest.webmanifest"><meta name="theme-color" content="#8f1820"><meta name="description" content="DoG RaceHub – F1 League Manager for drivers, teams, races and championships."><meta name="mobile-web-app-capable" content="yes"><link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png"><link rel="icon" type="image/png" sizes="64x64" href="favicon-64.png"><link rel="apple-touch-icon" sizes="180x180" href="icon-180.png">
 </head>
 <body>
 <div id="toast"></div>
@@ -28,18 +28,27 @@
   </div>
   <div class="season-box"><small>AKTIVE SAISON</small><b>02/26</b><span>Division 1 &amp; 2</span></div>
   <button class="edit-btn sidebar-admin-btn" onclick="openAdmin()">🔐 Admin / Bearbeiten</button>
-  <div class="sidebar-foot">DoG RaceHub · v2.11</div>
+  <div class="sidebar-foot">DoG RaceHub · v2.54.20</div>
 </aside>
 <main class="main">
 <header class="topbar"><div><div class="eyebrow">DOG RACEHUB</div><h1 id="page-title">Dashboard</h1></div><div class="top-actions"><label class="language-picker" title="Sprache / Language">🌐 <span>Sprache</span><select id="language-select" aria-label="Sprache"><option value="de">🇩🇪 Deutsch</option><option value="en">🇬🇧 English</option><option value="pl">🇵🇱 Polski</option><option value="es">🇪🇸 Español</option><option value="da">🇩🇰 Dansk</option></select></label><button id="install-app" class="ghost" style="display:none" onclick="installApp()">📲 App installieren</button><button class="edit-btn" onclick="openAdmin()">✏️ Bearbeiten</button><span class="pill">SAISON 02/26</span><span class="status-dot">● System bereit</span></div></header>
 
 <section id="dashboard" class="view active">
-  <div class="hero"><div><span class="eyebrow">SAISON 02/26</span><h2>Deine Liga. Deine Daten.<br><em>Dein RaceHub.</em></h2><p>Fahrer, Teams, Rennen und Meisterschaften – sauber getrennt, nachvollziehbar und jederzeit erweiterbar.</p></div><div class="hero-badge">🏁</div></div>
-  <div class="stats-grid"><div class="stat"><span>Stammfahrer</span><strong id="stat-drivers">0</strong><small>aktuelle Saison</small></div><div class="stat"><span>Teams</span><strong>11</strong><small>alle aktiven Teams</small></div><div class="stat"><span>Divisionen</span><strong>2</strong><small>Div 1 · Div 2</small></div><div class="stat"><span>Erfasste Rennen</span><strong id="stat-races">0</strong><small>aktuelle Saison</small></div></div>
-<div id="dashboard-race-calendar" class="dashboard-race-grid"></div>  
-<div id="dotd-dashboard" class="two-col dotd-grid"></div>
-  <div id="market-movement-dashboard" class="market-movement-grid"></div>
-  <div class="two-col"><div class="panel"><div class="panel-head"><div><h3>Schnellzugriff</h3><p>Die wichtigsten Bereiche</p></div></div><div class="quick-grid"><button onclick="showView('drivers')">♙<b>Fahrer</b><small>Einzelakte &amp; Marktwert</small></button><button onclick="showView('teams')">▦<b>Teams</b><small>Fahrer &amp; Fahrzeuge</small></button><button onclick="showView('races')">◉<b>Rennen</b><small>Ergebnisse &amp; Screenshots</small></button><button onclick="showView('wm')">🏆<b>Fahrer-WM</b><small>Div 1 und Div 2</small></button></div></div></div>
+  <div class="rc-main-grid">
+    <div class="rc-left-stack">
+      <div id="dash-next-race" class="rc-next-race"></div>
+      <div class="rc-feature-row">
+        <section id="dash-last-races" class="rc-panel rc-last-races"></section>
+        <section id="dash-dotd" class="rc-panel rc-dotd-panel"></section>
+      </div>
+      <div class="rc-bottom-grid">
+        <section id="dash-wm" class="rc-panel"></section>
+        <section id="dash-kwm" class="rc-panel"></section>
+        <section id="dash-market" class="rc-panel"></section>
+        <section id="dash-calendar" class="rc-panel"></section>
+      </div>
+    </div>
+</div>
 </section>
 
 <section id="drivers" class="view"><div class="racehub-page-hero"><div class="rh-hero-copy"><div class="eyebrow">DOG RACEHUB · DRIVERS</div><h2>FAHRER</h2><p>Eine kompakte, vollständige Übersicht aller Fahrer.</p></div><div class="rh-hero-actions"><span class="pill">▣ SAISON 02/26</span><span class="status-dot">● System bereit</span></div><div class="rh-hero-car"></div></div><div class="driver-toolbar"><div class="driver-search-wrap">⌕<input id="driver-search" placeholder="Fahrer suchen ..." oninput="filterDriverSelect()"></div><label class="driver-team-filter">Team <select id="driver-team-filter" onchange="filterDriverSelect()"><option value="">Alle</option></select></label><button class="primary" onclick="openAddDriver()">＋ Fahrer hinzufügen</button></div><div class="driver-overview"><label class="legacy-driver-select">Fahrer auswählen<select id="driver-select" onchange="openDriver(this.value)"></select></label><div id="driver-profile"></div></div></section>
@@ -92,7 +101,7 @@
 <section id="archive" class="view"><div class="section-head"><div><h3>Saisonarchiv</h3><p>Historische Rennstände und Regelversionen der DoG-Saisons.</p></div></div><div class="archive-card active-season"><div><b>02/26</b><small>Offiziell · 1. Saison</small></div><span>Div 1 &amp; Div 2</span><i>aktiv</i></div></section>
 </main></div>
 <div id="modal" class="modal"><div class="modal-card" id="modal-content"></div></div>
-<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="./config.js?v=2.11"></script><script src="./app.js?v=2.52.0"></script><script src="./flaggen.js?v=1.0"></script><script>/* v2.10: Text nodes do not have Element.dataset; provide a safe per-node store for the language helper. */(()=>{const store=new WeakMap();const d=Object.getOwnPropertyDescriptor(Node.prototype,"dataset");if(!d){Object.defineProperty(Node.prototype,"dataset",{configurable:true,get(){if(this.nodeType!==3)return undefined;let x=store.get(this);if(!x){x={};store.set(this,x)}return x;}})}})();</script><script src="./lang.js?v=2.11"></script><script>
+<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="./config.js?v=2.11"></script><script src="./app.js?v=2.54.31"></script><script src="./flaggen.js?v=1.0"></script><script>/* v2.10: Text nodes do not have Element.dataset; provide a safe per-node store for the language helper. */(()=>{const store=new WeakMap();const d=Object.getOwnPropertyDescriptor(Node.prototype,"dataset");if(!d){Object.defineProperty(Node.prototype,"dataset",{configurable:true,get(){if(this.nodeType!==3)return undefined;let x=store.get(this);if(!x){x={};store.set(this,x)}return x;}})}})();</script><script src="./lang.js?v=2.11"></script><script>
 let deferredInstallPrompt=null;
 window.addEventListener("beforeinstallprompt",e=>{e.preventDefault();deferredInstallPrompt=e;const b=document.getElementById("install-app");if(b)b.style.display="inline-flex"});
 window.addEventListener("appinstalled",()=>{deferredInstallPrompt=null;const b=document.getElementById("install-app");if(b)b.style.display="none"});
