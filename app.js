@@ -1108,19 +1108,36 @@ function dogApplyTrackBackdrop(){
  document.body.dataset.nextRound=String(next.round);
 }
 
+
 function dogCalendarRaceData(item){
   const season=seasonState.current||'02/26';
-  const found=Object.values(races||{}).filter(r=>String(r?.season||season)===String(season)&&Number(r?.number||r?.round||0)===item.round);
-  const withResults=found.find(r=>Array.isArray(r.results)&&r.results.length>0);
-  const stored=withResults||found[0]||null;
+  const found=Object.values(races||{}).filter(r=>
+    String(r?.season||season)===String(season) &&
+    Number(r?.number||r?.round||0)===item.round
+  );
+
+  // Für den Kalender nur gespeicherte Rennen verwenden,
+  // deren Strecke zum Kalendereintrag passt.
+  const trackKey=s=>String(s||'').normalize('NFD')
+    .replace(/[\u0300-\u036f]/g,'').toLowerCase().trim();
+
+  const matching=found.filter(r=>trackKey(r.track)===trackKey(item.track));
+  const withResults=matching.find(r=>Array.isArray(r.results)&&r.results.length>0);
+  const stored=withResults||matching[0]||null;
+
+  // Australien ist im Kalender als absolviert markiert,
+  // auch wenn noch keine Ergebnisse eingetragen wurden.
+  const calendarCompleted=item.round===4 || !!withResults;
+
   return {
     ...item,
-    track:stored?.track||item.track,
-    date:stored?.raceDate||stored?.date||item.date,
+    track:item.track,
+    date:item.date,
     stored:!!stored,
-    completed:!!withResults
+    completed:calendarCompleted
   };
 }
+
 
 function dogCalendarDate(item){
   const d=new Date(String(item.date||'')+'T12:00:00');
@@ -1244,7 +1261,10 @@ function renderDashboard(){
  const season=seasonState.current||'02/26';
  const list=DOG_SEASON_CALENDAR.map(dogCalendarRaceData);
  const today=new Date();today.setHours(0,0,0,0);
- const next=list.find(r=>{const d=dogCalendarDate(r);return d&&d>=today&&!r.completed})||null;
+ const next=list.find(r=>{
+  const d=dogCalendarDate(r);
+  return d&&d>=today&&!r.completed;
+})||null;
  const nextHost=document.getElementById('dash-next-race');
  if(nextHost){
    nextHost.innerHTML=next?`<div class="rc-next-inner"><div class="rc-next-flag">${next.country}</div><div class="rc-next-copy"><div class="eyebrow">NÄCHSTES RENNEN</div><h3>${esc(next.track)}</h3><p>${esc(next.country)} · ${esc(dogCalendarLabel(next))} · 20:00 Uhr</p></div><div class="rc-next-round">R${next.round}<small>SAISON ${esc(season)}</small></div><div class="rc-inline-countdown"><small>START NÄCHSTES RENNEN IN</small><strong id="dash-countdown">-- : -- : -- : --</strong><span id="dash-next-label">Wird geladen …</span></div></div>`:`<div class="empty-race">Kein kommendes Rennen im Rennkalender.</div>`;
