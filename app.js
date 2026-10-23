@@ -4,21 +4,44 @@ const RACE_DIR='';
 const carMap={'McLaren':'car_large_mclaren.png','Oracle Red Bull Racing':'car_large_oracle_red_bull_racing.png','Audi':'car_large_audi.png','Mercedes':'car_large_mercedes.png','Williams':'car_large_williams.png','Cadillac':'car_large_cadillac.png','Alpine':'car_large_alpine.png','Aston Martin':'car_large_aston_martin.png','Ferrari':'car_large_ferrari.png','Haas':'car_large_haas.png','Visa Cash':'car_large_visa_cash.png'};
 // Fahrer-Übersicht/Profile: große Fahrzeuge. Fahrer-WM + KWM: kleine Fahrzeuge.
 const standingsCarMap={'McLaren':'car_mini_mclaren.png','Oracle Red Bull Racing':'car_mini_oracle_red_bull_racing.png','Audi':'car_mini_audi.png','Mercedes':'car_mini_mercedes.png','Williams':'car_mini_williams.png','Cadillac':'car_mini_cadillac.png','Alpine':'car_mini_alpine.png','Aston Martin':'car_mini_aston_martin.png','Ferrari':'car_mini_ferrari.png','Haas':'car_mini_haas.png','Visa Cash':'car_mini_visa_cash.png'};
+
+
+
 function driverCar(name){
- const raw=String(name||'').trim();
- if(raw==='Free Agent')return 'free-agent.png';
- if(raw==='Nicht verfÃ¼gbar')return 'not-available.png';
- const direct=canonicalTeamName(raw);
- if(carMap[direct]||carMap[teamKey(direct)])return CAR_DIR+(carMap[direct]||carMap[teamKey(direct)]);
- const roster=currentRosterEntry(raw);
- const st=getStatus(raw);
- if(st==='Nicht verfÃ¼gbar')return 'not-available.png';
- if(st==='Free Agent')return 'free-agent.png';
- const team=roster?.team||driverRecord(raw)?.team||'';
- const tc=canonicalTeamName(team);
- if(carMap[tc]||carMap[teamKey(tc)])return CAR_DIR+(carMap[tc]||carMap[teamKey(tc)]);
- return 'not-available.png';
-}function standingsCar(name){const c=canonicalTeamName(name);return CAR_DIR+(standingsCarMap[c]||carMap[c]||carMap[teamKey(c)]||'not-available.png')}
+  const raw = String(name || '').trim();
+
+  // Fahrerstatus hat Vorrang
+  const status = getStatus(raw);
+  if(status === 'Nicht verfügbar') return 'not-available.png';
+  if(status === 'Free Agent') return 'free-agent.png';
+
+  // Aktuelles Team des Fahrers ermitteln
+  const roster = currentRosterEntry(raw);
+  const team = roster?.team || driverRecord(raw)?.team || '';
+  const canonical = canonicalTeamName(team);
+
+  // Kleine Fahrzeugbilder wie in der KWM
+  const miniCar =
+    standingsCarMap[canonical] ||
+    standingsCarMap[teamKey(canonical)];
+
+  if(miniCar) return CAR_DIR + miniCar;
+
+  return 'not-available.png';
+}
+
+
+function standingsCar(name){
+  const c = canonicalTeamName(name);
+  return CAR_DIR + (
+    standingsCarMap[c] ||
+    carMap[c] ||
+    carMap[teamKey(c)] ||
+    'not-available.png'
+  );
+}
+
+
 const teamFactors={'Mercedes':1.2,'Ferrari':1.4,'McLaren':1.6,'Red Bull':1.8,'Alpine':2.6,'Haas':2.8,'Audi':3.0,'Visa Cash':3.2,'Williams':3.3,'Cadillac':4.0,'Aston Martin':4.8};
 const DOG_POINTS={1:25,2:21,3:18,4:15,5:13,6:11,7:9,8:8,9:7,10:6,11:5,12:4,13:3,14:2,15:1};
 // DoG Fahrernummern: 1–99, aktuelle F1-Nummern sind gesperrt. 89 ist auf Wunsch zusätzlich gesperrt.
@@ -658,7 +681,22 @@ function renderMarketValues(){
 }
 function showView(id){document.querySelectorAll('.view').forEach(v=>{v.classList.remove('active');v.style.display='none'});const target=document.getElementById(id);if(!target)return;target.classList.add('active');target.style.display='block';document.querySelectorAll('.nav').forEach(n=>n.classList.toggle('active',n.dataset.view===id));document.getElementById('page-title').textContent={dashboard:'Dashboard',drivers:'Fahrer',loans:'Fahrer-Leihen',marketvalues:'Marktwerte',compare:'Vergleich',teams:'Teams',races:'Rennen',wm:'Fahrer-WM',kwm:'KWM',calendar:'Rennkalender',licenses:'Lizenzen',archive:'Archiv',penalties:'Strafen'}[id]||'DoG RaceHub';try{if(id==='drivers')initDriverOverview();if(id==='loans')renderLoanCenter('drivers');if(id==='penalties')renderPenalties();if(id==='marketvalues')renderMarketValues();if(id==='compare')renderCompare();if(id==='teams')renderTeams();if(id==='races')initRaceSelectors();if(id==='wm')renderWM();if(id==='kwm')renderKWM();if(id==='calendar')renderRaceCalendar();if(id==='licenses')renderLicenses();if(id==='dashboard')renderDashboard();if(id==='archive')renderArchive();updateStats()}catch(e){console.error('showView',e)}}
 document.querySelectorAll('.nav').forEach(n=>n.addEventListener('click',()=>showView(n.dataset.view)));
-function updateStats(){document.getElementById('stat-drivers').textContent=drivers.filter(n=>getStatus(n)==='Stammfahrer').length;document.getElementById('stat-races').textContent=new Set(raceList().map(r=>r.track)).size}
+
+function updateStats(){
+  const statDrivers = document.getElementById('stat-drivers');
+  const statRaces = document.getElementById('stat-races');
+
+  if(statDrivers){
+    statDrivers.textContent =
+      drivers.filter(n => getStatus(n) === 'Stammfahrer').length;
+  }
+
+  if(statRaces){
+    statRaces.textContent =
+      new Set(raceList().map(r => r.track)).size;
+  }
+}
+
 function initDriverOverview(){const sel=document.getElementById('driver-select');if(!sel)return;const current=sel.value;sel.innerHTML=drivers.filter(n=>getStatus(n)!=='Nicht verfügbar').sort((a,b)=>a.localeCompare(b,'de')).map(n=>`<option value="${esc(n)}">${driverNumber(n)?'#'+driverNumber(n)+' · ':''}${esc(n)} · ${esc(getStatus(n))}</option>`).join('');if(current&&drivers.includes(current)&&getStatus(current)!=='Nicht verfügbar')sel.value=current;else if(sel.options.length)sel.selectedIndex=0;openDriver(sel.value)}
 function openAddDriver(prefill='',teamPrefill='',divPrefill='Div 2'){
  if(!requireEditor())return;
@@ -3194,7 +3232,7 @@ function championBadge(info){
  return info.completed?`<div class="champion-banner"><span>🏆</span><div><small>SAISONMEISTER</small><b>${esc(info.leader.name)}</b><span>${info.leader.points} Punkte · ${info.rounds} Rennwochenenden</span></div></div>`:`<div class="champion-banner provisional"><span>📈</span><div><small>AKTUELL FÜHREND</small><b>${esc(info.leader.name)}</b><span>${info.leader.points} Punkte · Saison läuft</span></div></div>`;
 }
 
-function renderWM(){initSeasonSelectors();const season=document.getElementById('wm-season')?.value||seasonState.current||'02/26';const div=document.getElementById('wm-div')?.value||'Div 1';const info=seasonInfo(season,div),rows=info.rows;document.getElementById('wm-table').innerHTML=rows.length?`${championBadge(info)}<div class="wm-block"><div class="wm-block-head"><h3>${div==='Div 1'?'Division 1':'Division 2'} · ${esc(season)}</h3><span>${info.rounds} Rennwochenenden · ${rows.length} Fahrer</span></div><div class="table-panel"><table class="standings"><thead><tr><th>Pos</th><th>Fahrer</th><th>Fahrzeug</th><th>Rennen</th><th>Siege</th><th>Podien</th><th>Marktwert</th><th>WM-Abzug</th><th>Punkte</th></tr></thead><tbody>${rows.map((r,i)=>`<tr><td class="rank ${i<3?'podium-p'+(i+1):''}">${i+1}</td><td><b>${esc(r.name)}</b></td><td><img class="car-mini" src="${standingsCar(r.team)}"></td><td>${r.races}</td><td>${r.wins}</td><td>${r.podiums}</td><td>${money(calcDriver(r.name).mw)}</td><td class="pen-wm">${r.wmDeduction?`−${r.wmDeduction}`:'—'}</td><td><b>${r.points}</b></td></tr>`).join('')}</tbody></table></div></div>`:'<div class="empty-race">Für diese Division liegen noch keine Rennergebnisse vor.</div>'}
+function renderWM(){initSeasonSelectors();const season=document.getElementById('wm-season')?.value||seasonState.current||'02/26';const div=document.getElementById('wm-div')?.value||'Div 1';const info=seasonInfo(season,div),rows=info.rows;document.getElementById('wm-table').innerHTML=rows.length?`${championBadge(info)}<div class="wm-block"><div class="wm-block-head"><h3>${div==='Div 1'?'Division 1':'Division 2'} · ${esc(season)}</h3><span>${info.rounds} Rennwochenenden · ${rows.length} Fahrer</span></div><div class="table-panel"><table class="standings"><thead><tr><th>Pos</th><th>Fahrer</th><th>Fahrzeug</th><th>Rennen</th><th>Siege</th><th>Podien</th><th>Marktwert</th><th>WM-Abzug</th><th>Punkte</th></tr></thead><tbody>${rows.map((r,i)=>`<tr><td class="rank ${i<3?'podium-p'+(i+1):''}">${i+1}</td><td><b>${esc(r.name)}</b></td><td><img class="car-mini" src="${driverCar(r.name)}"></td><td>${r.races}</td><td>${r.wins}</td><td>${r.podiums}</td><td>${money(calcDriver(r.name).mw)}</td><td class="pen-wm">${r.wmDeduction?`−${r.wmDeduction}`:'—'}</td><td><b>${r.points}</b></td></tr>`).join('')}</tbody></table></div></div>`:'<div class="empty-race">Für diese Division liegen noch keine Rennergebnisse vor.</div>'}
 function kwmRows(mode,season=seasonState.current||'02/26'){const divs=mode==='Overall'?['Div 1','Div 2']:[mode];const map={};seasonRaceList(season).filter(r=>divs.includes(r.division)).forEach(r=>r.results.forEach((x,i)=>{const t=x.team;if(!map[t])map[t]={team:t,points:0,wins:0,podiums:0};const st=statusOfResult(x);map[t].points+=pointsForPosition(i+1,st);if(i===0&&st==='RESULT')map[t].wins++;if(i<3&&st==='RESULT')map[t].podiums++}));return Object.values(map).sort((a,b)=>b.points-a.points||b.wins-a.wins)}
 function renderKWM(){
  initSeasonSelectors(); const season=document.getElementById('kwm-season')?.value||seasonState.current||'02/26'; const mode=document.getElementById('kwm-div').value,rows=kwmRows(mode,season);
