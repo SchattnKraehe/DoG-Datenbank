@@ -7,28 +7,42 @@ const standingsCarMap={'McLaren':'car_mini_mclaren.png','Oracle Red Bull Racing'
 
 
 
-function driverCar(name){
+
+function driverCar(name) {
   const raw = String(name || '').trim();
+  const canonical = canonicalTeamName(raw);
 
-  // Fahrerstatus hat Vorrang
-  const status = getStatus(raw);
-  if(status === 'Nicht verfügbar') return 'not-available.png';
-  if(status === 'Free Agent') return 'free-agent.png';
-
-  // Aktuelles Team des Fahrers ermitteln
-  const roster = currentRosterEntry(raw);
-  const team = roster?.team || driverRecord(raw)?.team || '';
-  const canonical = canonicalTeamName(team);
-
-  // Kleine Fahrzeugbilder wie in der KWM
+  // Teamnamen direkt auf das Mini-Fahrzeug abbilden.
   const miniCar =
     standingsCarMap[canonical] ||
     standingsCarMap[teamKey(canonical)];
 
-  if(miniCar) return CAR_DIR + miniCar;
+  if (miniCar) {
+    return CAR_DIR + miniCar;
+  }
 
-  return 'not-available.png';
+  // Ist es kein Teamname, wird es als Fahrer behandelt.
+  const status = getStatus(raw);
+
+  if (status === 'Nicht verfügbar') {
+    return 'not-available.png';
+  }
+
+  if (status === 'Free Agent') {
+    return 'free-agent.png';
+  }
+
+  const roster = currentRosterEntry(raw);
+  const team = roster?.team || driverRecord(raw)?.team || '';
+  const teamCanonical = canonicalTeamName(team);
+
+  const driverMiniCar =
+    standingsCarMap[teamCanonical] ||
+    standingsCarMap[teamKey(teamCanonical)];
+
+  return driverMiniCar ? CAR_DIR + driverMiniCar : 'not-available.png';
 }
+
 
 
 function standingsCar(name){
@@ -1504,12 +1518,21 @@ function cancelDriverSponsorUpfront(entity){
  delete sponsorPayments[key];
  financeTransactions=financeTransactions.filter(t=>!(String(t.contractId||'')===String(entity.id)&&t.type==='sponsor_upfront'&&String(t.sponsorRef||'start')==='start'));
 }
-function driverStatusImage(name){
- const status=getStatus(name);
- if(status==='Nicht verfügbar')return 'not-available.png';
- if(status==='Free Agent')return 'free-agent.png';
- const team=driverTeam(name);
- return team?driverCar(team):'free-agent.png';
+
+function driverStatusImage(name) {
+  const status = getStatus(name);
+
+  if (status === 'Nicht verfügbar') {
+    return 'not-available.png';
+  }
+
+  if (status === 'Free Agent') {
+    return 'free-agent.png';
+  }
+
+  const team = driverTeam(name);
+
+  return team ? teamCar(team) : 'free-agent.png';
 }
 function renameDriverDataSafe(oldName,newName){
  const oldKey=normDriver(oldName),newKey=normDriver(newName);
